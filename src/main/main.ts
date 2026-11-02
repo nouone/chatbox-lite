@@ -56,6 +56,7 @@ import { formatTooLargeFileRead, readRegularFileBytesBounded } from './bounded-f
 import { registerBuiltInBrowserHandlers } from './built-in-browser'
 import { handleDeepLink } from './deeplinks'
 import { registerDesktopDirectRequestHandlers } from './desktop-direct-request'
+import { registerLocalSpeechHandlers } from './local-speech-ipc'
 import { editTextFile, writeTextFile } from './file-mutations'
 import { parseFile } from './file-parser'
 import { isQuitForInstallRequested } from './installer-command'
@@ -1262,5 +1263,6 @@ registerOAuthHandlers()
 registerAgentPersonaHandlers()
 if (!IS_HARMONY_BUILD) {
   registerDesktopDirectRequestHandlers()
+  registerLocalSpeechHandlers(getAssetPath('whisper'))
   registerBuiltInBrowserHandlers()
 }

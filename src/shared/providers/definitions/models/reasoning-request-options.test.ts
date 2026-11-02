@@ -4,6 +4,7 @@ import type { ProviderModelInfo } from '@shared/types'
 import type { ModelDependencies } from '@shared/types/adapters'
 import type { SentryScope } from '@shared/utils/sentry_adapter'
 import { describe, expect, it, vi } from 'vitest'
+import { getReasoningProviderOptions, type ReasoningControlLevel } from '../../../utils/reasoning-control'
 import Claude from './claude'
 import CustomOpenAI from './custom-openai'
 import DeepSeek from './deepseek'
@@ -102,6 +103,70 @@ const supportedQwenModel = (modelId: string): ProviderModelInfo => ({
 })
 
 describe('reasoning request options', () => {
+  it.each(['default', 'off', 'low', 'medium', 'high'] as const)(
+    'serializes Strata %s through the real compatible SDK',
+    async (level: ReasoningControlLevel) => {
+      const info: ProviderModelInfo = {
+        modelId: 'qwen3-local',
+        type: 'chat',
+        providerId: 'custom-strata',
+        apiStyle: 'openai',
+        reasoningControl: 'strata',
+      }
+      const dependencies = createDependencies()
+      let body: Record<string, unknown> = {}
+      dependencies.request.apiRequest = vi.fn((request) => {
+        body = JSON.parse(String(request.body))
+        expect(request.url).toBe('http://127.0.0.1:8080/v1/chat/completions')
+        return Promise.resolve(
+          new Response(
+            JSON.stringify({
+              id: 'test',
+              object: 'chat.completion',
+              created: 0,
+              model: info.modelId,
+              choices: [
+                {
+                  index: 0,
+                  message: { role: 'assistant', content: 'OK', reasoning_content: 'Thought' },
+                  finish_reason: 'stop',
+                },
+              ],
+              usage: { prompt_tokens: 1, completion_tokens: 2, total_tokens: 3 },
+            }),
+            { headers: { 'Content-Type': 'application/json' } }
+          )
+        )
+      })
+      class StrataTestModel extends CustomOpenAI {
+        generate() {
+          const options = { providerOptions: getReasoningProviderOptions('custom-strata', info, level) }
+          const settings = (this as unknown as ResolveCallSettingsHarness).resolveCallSettings(options)
+          return this.getChatModel(options).doGenerate({
+            prompt: [{ role: 'user', content: [{ type: 'text', text: 'Hi' }] }],
+            providerOptions: settings.providerOptions,
+          } as LanguageModelV4CallOptions)
+        }
+      }
+      const model = new StrataTestModel(
+        {
+          apiKey: 'test',
+          apiHost: 'http://127.0.0.1:8080/v1',
+          apiPath: '/chat/completions',
+          model: info,
+        },
+        dependencies
+      )
+      const result = await model.generate()
+      expect(body.reasoning_effort).toBe(level === 'default' ? undefined : level === 'off' ? 'none' : level)
+      expect(body).not.toHaveProperty('reasoningEffort')
+      expect(body).not.toHaveProperty('forceReasoning')
+      expect(body).not.toHaveProperty('thinking')
+      expect(body).not.toHaveProperty('chat_template_kwargs')
+      expect(result.content).toContainEqual({ type: 'reasoning', text: 'Thought' })
+    }
+  )
+
   it('adds summarized display to Claude thinking requests before fetch', async () => {
     let requestBody: unknown
     const baseFetch: typeof globalThis.fetch = (_input, init) => {

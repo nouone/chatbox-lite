@@ -1,12 +1,12 @@
 import { createRequire } from 'node:module'
 import path, { resolve } from 'node:path'
-import { sentryVitePlugin } from '@sentry/vite-plugin'
 import { TanStackRouterVite } from '@tanstack/router-plugin/vite'
 import react from '@vitejs/plugin-react'
 import { defineConfig, type ElectronViteConfig, externalizeDepsPlugin } from 'electron-vite'
 import { visualizer } from 'rollup-plugin-visualizer'
 import type { Plugin } from 'vite'
 import packageJson from './release/app/package.json'
+
 createRequire(import.meta.url)('./scripts/build-mobile-work-worker.cjs').buildWorkModeWorker()
 /**
  * Vite plugin to inject <base href="/"> for web builds
@@ -170,22 +170,6 @@ export default defineConfig(({ mode }) => {
               }),
             ]
           : [externalizeDepsPlugin()]),
-        process.env.SENTRY_AUTH_TOKEN
-          ? sentryVitePlugin({
-              authToken: process.env.SENTRY_AUTH_TOKEN,
-              org: 'sentry',
-              project: 'chatbox',
-              url: 'https://sentry.midway.run/',
-              release: {
-                name: inferredRelease,
-                ...(inferredDist ? { dist: inferredDist } : {}),
-              },
-              sourcemaps: {
-                assets: isProduction ? 'release/app/dist/main/**' : 'output/main/**',
-              },
-              telemetry: false,
-            })
-          : undefined,
       ].filter(Boolean),
       build: {
         outDir: isProduction ? 'release/app/dist/main' : undefined,
@@ -273,22 +257,6 @@ export default defineConfig(({ mode }) => {
           open: false,
           title: 'Renderer Process Dependency Analysis',
         }),
-        process.env.SENTRY_AUTH_TOKEN
-          ? sentryVitePlugin({
-              authToken: process.env.SENTRY_AUTH_TOKEN,
-              org: 'sentry',
-              project: 'chatbox',
-              url: 'https://sentry.midway.run/',
-              release: {
-                name: inferredRelease,
-                ...(inferredDist ? { dist: inferredDist } : {}),
-              },
-              sourcemaps: {
-                assets: isProduction ? 'release/app/dist/renderer/**' : 'output/renderer/**',
-              },
-              telemetry: false,
-            })
-          : undefined,
       ].filter(Boolean),
       build: {
         outDir: isProduction ? 'release/app/dist/renderer' : undefined,
@@ -362,6 +330,8 @@ export default defineConfig(({ mode }) => {
         'process.env.CHATBOX_BUILD_CHANNEL': JSON.stringify(process.env.CHATBOX_BUILD_CHANNEL || 'unknown'),
         'process.env.CHATBOX_BUILD_VERSION': JSON.stringify(process.env.VERSION_NUMBER || ''),
         'process.env.USE_LOCAL_API': JSON.stringify(process.env.USE_LOCAL_API || ''),
+        'process.env.AUDIO_TTS_OPENAI_API_BASE_URL': JSON.stringify(process.env.AUDIO_TTS_OPENAI_API_BASE_URL || ''),
+        'process.env.CHATBOX_LOCAL_UI': JSON.stringify(process.env.CHATBOX_LOCAL_UI || '1'),
         'process.env.USE_BETA_API': JSON.stringify(process.env.USE_BETA_API || ''),
         'process.env.USE_NEWDB_API': JSON.stringify(process.env.USE_NEWDB_API || ''),
         'process.env.USE_LOCAL_CHATBOX': JSON.stringify(process.env.USE_LOCAL_CHATBOX || ''),

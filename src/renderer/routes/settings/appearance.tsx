@@ -49,9 +49,9 @@ function ImageUploadButton({ label, onFile }: { label: string; onFile: (file: Fi
   )
 }
 
-function FontSizeControl() {
+function FontSizeControl({ sidebar = false }: { sidebar?: boolean }) {
   const { t } = useTranslation()
-  const fontSize = useSettingsStore((s) => s.fontSize)
+  const fontSize = useSettingsStore((s) => (sidebar ? s.sidebarFontSize : s.fontSize))
   const setSettings = useSettingsStore((s) => s.setSettings)
   const [draft, setDraft] = useState(fontSize)
   useEffect(() => setDraft(fontSize), [fontSize])
@@ -68,9 +68,9 @@ function FontSizeControl() {
         marks={[{ value: DEFAULT_FONT_SIZE }]}
         value={draft}
         onChange={setDraft}
-        onChangeEnd={(value) => setSettings({ fontSize: value })}
+        onChangeEnd={(value) => setSettings(sidebar ? { sidebarFontSize: value } : { fontSize: value })}
         label={null}
-        aria-label={t('Font Size') ?? undefined}
+        aria-label={t(sidebar ? 'Sidebar font size' : 'Font Size') ?? undefined}
       />
       <Text fz={18} c="chatbox-tertiary" aria-hidden>
         A
@@ -138,6 +138,12 @@ export function RouteComponent() {
             control={<InterfaceColorPresets />}
           />
           <SettingRow id="font-size" label={t('Font Size')} controlLayout="block" control={<FontSizeControl />} />
+          <SettingRow
+            id="sidebar-font-size"
+            label={t('Sidebar font size')}
+            controlLayout="block"
+            control={<FontSizeControl sidebar />}
+          />
           <SettingRow
             id="startup-page"
             label={t('Startup Page')}

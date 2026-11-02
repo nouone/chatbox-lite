@@ -852,7 +852,7 @@ describe('row transcript host', () => {
     expect(h.read).toHaveBeenCalledTimes(1)
     expect(root?.getBoundingClientRect().top).toBe(0)
   })
-  test('stops following after focus scrolls from the acknowledged tail into the message', async () => {
+  test('continues following after a non-user focus or layout offset adjustment', async () => {
     const view = render(<Host />)
     await waitFor(() => expect(h.firstReady).toBe(true))
     const viewport = view.getByTestId('virtuoso')
@@ -861,7 +861,7 @@ describe('row transcript host', () => {
     h.scrollTo.mockClear()
     viewport.scrollTop = 200
     fireEvent.scroll(viewport)
-    expect(h.scrollTo).toHaveBeenCalledWith({ top: 200, behavior: 'auto' })
+    expect(h.scrollTo).not.toHaveBeenCalled()
     h.scrollTo.mockClear()
     vi.useFakeTimers()
     try {
@@ -870,8 +870,90 @@ describe('row transcript host', () => {
         h.heightChanged?.(1600)
         await vi.advanceTimersByTimeAsync(50)
       })
+      expect(h.scrollTo).toHaveBeenCalledWith({ top: 1000, behavior: 'smooth' })
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  test('resumes a paused viewport on a fresh submission and follows streamed growth', async () => {
+    const listRef = createRef<MessageListRef>()
+    const view = render(<Host listRef={listRef} />)
+    await waitFor(() => expect(h.firstReady).toBe(true))
+    const viewport = view.getByTestId('virtuoso')
+    act(() => h.heightChanged?.(1000))
+    viewport.scrollTop = 200
+    fireEvent.scroll(viewport)
+    h.scrollTo.mockClear()
+
+    act(() => listRef.current?.setIsNewMessage(false))
+    expect(viewport.scrollTop).toBe(400)
+    expect(h.scrollTo).toHaveBeenCalledWith({ top: 400, behavior: 'auto' })
+    h.scrollTo.mockClear()
+    vi.useFakeTimers()
+    try {
+      await act(async () => {
+        h.measuredHeight = 1100
+        h.heightChanged?.(1100)
+        await vi.advanceTimersByTimeAsync(50)
+      })
+      expect(h.scrollTo).toHaveBeenCalledWith({ top: 500, behavior: 'smooth' })
+      fireEvent.wheel(viewport, { deltaY: -100 })
+      viewport.scrollTop = 300
+      fireEvent.scroll(viewport)
+      h.scrollTo.mockClear()
+      await act(async () => {
+        h.measuredHeight = 1200
+        h.heightChanged?.(1200)
+        await vi.advanceTimersByTimeAsync(50)
+      })
       expect(h.scrollTo).not.toHaveBeenCalled()
-      expect(viewport.scrollTop).toBe(200)
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  test('follows three consecutive submissions despite intermediate layout scrolls', async () => {
+    const listRef = createRef<MessageListRef>()
+    const view = render(<Host listRef={listRef} />)
+    await waitFor(() => expect(h.firstReady).toBe(true))
+    const viewport = view.getByTestId('virtuoso')
+    act(() => h.heightChanged?.(1000))
+    vi.useFakeTimers()
+    try {
+      for (let turn = 0; turn < 3; turn++) {
+        act(() => listRef.current?.setIsNewMessage(false))
+        // Composer resize / Virtuoso anchoring emits scroll without user input.
+        viewport.scrollTop = Math.max(0, viewport.scrollTop - 80)
+        fireEvent.scroll(viewport)
+        h.scrollTo.mockClear()
+        await act(async () => {
+          h.measuredHeight += 200
+          h.heightChanged?.(h.measuredHeight)
+          await vi.advanceTimersByTimeAsync(50)
+        })
+        expect(h.scrollTo).toHaveBeenCalledWith({ top: h.measuredHeight - 600, behavior: 'smooth' })
+      }
+    } finally {
+      vi.useRealTimers()
+    }
+  })
+
+  test('keeps bottom-follow paused when new messages are intentionally pinned to the top', async () => {
+    const listRef = createRef<MessageListRef>()
+    render(<Host listRef={listRef} />)
+    await waitFor(() => expect(h.firstReady).toBe(true))
+    act(() => h.heightChanged?.(1000))
+    act(() => listRef.current?.setIsNewMessage(true))
+    h.scrollTo.mockClear()
+    vi.useFakeTimers()
+    try {
+      await act(async () => {
+        h.measuredHeight = 1100
+        h.heightChanged?.(1100)
+        await vi.advanceTimersByTimeAsync(50)
+      })
+      expect(h.scrollTo).not.toHaveBeenCalled()
     } finally {
       vi.useRealTimers()
     }
@@ -1486,4 +1568,106 @@ describe('row transcript host', () => {
     await waitFor(() => expect(h.firstReady).toBe(true))
     expect(h.bodyModes.every((item) => item.readOnly)).toBe(true)
   })
+})
+
+test('keeps bottom following when a subsequent submission reloads the streamed transcript', async () => {
+  const listRef = createRef<MessageListRef>()
+  const view = render(
+    <Host listRef={listRef} captureAnchor={() => ({ threadId: 't', messageId: 'm219', offset: 580 })} />
+  )
+  await waitFor(() => expect(h.firstReady).toBe(true))
+  await waitFor(() => expect(h.controller!.getSnapshot().layout).toBeNull())
+  act(() => h.heightChanged?.(1000))
+  act(() => listRef.current?.setIsNewMessage(false))
+  // Streaming invalidates cached page byte sizes; the next append can reload
+  // the visible window with a preserve layout rather than a tail layout.
+  await act(async () => {
+    await h.controller!.refresh()
+  })
+  await waitFor(() => expect(h.controller!.getSnapshot().layout).toBeNull())
+  h.scrollTo.mockClear()
+  vi.useFakeTimers()
+  try {
+    await act(async () => {
+      h.measuredHeight = 1300
+      h.heightChanged?.(1300)
+      await vi.advanceTimersByTimeAsync(50)
+    })
+    expect(h.scrollTo).toHaveBeenCalledWith({ top: 700, behavior: 'smooth' })
+  } finally {
+    vi.useRealTimers()
+  }
+  expect(view.getByTestId('virtuoso')).toBeTruthy()
+})
+
+test('moves to each streaming height immediately while generation is still active', async () => {
+  h.activity = 'generating'
+  const listRef = createRef<MessageListRef>()
+  render(<Host listRef={listRef} />)
+  await waitFor(() => expect(h.firstReady).toBe(true))
+  await waitFor(() => expect(h.controller!.getSnapshot().layout).toBeNull())
+  act(() => h.heightChanged?.(1000))
+  act(() => listRef.current?.setIsNewMessage(false))
+  h.scrollTo.mockClear()
+  vi.useFakeTimers()
+  try {
+    for (const height of [1200, 1400, 1600]) {
+      await act(async () => {
+        h.measuredHeight = height
+        h.heightChanged?.(height)
+        await vi.advanceTimersByTimeAsync(20)
+      })
+      expect(h.scrollTo).toHaveBeenLastCalledWith({ top: height - 600, behavior: 'auto' })
+    }
+  } finally {
+    vi.useRealTimers()
+  }
+})
+
+test('follows rendered reply resizing without a Virtuoso height callback and respects manual pause', async () => {
+  const callbacks = new Set<() => void>()
+  vi.stubGlobal(
+    'ResizeObserver',
+    class {
+      constructor(private callback: () => void) {}
+      observe() {
+        callbacks.add(this.callback)
+      }
+      unobserve() {}
+      disconnect() {
+        callbacks.delete(this.callback)
+      }
+    }
+  )
+  h.activity = 'generating'
+  const listRef = createRef<MessageListRef>()
+  const view = render(<Host listRef={listRef} />)
+  await waitFor(() => expect(h.firstReady).toBe(true))
+  await waitFor(() => expect(h.controller!.getSnapshot().layout).toBeNull())
+  act(() => listRef.current?.setIsNewMessage(false))
+  h.scrollTo.mockClear()
+  vi.useFakeTimers()
+  try {
+    await act(async () => {
+      h.measuredHeight = 1500
+      callbacks.forEach((callback) => callback())
+      await vi.advanceTimersByTimeAsync(30)
+    })
+    expect(h.scrollTo).toHaveBeenCalledWith({ top: 900, behavior: 'auto' })
+    const viewport = view.getByTestId('virtuoso')
+    fireEvent.wheel(viewport, { deltaY: -100 })
+    viewport.scrollTop = 700
+    fireEvent.scroll(viewport)
+    h.scrollTo.mockClear()
+    await act(async () => {
+      h.measuredHeight = 1700
+      callbacks.forEach((callback) => callback())
+      await vi.advanceTimersByTimeAsync(30)
+    })
+    expect(h.scrollTo).not.toHaveBeenCalled()
+  } finally {
+    vi.useRealTimers()
+  }
+  view.unmount()
+  expect(callbacks.size).toBe(0)
 })

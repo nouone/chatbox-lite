@@ -1,3 +1,4 @@
+import { mergeEngineTiming } from '@shared/models/utils/engine-timing'
 import {
   accumulateReasoningChunk,
   accumulateTextChunk,
@@ -408,6 +409,7 @@ export async function processStreamChunk(
       }
     }
     case 'finish-step': {
+      usage = mergeEngineTiming(usage, chunk.providerMetadata)
       finalizeReasoningDuration(currentReasoningPart)
       currentTextPart = undefined
       currentReasoningPart = undefined
@@ -421,7 +423,7 @@ export async function processStreamChunk(
       finishReason = 'finishReason' in chunk ? chunk.finishReason : finishReason
       preparingToolInput = undefined
       if ('totalUsage' in chunk && chunk.totalUsage) {
-        usage = toMessageUsage(chunk.totalUsage)
+        usage = { ...usage, ...toMessageUsage(chunk.totalUsage) }
       }
       break
     }

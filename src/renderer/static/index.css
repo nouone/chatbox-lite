@@ -223,3 +223,10 @@ html[data-theme="light"] {
     flex: 1 1 auto;
   }
 }
+
+/* Independent sidebar typography; portals and the chat panel are outside this scope. */
+.local-sidebar-font .mantine-NavLink-label,
+.local-sidebar-font .mantine-Text-root:not(.tabular-nums),
+.local-sidebar-font .mantine-Button-label {
+  font-size: var(--sidebar-font-size) !important;
+}

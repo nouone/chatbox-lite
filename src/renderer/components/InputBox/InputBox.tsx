@@ -122,6 +122,9 @@ import Disclaimer from '../Disclaimer'
 import { ModelProviderIcon } from '../icons/ModelProviderIcon'
 import ModelSelectorV2 from '../ModelSelectorV2'
 import AgentModeButton from './AgentModeButton'
+import AutoReadButton from './AutoReadButton'
+import MicrophoneButton from './MicrophoneButton'
+import { appendDictation } from '@/packages/microphone'
 import { FileMiniCard, getParserTypeLabel, ImageMiniCard } from './Attachments'
 import { getAgentModeUIState } from './agentModeState'
 import { ComposerSettingsMenu } from './ComposerSettingsMenu'
@@ -2000,6 +2003,17 @@ const InputBox = forwardRef<InputBoxRef, InputBoxProps>(
               {/* Left Group: Tool Buttons */}
               <Flex align="center" gap={0}>
                 <AttachmentMenu onImageUploadClick={onImageUploadClick} onFileUploadClick={onFileUploadClick} t={t} />
+                <AutoReadButton iconSize={toolbarIconSize} />
+                <MicrophoneButton
+                  key={currentSessionId || 'new'}
+                  iconSize={toolbarIconSize}
+                  onSend={() => void handleSubmit()}
+                  sendDisabled={submitBlocked || submitControl !== 'send'}
+                  onTranscript={(text) => {
+                    messageInputFieldRef.current?.setValue((draft) => appendDictation(draft, text))
+                    dom.focusMessageInput()
+                  }}
+                />
 
                 <ReasoningControlButton
                   provider={model?.provider}

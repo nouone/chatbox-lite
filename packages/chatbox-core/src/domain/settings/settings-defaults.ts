@@ -37,6 +37,7 @@ export function createDefaultSettings(): Settings {
     interfaceColorPresets: [],
     language: 'en',
     fontSize: 14,
+    sidebarFontSize: 14,
     spellCheck: true,
     defaultPrompt: DEFAULT_SYSTEM_PROMPT,
     allowReportingAndTracking: true,

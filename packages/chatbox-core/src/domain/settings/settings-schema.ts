@@ -49,6 +49,8 @@ export const ProviderModelInfoSchema = z.object({
   providerId: z.string().optional().catch(undefined),
   type: z.enum(['chat', 'embedding', 'rerank', 'image']).optional().catch(undefined),
   apiStyle: z.enum(['google', 'openai', 'openai-responses', 'anthropic']).optional().catch(undefined),
+  // Explicit opt-in: reasoning capability alone does not establish an endpoint's wire protocol.
+  reasoningControl: z.literal('strata').optional().catch(undefined),
   nickname: z.string().optional().catch(undefined),
   labels: z.array(z.string()).optional().catch([]),
   capabilities: z
@@ -467,6 +469,18 @@ const DefaultModelSelectionSchema = z
   .catch(undefined)
 
 export const SettingsSchema = GlobalSessionSettingsSchema.extend({
+  textToSpeech: z
+    .object({
+      enabled: z.boolean().optional(),
+      apiBaseUrl: z.string().optional(),
+      apiKey: z.string().optional(),
+      model: z.string().optional(),
+      voice: z.string().optional(),
+      speed: z.number().min(0.25).max(4).optional().catch(undefined),
+      autoRead: z.boolean().optional(),
+    })
+    .optional()
+    .catch(undefined),
   providers: z.record(z.string(), ProviderSettingsSchema).optional().catch(undefined),
   customProviders: z.array(CustomProviderBaseInfoSchema).optional().catch(undefined),
   favoritedModels: z
@@ -569,6 +583,7 @@ export const SettingsSchema = GlobalSessionSettingsSchema.extend({
   ]),
   languageInited: z.boolean().optional(),
   fontSize: z.number().catch(14),
+  sidebarFontSize: z.number().min(10).max(22).catch(14),
   spellCheck: z.boolean().optional(),
 
   startupPage: z.enum(['home', 'session']).optional(),

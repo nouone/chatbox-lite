@@ -427,7 +427,7 @@ function Root() {
               titleBarHeight
                 ? {
                     borderTopWidth: '1px',
-                    borderInlineStartWidth: showSidebar ? '1px' : 0,
+                    borderInlineStartWidth: 0,
                     borderStartStartRadius: showSidebar ? '16px' : 0,
                   }
                 : undefined

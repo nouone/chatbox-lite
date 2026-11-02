@@ -85,6 +85,8 @@ const MessageList = forwardRef<
   const controller = transcript.controller
   const isSmallScreen = useIsSmallScreen()
   const activity = useSessionActivity(session.id)
+  const generatingRef = useRef(activity === 'generating')
+  generatingRef.current = activity === 'generating'
   const platformType = useAtomValue(platformTypeAtom)
   const widthFull = useUIStore((state) => state.widthFull)
   const hideSystemPromptSetting = useSettingsStore((state) => state.hideSystemPromptMessage)
@@ -220,6 +222,10 @@ const MessageList = forwardRef<
           if (element) scrollToPosition({ top: Math.max(0, element.scrollHeight - element.clientHeight), behavior })
         },
         stopScrolling: (top) => scrollToPosition({ top, behavior: 'auto' }),
+        // Repeated smooth-scroll retargets can keep restarting the native
+        // animation as tokens arrive. Follow each measured chunk immediately.
+        getScrollBehavior: () =>
+          generatingRef.current || window.matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth',
       }),
     [scrollToPosition]
   )
@@ -286,9 +292,29 @@ const MessageList = forwardRef<
         void navigate('tail')
       },
       scrollToMessage: (messageId) => navigate({ messageId }),
-      setIsNewMessage,
+      setIsNewMessage: (value) => {
+        setIsNewMessage(value)
+        if (value) {
+          follow.pause()
+          return
+        }
+        // A fresh submission starts a new follow intent, even when an earlier reply
+        // was left paused. Scrolling upward afterwards still pauses normally.
+        follow.resume()
+        if (controller.getSnapshot().hasNewer) {
+          void navigate('tail')
+          return
+        }
+        const viewport = scroller.current
+        if (viewport) {
+          const bottom = Math.max(0, viewport.scrollHeight - viewport.clientHeight)
+          follow.syncScrollPosition(viewport.scrollTop, bottom)
+          follow.handleHeightChange(viewport.scrollHeight)
+          scrollToPosition({ top: bottom, behavior: 'auto' })
+        }
+      },
     }),
-    [captureAnchor, navigate]
+    [captureAnchor, navigate, follow, controller, scrollToPosition]
   )
   useEffect(() => {
     uiStore.getState().setMessageListElement(container)
@@ -367,7 +393,16 @@ const MessageList = forwardRef<
     [controller, contentAnchor, layoutCorrection, scrollByGeometry]
   )
   const applyLayout = useCallback(() => {
-    const layout = live.current.transcript.layout
+    const requestedLayout = live.current.transcript.layout
+    // A passive reload after streaming preserves the old viewport by default.
+    // Keep an existing bottom-follow intent through that reload; explicit
+    // paging/search/branch navigation must retain its own anchor behavior.
+    const keepFollowing =
+      requestedLayout?.kind === 'preserve' &&
+      controller.getSnapshot().operation?.kind === 'navigate' &&
+      !controller.getSnapshot().hasNewer &&
+      follow.isFollowing()
+    const layout = keepFollowing ? { ...requestedLayout!, kind: 'tail' as const } : requestedLayout
     if (!layout || applying.current === layout.requestId || !scroller.current || !virtuoso.current) return
     const currentItems = live.current.items
     if (
@@ -523,6 +558,12 @@ const MessageList = forwardRef<
     },
     [controller, synchronizeBrowseIntent]
   )
+  const pauseFollowingForUser = useCallback(() => {
+    const viewport = scroller.current
+    if (viewport)
+      follow.syncScrollPosition(viewport.scrollTop, Math.max(0, viewport.scrollHeight - viewport.clientHeight))
+    follow.pause()
+  }, [follow])
   const onScroll = useCallback(() => {
     synchronizeBrowseIntent()
     const element = scroller.current
@@ -541,7 +582,10 @@ const MessageList = forwardRef<
       userDirection.current = delta < 0 ? 'older' : 'newer'
       if (delta < 0) follow.pause()
     }
-    follow.handleScroll(element.scrollTop, Math.max(0, element.scrollHeight - element.clientHeight))
+    // A native scroll event also fires for Virtuoso/ResizeObserver anchoring and
+    // composer resizing. Explicit wheel/touch/key/scrollbar handlers own pausing;
+    // geometry changes alone must not cancel following on the next reply.
+    follow.handleScroll(element.scrollTop, Math.max(0, element.scrollHeight - element.clientHeight), false)
     const maxScrollTop = element.scrollHeight - element.clientHeight
     if (maxScrollTop - element.scrollTop >= 0) handleScrollTopThrottled(element.scrollTop, maxScrollTop)
     contentAnchor.onScroll()
@@ -552,6 +596,32 @@ const MessageList = forwardRef<
     if (transcript.firstWindowReady && transcript.hasNewer && follow.isFollowing() && !transcript.operation)
       navigate('tail')
   }, [transcript.firstWindowReady, transcript.hasNewer, transcript.operation, navigate, follow])
+  const tailItemKey = items.at(-1)?.key
+  // Streaming changes the rendered row before Virtuoso always publishes its
+  // total-height callback. Observe the real tail and viewport as a fallback.
+  // Virtuoso attaches its viewport in a passive effect.
+  useEffect(() => {
+    const viewport = scroller.current
+    const tail = lastItem.current
+    if (activity !== 'generating' || !viewport || !tail || typeof ResizeObserver === 'undefined') return
+    let frame: number | undefined
+    const schedule = () => {
+      if (frame !== undefined) return
+      frame = requestAnimationFrame(() => {
+        frame = undefined
+        if (scroller.current !== viewport || !follow.isFollowing() || controller.getSnapshot().hasNewer) return
+        scrollToPosition({ top: Math.max(0, viewport.scrollHeight - viewport.clientHeight), behavior: 'auto' })
+      })
+    }
+    const observer = new ResizeObserver(schedule)
+    observer.observe(tail)
+    observer.observe(viewport)
+    schedule()
+    return () => {
+      observer.disconnect()
+      if (frame !== undefined) cancelAnimationFrame(frame)
+    }
+  }, [activity, controller, follow, tailItemKey, transcript.windowEpoch, scrollToPosition])
   const previousRowCount = useRef(transcript.rows.length)
   useLayoutEffect(() => {
     if (!transcript.layout && isNewMessage && transcript.rows.length > previousRowCount.current) {
@@ -788,7 +858,7 @@ const MessageList = forwardRef<
             userInput()
             progress.current++
             userDirection.current = event.deltaY < 0 ? 'older' : 'newer'
-            if (event.deltaY < 0) follow.pause()
+            if (event.deltaY < 0) pauseFollowingForUser()
             onScroll()
           }}
           onTouchStartCapture={(event) => {
@@ -804,7 +874,7 @@ const MessageList = forwardRef<
             userInput()
             progress.current++
             userDirection.current = direction
-            if (userDirection.current === 'older') follow.pause()
+            if (userDirection.current === 'older') pauseFollowingForUser()
             touchY.current = currentY
             onScroll()
           }}
@@ -817,7 +887,7 @@ const MessageList = forwardRef<
               userInput()
               progress.current++
               userDirection.current = event.key.endsWith('Up') ? 'older' : 'newer'
-              if (userDirection.current === 'older') follow.pause()
+              if (userDirection.current === 'older') pauseFollowingForUser()
             }
           }}
         >

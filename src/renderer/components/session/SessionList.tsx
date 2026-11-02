@@ -50,7 +50,6 @@ import {
 import { useTranslation } from 'react-i18next'
 import { GroupedVirtuoso } from 'react-virtuoso'
 import { rendererApplication } from '@/app/renderer-application'
-import { useAppTitleBarHeight } from '@/components/layout/AppTitleBar'
 import { useIsSmallScreen } from '@/hooks/useScreenChange'
 import { useSessionSwitchHintDigits } from '@/hooks/useSessionSwitchHints'
 import { useTouchLayout } from '@/hooks/useTouchLayout'
@@ -161,7 +160,6 @@ function SessionListLoadingFooter() {
 }
 
 function SessionListSectionHeader(props: { label: string; testId?: string; children?: ReactNode }) {
-  const titleBarHeight = useAppTitleBarHeight()
   return (
     <Flex
       align="center"
@@ -170,10 +168,7 @@ function SessionListSectionHeader(props: { label: string; testId?: string; child
       pl="md"
       pr="xs"
       pt={4}
-      className={clsx(
-        'group/section',
-        titleBarHeight ? 'bg-chatbox-background-primary-hover' : 'bg-chatbox-background-primary'
-      )}
+      className="group/section bg-chatbox-background-secondary"
     >
       <Text data-testid={props.testId} size="xs" fw={600} c="chatbox-tertiary">
         {props.label}

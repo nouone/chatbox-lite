@@ -250,7 +250,7 @@ function SessionItem(props: Props) {
         props.isReordering
           ? 'bg-chatbox-background-primary'
           : selected
-            ? 'bg-chatbox-background-secondary-hover'
+            ? 'bg-chatbox-background-tertiary'
             : touchLayout
               ? longPressing && 'bg-chatbox-background-gray-secondary'
               : 'hover:bg-chatbox-background-gray-secondary'

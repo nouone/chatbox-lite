@@ -48,6 +48,27 @@ function renderButton(reasoningEffort: 'low' | 'medium' | 'high' = 'high') {
 }
 
 describe('ReasoningControlButton', () => {
+  test('offers all Strata levels for an opted-in custom model', async () => {
+    const onChange = vi.fn()
+    render(
+      <MantineProvider>
+        <ReasoningControlButton
+          provider="custom-strata"
+          model={{ modelId: 'qwen3-local', apiStyle: 'openai', reasoningControl: 'strata' }}
+          iconSize={22}
+          onChange={onChange}
+        />
+      </MantineProvider>
+    )
+    fireEvent.click(screen.getByRole('button', { name: 'Thinking: Default' }))
+    await waitFor(() => expect(screen.getByTestId(TestId.reasoning.menu)).toBeTruthy())
+    for (const level of ['default', 'off', 'low', 'medium', 'high'] as const) {
+      expect(screen.getByTestId(TestId.reasoning.level(level))).toBeTruthy()
+    }
+    fireEvent.click(screen.getByTestId(TestId.reasoning.level('off')))
+    expect(onChange).toHaveBeenCalledWith('off')
+  })
+
   test('shows Astra thinking controls and lets the user choose high effort', async () => {
     const onChange = vi.fn()
     render(

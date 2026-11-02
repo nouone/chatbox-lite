@@ -1,3 +1,4 @@
+import { useSettingsStore } from './stores/settingsStore'
 import { registerPlugin } from '@capacitor/core'
 import { Box, Button, Flex, Image, NavLink, Stack, Text } from '@mantine/core'
 import SwipeableDrawer from '@mui/material/SwipeableDrawer'
@@ -18,7 +19,7 @@ import {
 import { useNavigate, useRouterState } from '@tanstack/react-router'
 import clsx from 'clsx'
 import { useAtomValue } from 'jotai'
-import { type ElementType, useCallback, useEffect, useRef, useState } from 'react'
+import { type CSSProperties, type ElementType, useCallback, useEffect, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { AppTooltip as Tooltip } from '@/components/ui/tooltip'
 import Divider from './components/common/Divider'
@@ -74,6 +75,7 @@ export default function Sidebar() {
 
   const sessionListViewportRef = useRef<HTMLDivElement>(null)
   const [isSessionListAtTop, setIsSessionListAtTop] = useState(true)
+  const sidebarFontSize = useSettingsStore((s) => s.sidebarFontSize)
 
   const sidebarWidth = useSidebarWidth()
 
@@ -186,8 +188,9 @@ export default function Sidebar() {
       }}
       sx={{
         '& .MuiDrawer-paper': {
-          backgroundColor: 'transparent',
+          backgroundColor: 'var(--chatbox-background-secondary)',
           backgroundImage: 'none',
+          ...(!isSmallScreen ? { boxShadow: 'none' } : {}),
           border: 0,
           boxSizing: 'border-box',
           width: isSmallScreen ? '75vw' : sidebarWidth,
@@ -214,11 +217,13 @@ export default function Sidebar() {
     >
       <Stack
         data-testid={TestId.sidebar.root}
+        bg="var(--chatbox-background-secondary)"
+        style={{ '--sidebar-font-size': `${sidebarFontSize}px` } as CSSProperties}
         h="100%"
         gap={0}
         pt={titleBarHeight ? 0 : 'var(--mobile-safe-area-inset-top, 0px)'}
         pb="var(--mobile-safe-area-inset-bottom, 0px)"
-        className="relative"
+        className="relative local-sidebar-font"
       >
         {/* Wide layouts show the app name and the collapse button in the app title bar. */}
         {isSmallScreen && (

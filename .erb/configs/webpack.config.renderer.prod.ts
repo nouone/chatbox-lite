@@ -2,7 +2,6 @@
  * Build config for electron renderer process
  */
 
-import { sentryWebpackPlugin } from '@sentry/webpack-plugin'
 import { TanStackRouterWebpack } from '@tanstack/router-plugin/webpack'
 import CssMinimizerPlugin from 'css-minimizer-webpack-plugin'
 import HtmlWebpackPlugin from 'html-webpack-plugin'
@@ -189,16 +188,6 @@ const configuration: webpack.Configuration = {
     //   sourceMap: true,
     // }),
     
-    process.env.SENTRY_AUTH_TOKEN && sentryWebpackPlugin({
-        authToken: process.env.SENTRY_AUTH_TOKEN,
-        org: 'sentry',
-        project: 'chatbox',
-        url: 'https://sentry.midway.run/',
-        release: {
-          name: inferredRelease,
-          ...(inferredDist ? { dist: inferredDist } : {}),
-        },
-      }),
   ],
 }
 

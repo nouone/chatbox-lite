@@ -37,7 +37,19 @@ exports.default = async function ensureAppDeps(context) {
   })
 
   verifyInstalledRuntimeDeps(appDir)
-  verifyVersionsMatchPnpmWorkspace(appDir)
+
+  // release/app is intentionally outside the pnpm workspace in Chatbox.
+  // Only run the lockfile alignment check when pnpm actually has an importer
+  // for this app; otherwise `pnpm list --lockfile-only` returns an empty tree.
+  const pnpmLockfile = fs.readFileSync(path.join(projectDir, 'pnpm-lock.yaml'), 'utf8')
+  if (/^  ["']?release\/app["']?:\s*(?:#.*)?$/m.test(pnpmLockfile)) {
+    verifyVersionsMatchPnpmWorkspace(appDir)
+  } else {
+    console.warn(
+      '[ensure-app-deps] release/app has no pnpm lockfile importer; ' +
+        'skipping inapplicable workspace version check. Validate packaged runtime dependencies.',
+    )
+  }
 
   // Remove type-only packages that are not needed at runtime.
   // @anthropic-ai/sandbox-runtime incorrectly lists @types/lodash-es

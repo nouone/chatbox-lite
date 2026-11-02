@@ -56,15 +56,19 @@ export function AppTitleBar() {
   const toggleLabel = showSidebar ? t('Collapse') : t('Expand')
 
   return (
-    <Flex h={height} align="center" className="title-bar relative z-[1] flex-none" data-testid={TestId.layout.titleBar}>
+    <Flex style={{ height: `${height}px` }} align="center" bg="var(--chatbox-background-primary)" className="title-bar relative z-[1] flex-none" data-testid={TestId.layout.titleBar}>
       <Flex
         align="center"
         gap="xs"
         h="100%"
         pe="xs"
         ps={needRoomForMacWindowControls ? MAC_WINDOW_CONTROLS_WIDTH : 'md'}
-        w={showSidebar ? sidebarWidth : undefined}
-        className="flex-none box-border"
+        // Match the drawer surface width without a separator.
+        style={{
+          width: showSidebar ? `${sidebarWidth}px` : undefined,
+        }}
+        bg={showSidebar ? 'var(--chatbox-background-secondary)' : undefined}
+        className="relative flex-none box-border"
       >
         {showSidebar && (
           <Flex
@@ -76,7 +80,7 @@ export function AppTitleBar() {
           >
             <Image src={icon} w={18} h={18} />
             <Text span fz={14} fw={600} lh="20px" c="chatbox-primary" truncate>
-              Chatbox
+              Chatbox Lite
             </Text>
           </Flex>
         )}

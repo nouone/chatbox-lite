@@ -1,0 +1,7 @@
+extends: ./electron-builder.yml
+productName: Chatbox Lite
+appId: local.chatbox.lite
+publish: null
+nsis:
+  shortcutName: Chatbox Lite
+  uninstallDisplayName: Chatbox Lite

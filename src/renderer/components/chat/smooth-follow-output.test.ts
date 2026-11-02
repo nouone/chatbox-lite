@@ -338,3 +338,25 @@ describe('smooth follow output controller', () => {
     expect(scrollToBottom).not.toHaveBeenCalled()
   })
 })
+
+it('keeps following across consecutive replies and non-user upward layout adjustments', () => {
+  const { controller, runFrames, scrollToBottom } = createHarness('auto')
+  controller.resume()
+  controller.handleHeightChange(1000)
+  controller.handleScroll(400, 400, false)
+  controller.handleHeightChange(1400)
+  runFrames()
+  expect(scrollToBottom).toHaveBeenCalledOnce()
+  // Next submission, followed by a composer/virtual-list offset correction.
+  controller.resume()
+  controller.syncScrollPosition(800, 800)
+  controller.handleScroll(650, 850, false)
+  controller.handleHeightChange(1600)
+  runFrames()
+  expect(controller.isFollowing()).toBe(true)
+  expect(scrollToBottom).toHaveBeenCalledTimes(2)
+  controller.pause() // explicit wheel/touch/key/scrollbar input
+  controller.handleHeightChange(1800)
+  runFrames()
+  expect(scrollToBottom).toHaveBeenCalledTimes(2)
+})

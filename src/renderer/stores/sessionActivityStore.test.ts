@@ -1,8 +1,9 @@
 import { createMessage } from '@shared/types'
 import { getDefaultStore } from 'jotai'
-import { beforeEach, describe, expect, it } from 'vitest'
+import { beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { rendererApplication } from '@/app/renderer-application'
+import { responseSpeechPlayer } from '@/packages/text-to-speech'
 import { currentSessionIdAtom } from './atoms/sessionAtoms'
 import {
   clearSessionActivity,
@@ -43,6 +44,20 @@ function settleGeneration(sessionId: string, messageId = 'reply-1') {
 }
 
 describe('sessionActivityStore', () => {
+  it('stops speech when leaving its conversation, independently of message rows', () => {
+    setOnScreenSession('current-session')
+    const snapshot = vi
+      .spyOn(responseSpeechPlayer, 'getSnapshot')
+      .mockReturnValue({ id: 'current-session:reply', loading: true })
+    const stop = vi.spyOn(responseSpeechPlayer, 'stop').mockImplementation(() => {})
+    try {
+      setOnScreenSession('other-session')
+      expect(stop).toHaveBeenCalledOnce()
+    } finally {
+      snapshot.mockRestore()
+      stop.mockRestore()
+    }
+  })
   beforeEach(() => {
     generationRuntimeStore.clear('background-session')
     generationRuntimeStore.clear('current-session')

@@ -1,7 +1,7 @@
 import NiceModal, { useModal } from '@ebay/nice-modal-react'
 import { Button, Checkbox, Flex, Loader, NumberInput, Stack, Text, TextInput, UnstyledButton } from '@mantine/core'
 import { TestId } from '@shared/automation/testids'
-import type { ProviderModelInfo } from '@shared/types'
+import { ModelProviderEnum, ModelProviderType, type ProviderModelInfo } from '@shared/types'
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { createModelDependencies } from '@/adapters'
@@ -23,6 +23,9 @@ const ModelEdit = NiceModal.create((props: { model?: ProviderModelInfo; provider
   const [type, setType] = useState<ProviderModelInfo['type']>(props.model?.type || 'chat')
   const [contextWindow, setContextWindow] = useState<number | undefined>(props.model?.contextWindow)
   const [maxOutput, setMaxOutput] = useState<number | undefined>(props.model?.maxOutput)
+  const [reasoningControl, setReasoningControl] = useState(props.model?.reasoningControl)
+  const provider = settingsStore.getState().customProviders?.find((item) => item.id === props.providerId)
+  const canUseStrata = provider?.type === ModelProviderType.OpenAI || props.providerId === ModelProviderEnum.Custom
   const [testState, setTestState] = useState<ModelTestState>({
     testing: false,
   })
@@ -41,6 +44,7 @@ const ModelEdit = NiceModal.create((props: { model?: ProviderModelInfo; provider
     setType(props.model?.type || 'chat')
     setContextWindow(props.model?.contextWindow)
     setMaxOutput(props.model?.maxOutput)
+    setReasoningControl(props.model?.reasoningControl)
     setTestState({ testing: false })
   }, [props])
 
@@ -78,11 +82,13 @@ const ModelEdit = NiceModal.create((props: { model?: ProviderModelInfo; provider
   const handleSave = () => {
     modal.resolve({
       modelId,
+      apiStyle: props.model?.apiStyle,
       type,
       nickname: nickname || undefined,
       capabilities,
       contextWindow,
       maxOutput,
+      reasoningControl,
     })
     modal.hide()
   }
@@ -195,6 +201,14 @@ const ModelEdit = NiceModal.create((props: { model?: ProviderModelInfo; provider
         )}
 
         {/* Context Window and Max Output */}
+        {type === 'chat' && canUseStrata && (
+          <Checkbox
+            label="Strata Thinking control"
+            description="Enable Off / Low / Medium / High for a Strata endpoint. Default uses the server setting."
+            checked={reasoningControl === 'strata'}
+            onChange={(event) => setReasoningControl(event.currentTarget.checked ? 'strata' : undefined)}
+          />
+        )}
         <Stack gap="xs">
           <Text fw="600">{t('Advanced Settings')}</Text>
           <Flex gap="md">

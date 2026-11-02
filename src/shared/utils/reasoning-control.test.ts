@@ -27,6 +27,45 @@ const model = (modelId: string, apiStyle?: ProviderModelInfo['apiStyle']): Provi
 })
 
 describe('reasoning-control', () => {
+  it.each(['strata-local', 'qwen3-local', 'deepseek-v4', 'gpt-6-local', 'claude-local'])(
+    'uses the explicit Strata protocol for custom model %s',
+    (modelId) => {
+      const info: ProviderModelInfo = { modelId, apiStyle: 'openai', reasoningControl: 'strata' }
+      expect(getReasoningControlOptions('custom-strata', info).map((option) => option.level)).toEqual([
+        'default',
+        'off',
+        'low',
+        'medium',
+        'high',
+      ])
+      for (const level of ['off', 'low', 'medium', 'high'] as const) {
+        const options = getReasoningProviderOptions('custom-strata', info, level, {
+          deepseek: { thinking: { type: 'enabled' } },
+        })
+        expect(options).toEqual({ openaiCompatible: { reasoningEffort: level === 'off' ? 'none' : level } })
+        expect(getReasoningControlLevel('custom-strata', info, options)).toBe(level)
+        const saved = setReasoningProviderOptionsForModel(undefined, 'custom-strata', modelId, options)
+        expect(resolveReasoningProviderOptions(saved, 'custom-strata', modelId)).toEqual(options)
+        expect(resolveReasoningProviderOptions(saved, 'other-provider', modelId)).toBeUndefined()
+        expect(resolveReasoningProviderOptions(saved, 'custom-strata', 'other-model')).toBeUndefined()
+        expect(getReasoningProviderOptions('custom-strata', info, 'default', options)).toBeUndefined()
+      }
+    }
+  )
+
+  it('does not enable Strata controls for unconfigured endpoints, built-ins or other API styles', () => {
+    const info: ProviderModelInfo = { modelId: 'strata-local', capabilities: ['reasoning'] }
+    expect(getReasoningControlCapabilities('custom-strata', info).supported).toBe(false)
+    for (const provider of [ModelProviderEnum.OpenAI, ModelProviderEnum.ChatboxAI, ModelProviderEnum.Ollama]) {
+      expect(getReasoningControlCapabilities(provider, { ...info, reasoningControl: 'strata' }).supported).toBe(false)
+    }
+    for (const apiStyle of ['anthropic', 'google', 'openai-responses'] as const) {
+      expect(
+        getReasoningControlCapabilities('custom-strata', { ...info, apiStyle, reasoningControl: 'strata' }).kind
+      ).not.toBe('strata-effort')
+    }
+  })
+
   it('maps Claude levels to thinking token budgets', () => {
     const options = getReasoningProviderOptions(ModelProviderEnum.Claude, model('claude-sonnet-4-5'), 'medium')
 

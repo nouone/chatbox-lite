@@ -21,14 +21,16 @@ import { languageNameMap } from '@/i18n/locales'
 import { getLogger } from '@/lib/utils'
 import { captureAgentModeException } from '@/observability/agent-mode'
 import * as appleAppStore from '@/packages/apple_app_store'
+import { createAutoReadCompletionHandler } from '@/packages/auto-read-reply'
 import { wakeBackgroundTaskFollowUps } from '@/packages/chatbox-cli/background-follow-up'
 import { resolveCompactionBudget } from '@/packages/context-management/compaction-detector'
 import { getConfiguredContextWindow, getEffectiveMaxOutputTokens } from '@/packages/context-management/context-pressure'
 import { prepareMobileMCPTools } from '@/packages/mcp/mobile-tools'
 import { buildPausedAgentMemoryTools } from '@/packages/model-calls/toolsets/agent-memory'
+import { isSpeechInputActive, responseSpeechPlayer } from '@/packages/text-to-speech'
 import platform from '@/platform'
 import { createSandboxProvider } from '@/sandbox'
-import { settingsService } from '@/settings-runtime'
+import { settingsService, settingsStore } from '@/settings-runtime'
 import { StorageKeyGenerator } from '@/storage/StoreStorage'
 import { getCopilotMemorySelection } from '@/stores/copilotStore'
 import { markFirstSuccessfulChatCompleted } from '@/stores/firstSuccessfulChat'
@@ -57,9 +59,11 @@ import {
   initializeTargetMessage,
   trackGenerateEvent,
 } from '@/stores/session/utils'
-import { markSessionReplyCompleted, markSessionReplyFailed } from '@/stores/sessionActivityStore'
+import { isSessionOnScreen, markSessionReplyCompleted, markSessionReplyFailed } from '@/stores/sessionActivityStore'
 import * as settingActions from '@/stores/settingActions'
+import * as speechToast from '@/stores/toastActions'
 import { uiStore } from '@/stores/uiStore'
+import { desktopDirectRequestFromWindow } from '@/utils/desktop-direct-request'
 import { trackEvent } from '@/utils/track'
 import { CurrentAttachmentAdapter } from './CurrentAttachmentAdapter'
 import { CurrentBlobStorage } from './CurrentBlobStorage'
@@ -69,6 +73,23 @@ import { createModelDependencies } from './RendererModelDependencies'
 
 const log = getLogger('generation-service')
 const attachmentAdapter = new CurrentAttachmentAdapter()
+const autoReadCompletedReply = createAutoReadCompletionHandler({
+  getSettings: () => settingsStore.getState().textToSpeech,
+  isOnScreen: isSessionOnScreen,
+  isInputActive: isSpeechInputActive,
+  player: responseSpeechPlayer,
+  request: (url, init) =>
+    platform.type === 'desktop'
+      ? desktopDirectRequestFromWindow(
+          String(url),
+          'POST',
+          new Headers(init?.headers),
+          init?.body,
+          init?.signal ?? undefined
+        )
+      : fetch(url, init),
+  onError: (error) => speechToast.add(`Read aloud: ${error.message}`),
+})
 
 const logger: LoggerPort = {
   log(level, message, context) {
@@ -360,6 +381,7 @@ const dependencies: GenerationServiceDependencies<ModelDependencies> = {
     afterMessageGenerated: (sessionId, message) => {
       appleAppStore.tickAfterMessageGenerated()
       markSessionReplyCompleted(sessionId, message)
+      void autoReadCompletedReply(sessionId, message)
     },
     afterMessageFailed: (sessionId, message) => markSessionReplyFailed(sessionId, message),
     now: Date.now,

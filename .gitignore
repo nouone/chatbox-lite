@@ -208,3 +208,7 @@ tmp_*.*
 # Local headless evaluation artifacts
 /jobs/
 /scripts/terminal_bench/__pycache__/
+
+# Optional bundled local dictation resources (installed by setup-local-speech.ps1)
+/assets/whisper/
+/.local-speech-download/

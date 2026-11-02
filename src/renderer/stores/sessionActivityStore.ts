@@ -2,6 +2,7 @@ import type { Message } from '@shared/types'
 import { useSyncExternalStore } from 'react'
 import { createStore, useStore } from 'zustand'
 import { rendererApplication } from '@/app/renderer-application'
+import { responseSpeechPlayer } from '@/packages/text-to-speech'
 import { isSuccessfulAssistantReply } from './session/message-success'
 
 const generationRuntimeStore = rendererApplication.generationRuntime
@@ -28,10 +29,17 @@ let onScreenSessionId: string | null = null
  * New Chat.
  */
 export function setOnScreenSession(sessionId: string | null): void {
+  if (
+    onScreenSessionId &&
+    onScreenSessionId !== sessionId &&
+    responseSpeechPlayer.getSnapshot().id?.startsWith(`${onScreenSessionId}:`)
+  ) {
+    responseSpeechPlayer.stop()
+  }
   onScreenSessionId = sessionId
 }
 
-function isSessionOnScreen(sessionId: string): boolean {
+export function isSessionOnScreen(sessionId: string): boolean {
   return onScreenSessionId === sessionId
 }
 

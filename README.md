@@ -1,3 +1,5 @@
+> **Chatbox Lite** — a custom-endpoint-focused branch with local voice and a streamlined interface. See [build notes](LOCAL-CUSTOM-BUILD.md). This is an independent derivative of Chatbox; the upstream project and GPLv3 license are retained.
+
 <p align="right">
   <a href="README.md">English</a> |
   <a href="./doc/README-CN.md">简体中文</a>

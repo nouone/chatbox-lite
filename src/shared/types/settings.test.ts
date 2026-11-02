@@ -5,7 +5,14 @@ import {
   EFFECTIVE_MEMORY_STATE_TOKEN_MAX_CHARS,
   MEMORY_STATE_TOKEN_MAX_CHARS,
 } from './agent-persona'
-import { SessionSettingsSchema, SettingsSchema } from './settings'
+import { ProviderModelInfoSchema, SessionSettingsSchema, SettingsSchema } from './settings'
+
+test('persists the Strata protocol opt-in and ignores unknown protocols', () => {
+  const model = { modelId: 'strata-local', reasoningControl: 'strata' }
+  expect(ProviderModelInfoSchema.parse(JSON.parse(JSON.stringify(model))).reasoningControl).toBe('strata')
+  expect(ProviderModelInfoSchema.parse({ modelId: 'old-model' }).reasoningControl).toBeUndefined()
+  expect(ProviderModelInfoSchema.parse({ ...model, reasoningControl: 'unknown' }).reasoningControl).toBeUndefined()
+})
 
 test('SessionSettingsSchema preserves the largest effective memory state token', () => {
   const componentToken = 'x'.repeat(MEMORY_STATE_TOKEN_MAX_CHARS)

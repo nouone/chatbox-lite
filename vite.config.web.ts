@@ -49,6 +49,8 @@ export default defineConfig({
     'process.env.CHATBOX_BUILD_TARGET': JSON.stringify(process.env.CHATBOX_BUILD_TARGET || 'unknown'),
     'process.env.CHATBOX_BUILD_PLATFORM': JSON.stringify('web'),
     'process.env.USE_LOCAL_API': JSON.stringify(process.env.USE_LOCAL_API || ''),
+    'process.env.AUDIO_TTS_OPENAI_API_BASE_URL': JSON.stringify(process.env.AUDIO_TTS_OPENAI_API_BASE_URL || ''),
+    'process.env.CHATBOX_LOCAL_UI': JSON.stringify(process.env.CHATBOX_LOCAL_UI || '1'),
     'process.env.USE_BETA_API': JSON.stringify(process.env.USE_BETA_API || ''),
     'process.env.USE_NEWDB_API': JSON.stringify(process.env.USE_NEWDB_API || ''),
     'process.env.USE_LOCAL_CHATBOX': JSON.stringify(process.env.USE_LOCAL_CHATBOX || ''),

@@ -29,6 +29,7 @@ import useVersion from '@/hooks/useVersion'
 import platform from '@/platform'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { featureFlags } from '@/utils/feature-flags'
+import { isLocalInterface } from '@/utils/local-interface'
 
 export type SettingsPageKey =
   | 'chatbox-ai'
@@ -84,7 +85,14 @@ export function getSettingsNavGroups(): SettingsNavGroup[] {
   ]
 
   return [
-    { title: 'Account', items: [{ key: 'chatbox-ai', label: 'Chatbox AI', noTranslate: true, icon: IconSparkles }] },
+    ...(!isLocalInterface()
+      ? [
+          {
+            title: 'Account',
+            items: [{ key: 'chatbox-ai' as const, label: 'Chatbox AI', noTranslate: true, icon: IconSparkles }],
+          },
+        ]
+      : []),
     {
       title: 'Models',
       items: [

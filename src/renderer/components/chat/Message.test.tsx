@@ -43,6 +43,46 @@ describe('Message layout alignment', () => {
 })
 
 describe('Message token display', () => {
+  test('calculates output throughput without counting prompt/cache tokens or using TTFT', () => {
+    expect(
+      getMessageTokenDisplay(
+        assistantMessage({
+          finishReason: 'stop',
+          usage: { inputTokens: 7000, outputTokens: 542, totalTokens: 7542, cachedInputTokens: 4957 },
+          generationDuration: 10000,
+          firstTokenLatency: 2600,
+        })
+      )
+    ).toEqual({ totalTokens: 7542, cachedInputTokens: 4957, outputTokensPerSecond: 54.2 })
+  })
+  test.each([undefined, 0, -1, Number.NaN, Number.POSITIVE_INFINITY])(
+    'omits speed for missing/invalid duration %s',
+    (duration) => {
+      expect(
+        getMessageTokenDisplay(
+          assistantMessage({
+            finishReason: 'stop',
+            usage: { outputTokens: 542, totalTokens: 7542 },
+            generationDuration: duration,
+          })
+        )
+      ).toEqual({ totalTokens: 7542 })
+    }
+  )
+  test.each([undefined, 0, -1, Number.NaN, Number.POSITIVE_INFINITY])(
+    'omits speed for missing/invalid output usage %s',
+    (outputTokens) => {
+      expect(
+        getMessageTokenDisplay(
+          assistantMessage({
+            finishReason: 'stop',
+            usage: { outputTokens, totalTokens: 7542 },
+            generationDuration: 10000,
+          })
+        )
+      ).toEqual({ totalTokens: 7542 })
+    }
+  )
   test('shows provider usage as consumed for a successful completed reply', () => {
     expect(
       getMessageTokenDisplay(

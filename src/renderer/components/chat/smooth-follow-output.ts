@@ -71,12 +71,12 @@ export function createSmoothFollowOutputController({
     lastMaxScrollTop = maxScrollTop
   }
 
-  const handleScroll = (scrollTop: number, maxScrollTop: number) => {
+  const handleScroll = (scrollTop: number, maxScrollTop: number, userInitiated = true) => {
     const movedUp = lastScrollTop !== undefined && scrollTop < lastScrollTop - SCROLL_DIRECTION_TOLERANCE
     const movedDown = lastScrollTop !== undefined && scrollTop > lastScrollTop + SCROLL_DIRECTION_TOLERANCE
     const movedUpBecauseLayoutShrank = isLayoutClampedScroll(lastScrollTop, lastMaxScrollTop, scrollTop, maxScrollTop)
     syncScrollPosition(scrollTop, maxScrollTop)
-    if (movedUp && !movedUpBecauseLayoutShrank) {
+    if (userInitiated && movedUp && !movedUpBecauseLayoutShrank) {
       const shouldStopScrolling = following
       pause()
       // Pausing future retargets is not enough: a native smooth scroll that is already running can
@@ -91,7 +91,7 @@ export function createSmoothFollowOutputController({
       // zero position of an unmeasured list, and require downward movement to resume a user-paused view.
       resume()
     }
-    return movedUp && !movedUpBecauseLayoutShrank
+    return userInitiated && movedUp && !movedUpBecauseLayoutShrank
   }
 
   const handleHeightChange = (height: number) => {

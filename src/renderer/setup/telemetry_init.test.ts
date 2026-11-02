@@ -1,115 +1,28 @@
 // @vitest-environment jsdom
+import { expect, it, vi } from 'vitest'
 
-import { beforeEach, describe, expect, it, vi } from 'vitest'
-
-const { initSettingsStoreMock, settingsStoreGetStateMock, settingsStoreSubscribeMock } = vi.hoisted(() => ({
-  initSettingsStoreMock: vi.fn(async () => ({ allowReportingAndTracking: false })),
-  settingsStoreGetStateMock: vi.fn(() => ({ allowReportingAndTracking: false })),
-  settingsStoreSubscribeMock: vi.fn(),
-}))
-
-vi.mock('@/analytics/jk', () => ({
-  initJkAnalytics: vi.fn(),
-  trackJkViewEvent: vi.fn(),
-}))
-vi.mock('@/analytics/jk-events', () => ({ JK_EVENTS: { APP_LAUNCH: 'app_launch' } }))
+const spies = vi.hoisted(() => ({ init: vi.fn(), subscribe: vi.fn(), platform: vi.fn() }))
+vi.mock('@sentry/react', () => ({ init: spies.init }))
 vi.mock('@/stores/settingsStore', () => ({
-  initSettingsStore: initSettingsStoreMock,
-  settingsStore: {
-    getState: settingsStoreGetStateMock,
-    subscribe: settingsStoreSubscribeMock,
-  },
+  initSettingsStore: async () => ({ allowReportingAndTracking: true }),
+  settingsStore: { getState: () => ({ allowReportingAndTracking: true }), subscribe: spies.subscribe },
 }))
-vi.mock('../platform', () => ({
-  default: {
-    getVersion: vi.fn(async () => '1.0.0'),
-    onWindowFocused: vi.fn(),
-  },
-}))
+vi.mock('@/platform', () => ({ default: { initTracking: spies.platform, trackingEvent: spies.platform } }))
 
-describe('settings-backed telemetry initialization', () => {
-  beforeEach(() => {
-    initSettingsStoreMock.mockClear()
-    settingsStoreGetStateMock.mockReset()
-    settingsStoreGetStateMock.mockReturnValue({ allowReportingAndTracking: false })
-    settingsStoreSubscribeMock.mockClear()
-    window.plausible = undefined
-    window.history.replaceState({}, '', '/')
-    vi.resetModules()
-  })
-
-  it('does not hydrate settings as an import side effect', async () => {
-    await Promise.all([import('./ga_init'), import('./jk_analytics_init'), import('./plausible_init')])
-
-    expect(initSettingsStoreMock).not.toHaveBeenCalled()
-  })
-
-  it('hydrates settings only after explicit post-migration initialization', async () => {
-    const [{ initGoogleAnalyticsTracking }, { initJkTracking }, { initPlausibleTracking }] = await Promise.all([
-      import('./ga_init'),
-      import('./jk_analytics_init'),
-      import('./plausible_init'),
-    ])
-
-    await initGoogleAnalyticsTracking()
-    await initPlausibleTracking()
-    await initJkTracking()
-
-    expect(initSettingsStoreMock).toHaveBeenCalledTimes(3)
-  })
-
-  it('subscribes to navigation without importing the application router', async () => {
-    initSettingsStoreMock.mockResolvedValueOnce({ allowReportingAndTracking: true })
-    settingsStoreGetStateMock.mockReturnValue({ allowReportingAndTracking: true })
-    const plausibleMock = vi.fn()
-    const navigationSubscriber = vi.fn()
-    window.plausible = plausibleMock
-
-    const { initPlausibleTracking } = await import('./plausible_init')
-    await initPlausibleTracking(navigationSubscriber)
-
-    expect(navigationSubscriber).toHaveBeenCalledOnce()
-    expect(plausibleMock).toHaveBeenCalledWith('pageview', expect.not.objectContaining({ props: expect.anything() }))
-  })
-
-  it('deduplicates pageviews using the normalized URL', async () => {
-    initSettingsStoreMock.mockResolvedValueOnce({ allowReportingAndTracking: true })
-    settingsStoreGetStateMock.mockReturnValue({ allowReportingAndTracking: true })
-    const plausibleMock = vi.fn()
-    let onNavigationResolved: ((hrefChanged: boolean) => void) | undefined
-    window.plausible = plausibleMock
-    window.history.replaceState({}, '', '/#/session/session-a')
-
-    const { initPlausibleTracking } = await import('./plausible_init')
-    await initPlausibleTracking((callback) => {
-      onNavigationResolved = callback
-    })
-
-    window.history.replaceState({}, '', '/#/session/session-b')
-    onNavigationResolved?.(true)
-    expect(plausibleMock).toHaveBeenCalledTimes(1)
-
-    window.history.replaceState({}, '', '/#/settings/general')
-    onNavigationResolved?.(true)
-    expect(plausibleMock).toHaveBeenCalledTimes(2)
-  })
-
-  it('attaches a normalized version only to custom events', async () => {
-    initSettingsStoreMock.mockResolvedValueOnce({ allowReportingAndTracking: true })
-    settingsStoreGetStateMock.mockReturnValue({ allowReportingAndTracking: true })
-    const plausibleMock = vi.fn()
-    window.plausible = plausibleMock
-
-    const { initPlausibleTracking } = await import('./plausible_init')
-    await initPlausibleTracking()
-    window.plausible?.('generate', { props: { provider: 'openai' } })
-
-    expect(plausibleMock).toHaveBeenLastCalledWith('generate', {
-      props: {
-        provider: 'openai',
-        version: '1.0',
-      },
-      u: window.location.href,
-    })
-  })
+it('never initializes telemetry even with persisted consent and an available tracker', async () => {
+  const plausible = vi.fn()
+  window.plausible = plausible
+  const navigation = vi.fn()
+  const { initSentry } = await import('./sentry_init')
+  const { initGoogleAnalyticsTracking } = await import('./ga_init')
+  const { initPlausibleTracking } = await import('./plausible_init')
+  expect(await initSentry()).toBe(false)
+  await initGoogleAnalyticsTracking()
+  await initPlausibleTracking(navigation)
+  expect(spies.init).not.toHaveBeenCalled()
+  expect(spies.subscribe).not.toHaveBeenCalled()
+  expect(spies.platform).not.toHaveBeenCalled()
+  expect(plausible).not.toHaveBeenCalled()
+  expect(navigation).not.toHaveBeenCalled()
+  delete window.plausible
 })

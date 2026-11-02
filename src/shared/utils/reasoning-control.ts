@@ -87,6 +87,7 @@ export interface ReasoningControlCapabilities {
     | 'deepseek-effort'
     | 'level'
     | 'openai-effort'
+    | 'strata-effort'
     | 'openrouter-reasoning'
     | 'toggle'
     | 'xai-effort'
@@ -183,6 +184,7 @@ function supportsExplicitDisable(
   effectiveProvider: ModelProvider | undefined,
   modelId: string
 ): boolean {
+  if (kind === 'strata-effort') return true
   if (effectiveProvider === ModelProviderEnum.Gemini && !canDisableGoogleThinking(modelId)) {
     return false
   }
@@ -353,6 +355,18 @@ const BUILTIN_PROVIDER_IDS = new Set<string>(Object.values(ModelProviderEnum))
 
 function isCustomProviderId(provider: ModelProvider | undefined): boolean {
   return !!provider && !BUILTIN_PROVIDER_IDS.has(provider)
+}
+
+export function usesStrataReasoningControl(
+  provider: ModelProvider | undefined,
+  model: ProviderModelInfo | null | undefined
+): boolean {
+  return (
+    (isCustomProviderId(provider) || provider === ModelProviderEnum.Custom) &&
+    model?.reasoningControl === 'strata' &&
+    (!model.type || model.type === 'chat') &&
+    (!model.apiStyle || model.apiStyle === 'openai')
+  )
 }
 
 function isOpenCodeGatewayProvider(provider: ModelProvider | undefined): boolean {
@@ -597,6 +611,9 @@ export function getReasoningControlCapabilities(
 
   const effectiveProvider = getEffectiveProvider(provider, model)
   const isChatboxDeepSeek = isChatboxAIDeepSeekWithOfficialApiStyle(provider, model)
+  if (usesStrataReasoningControl(provider, model)) {
+    return { supported: true, kind: 'strata-effort' }
+  }
   const disabledReason = getApiStyleDisabledReason(provider, effectiveProvider, model)
   if (disabledReason) {
     return { supported: false, kind: 'toggle', disabledReason }
@@ -724,6 +741,9 @@ function deriveReasoningControlLevel(
 ): ReasoningControlLevel {
   const capabilities = getReasoningControlCapabilities(provider, model)
   if (!capabilities.supported) return 'default'
+  if (capabilities.kind === 'strata-effort') {
+    return normalizeEffortToLevel(providerOptions?.openaiCompatible?.reasoningEffort)
+  }
 
   const effectiveProvider = getEffectiveProvider(provider, model)
   if (isChatboxAIDeepSeekWithOfficialApiStyle(provider, model)) {
@@ -841,6 +861,12 @@ export function getReasoningProviderOptions(
 ): ProviderOptions | undefined {
   const capabilities = getReasoningControlCapabilities(provider, model)
   if (!capabilities.supported) return previous
+
+  if (capabilities.kind === 'strata-effort') {
+    const next = stripReasoningProviderOptions(previous)
+    if (level === 'default') return next
+    return { ...next, openaiCompatible: { reasoningEffort: level === 'off' ? 'none' : level } }
+  }
 
   const effectiveProvider = getEffectiveProvider(provider, model)
 

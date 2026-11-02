@@ -1,3 +1,4 @@
+import { engineTimingExtractor } from '../../../models/utils/engine-timing'
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible'
 import { extractReasoningMiddleware, wrapLanguageModel } from 'ai'
 import AbstractAISDKModel from '../../../models/abstract-ai-sdk'
@@ -8,7 +9,7 @@ import { createOpenAIChatCompletionSseFetch } from '../../../models/utils/openai
 import type { ProviderModelInfo } from '../../../types'
 import type { ModelDependencies } from '../../../types/adapters'
 import { normalizeOpenAIApiHostAndPath } from '../../../utils/llm_utils'
-import { pickOpenAICompatibleReasoningOptions } from '../../../utils/reasoning-control'
+import { pickOpenAICompatibleReasoningOptions, usesStrataReasoningControl } from '../../../utils/reasoning-control'
 import {
   compatibleImageApiHeaders,
   createOpenAICompatibleImageModel,
@@ -42,10 +43,12 @@ export default class CustomOpenAI extends AbstractAISDKModel {
   }
 
   protected getCallSettings(options: CallChatCompletionOptions) {
-    const openAICompatibleOptions = pickOpenAICompatibleReasoningOptions(
-      this.options.model.modelId,
-      options.providerOptions
-    )
+    const effort = options.providerOptions?.openaiCompatible?.reasoningEffort
+    const openAICompatibleOptions = usesStrataReasoningControl(this.options.model.providerId, this.options.model)
+      ? effort && ['none', 'low', 'medium', 'high'].includes(effort)
+        ? { reasoningEffort: effort }
+        : undefined
+      : pickOpenAICompatibleReasoningOptions(this.options.model.modelId, options.providerOptions)
     return {
       temperature: this.options.temperature,
       topP: this.options.topP,
@@ -67,6 +70,7 @@ export default class CustomOpenAI extends AbstractAISDKModel {
   protected getProvider(_options: CallChatCompletionOptions, fetchFunction?: FetchFunction) {
     return createOpenAICompatible({
       name: this.name,
+      metadataExtractor: engineTimingExtractor,
       apiKey: this.options.apiKey,
       baseURL: this.options.apiHost,
       fetch: fetchFunction,

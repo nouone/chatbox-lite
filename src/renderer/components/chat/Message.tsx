@@ -87,6 +87,7 @@ import { getMessageRoleClass } from './message-role-class'
 import { createCollapsedDisplayGroups, createMessageTimelineLayout } from './message-timeline'
 import { getMessageTokenDisplay } from './message-token-display'
 import { PictureGallery } from './PictureGallery'
+import ReadAloudButton from './ReadAloudButton'
 import { useProcessTimelineCollapse } from './useProcessTimelineCollapse'
 import { useReplyBelowAction } from './useReplyBelowAction'
 
@@ -476,6 +477,16 @@ const _Message: FC<Props> = (props) => {
           tips.push({
             label: `${tokenDisplay.cachedInputTokens} cached`,
             tooltip: t('Cached input tokens') as string,
+          })
+        }
+        if (tokenDisplay.outputTokensPerSecond) {
+          tips.push({
+            label: `${tokenDisplay.outputTokensPerSecond.toFixed(1)} t/s`,
+            tooltip: (tokenDisplay.engineSpeed
+              ? t('Provider-reported generation tokens per second, excluding prompt processing')
+              : t(
+                  'Average output tokens per second over the whole reply, including prompt processing and tools'
+                )) as string,
           })
         }
       }
@@ -1195,6 +1206,9 @@ const _Message: FC<Props> = (props) => {
       align="center"
     >
       <Flex data-testid={TestId.message.actionBar} gap={0} align="center">
+        {msg.role === 'assistant' && props.sessionType !== 'picture' && (
+          <ReadAloudButton message={msg} playbackId={`${sessionId}:${msg.id}`} />
+        )}
         {!msg.generating && msg.role === 'assistant' && (
           <MessageActionIcon
             testId={TestId.message.actionBarRetry}
