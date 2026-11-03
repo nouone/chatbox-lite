@@ -1,3 +1,4 @@
+import { openLiteHelpChat } from './packages/lite-help'
 import { useSettingsStore } from './stores/settingsStore'
 import { registerPlugin } from '@capacitor/core'
 import { Box, Button, Flex, Image, NavLink, Stack, Text } from '@mantine/core'
@@ -334,7 +335,7 @@ export default function Sidebar() {
                   aria-label={t('Help')}
                   color="chatbox-tertiary"
                   onClick={() => {
-                    navigate({ to: '/about' })
+                    void openLiteHelpChat().catch((error) => console.error('Could not open Help chat', error))
                     closeOnSmallScreen()
                   }}
                 />

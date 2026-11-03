@@ -75,15 +75,8 @@ async function testChatSlot(slotId: 'llm' | 'fast', deps: ModelRigTestDeps): Pro
 
 async function testOcrSlot(deps: ModelRigTestDeps): Promise<SlotTestResult> {
   const selection = deps.settings.ocrModel
-  if (!selection) {
-    if (!deps.hasLicense) {
-      return fail('No OCR model is available', 'Activate Chatbox AI, or pick a vision model of your own.')
-    }
-    const { latencyMs } = await timed(() =>
-      pingResolvedChat(deps, ModelProviderEnum.ChatboxAI, CHATBOX_OCR_MODEL_ID, true)
-    )
-    return ok(latencyMs)
-  }
+  if (!selection || isChatboxProviderSafe(selection.provider))
+    return fail('Choose an OCR model', 'Select a vision-capable model from a configured provider.')
   const { latencyMs } = await timed(() => pingResolvedChat(deps, selection.provider, selection.model, true))
   return ok(latencyMs)
 }
@@ -91,15 +84,7 @@ async function testOcrSlot(deps: ModelRigTestDeps): Promise<SlotTestResult> {
 function testMemorySlot(slotId: 'embedding' | 'rerank', deps: ModelRigTestDeps): SlotTestResult {
   const selection = slotId === 'embedding' ? deps.settings.defaultEmbeddingModel : deps.settings.defaultRerankModel
   if (!selection || isChatboxProviderSafe(selection.provider)) {
-    if (!deps.hasLicense) {
-      return fail(
-        'Chatbox AI is not activated',
-        slotId === 'embedding'
-          ? 'Activate Chatbox AI to use the built-in embedding model, or pick one from a provider you already configured.'
-          : 'Activate Chatbox AI to use the built-in rerank model, or pick one from a provider you already configured.'
-      )
-    }
-    return ok(0)
+    return fail('No model selected', `Select a ${slotId} model from a configured provider. This feature is optional.`)
   }
   if (!deps.configuredProviderIds.has(selection.provider)) {
     return fail(
@@ -115,15 +100,8 @@ async function testParserSlot(deps: ModelRigTestDeps): Promise<SlotTestResult> {
   if (type === 'local') {
     return ok(0)
   }
-  if (type === 'chatbox-ai') {
-    if (!deps.hasLicense && !deps.isDesktopLike) {
-      return fail(
-        'Chatbox AI is not activated',
-        'Activate Chatbox AI for cloud parsing, or switch to local parsing on desktop.'
-      )
-    }
-    return ok(0)
-  }
+  if (type === 'chatbox-ai')
+    return fail('Choose a document parser', 'Select local parsing or configure your own parsing service.')
   const token = deps.settings.extension?.documentParser?.mineru?.apiToken?.trim()
   if (!token) {
     return fail('MinerU API token is missing', 'Add a MinerU API token in Document Parser settings.')
@@ -140,7 +118,7 @@ async function testParserSlot(deps: ModelRigTestDeps): Promise<SlotTestResult> {
 async function testSearchSlot(deps: ModelRigTestDeps): Promise<SlotTestResult> {
   const provider = searchProvider(deps.settings)
   if (provider === 'build-in' && !deps.hasLicense) {
-    return fail('Chatbox AI is not activated', 'Activate Chatbox AI, or pick another search provider.')
+    return fail('Choose a search service', 'Select Tavily, Bing or another configured search service.')
   }
   if (provider === 'tavily' && !deps.settings.extension?.webSearch?.tavilyApiKey) {
     return fail('Tavily API key is missing', 'Add a Tavily API key in Web Search settings.')
@@ -161,10 +139,10 @@ async function testSearchSlot(deps: ModelRigTestDeps): Promise<SlotTestResult> {
 function testImageSlot(deps: ModelRigTestDeps): SlotTestResult {
   const picture = deps.picture
   if (!picture || isChatboxProviderSafe(picture.provider)) {
-    if (!deps.hasLicense) {
-      return fail('Chatbox AI is not activated', 'Activate Chatbox AI, or pick an image model from another provider.')
-    }
-    return ok(0)
+    return fail(
+      'No image model selected',
+      'Configure an image-capable endpoint in Model Providers, then select its image model here.'
+    )
   }
   if (!deps.configuredProviderIds.has(picture.provider)) {
     return fail(

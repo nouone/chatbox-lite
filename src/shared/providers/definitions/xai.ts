@@ -4,7 +4,7 @@ import XAI from './models/xai'
 
 export const xaiProvider = defineProvider({
   id: ModelProviderEnum.XAI,
-  name: 'xAI',
+  name: 'Grok (xAI)',
   type: ModelProviderType.OpenAI,
   modelsDevProviderId: 'xai',
   curatedModelIds: ['grok-4.6', 'grok-4.3', 'grok-4-1-fast', 'grok-4-fast', 'grok-4', 'grok-build-0.1'],

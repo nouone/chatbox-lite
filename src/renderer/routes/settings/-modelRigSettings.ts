@@ -144,11 +144,11 @@ export function applyAllPresetsExtension(settings: Settings): Settings['extensio
     ...settings.extension,
     documentParser: {
       ...settings.extension.documentParser,
-      type: 'chatbox-ai',
+      type: 'local',
     },
     webSearch: {
       ...settings.extension.webSearch,
-      provider: 'build-in',
+      provider: settings.extension.webSearch.provider === 'build-in' ? 'bing' : settings.extension.webSearch.provider,
     },
   }
 }
@@ -193,8 +193,8 @@ export function describeError(error: unknown): { error: string; fix: string } {
   }
   if (/license|activate chatbox/i.test(msg)) {
     return {
-      error: 'Chatbox AI is not activated',
-      fix: 'Activate Chatbox AI in Chatbox AI settings, or use your own model.',
+      error: 'The selected hosted service is unavailable in Lite',
+      fix: 'Choose a model from your own configured provider.',
     }
   }
   return {

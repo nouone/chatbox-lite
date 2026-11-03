@@ -7,7 +7,7 @@ import { responseSpeechPlayer } from '@/packages/text-to-speech'
 import { fireEvent, render, screen, waitFor } from '@/test-utils'
 import ReadAloudButton from './ReadAloudButton'
 
-const state = vi.hoisted(() => ({ textToSpeech: { enabled: true } as Settings['textToSpeech'] }))
+const state = vi.hoisted(() => ({ textToSpeech: { enabled: true } as Settings['textToSpeech'] | undefined }))
 const synthesize = vi.hoisted(() => vi.fn())
 vi.mock('@/stores/settingsStore', () => ({
   useSettingsStore: (select: (value: typeof state) => unknown) => select(state),

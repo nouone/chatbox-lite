@@ -1,3 +1,4 @@
+import { SpeechSettings } from '@/components/settings/SpeechSettings'
 /** biome-ignore-all lint/style/noNonNullAssertion: auto-text fallbacks are always defined for these selectors */
 
 import NiceModal from '@ebay/nice-modal-react'
@@ -82,7 +83,11 @@ const GROUPS: { title: string; hint: string; slotIds: ModelRigSlotId[] }[] = [
     hint: 'Find relevant information in documents and on the web.',
     slotIds: ['embedding', 'rerank', 'search'],
   },
-  { title: 'Image creation', hint: 'Choose the model used in Image Creator.', slotIds: ['image'] },
+  {
+    title: 'Image creation',
+    hint: 'Use an image-capable model at your configured provider endpoint; no image engine runs inside Lite.',
+    slotIds: ['image'],
+  },
 ]
 
 const SLOT_COPY: Record<ModelRigSlotId, { name: string; desc: string }> = {
@@ -131,7 +136,7 @@ const SLOT_ICONS = {
 
 const PARSER_OPTION_LABELS: Record<string, string> = {
   'chatbox-ai': 'Chatbox AI',
-  local: 'Built-in parser',
+  local: 'Local parser',
   mineru: 'MinerU',
 }
 
@@ -159,7 +164,7 @@ export function RouteComponent() {
   const runningRef = useRef(false)
 
   const licenseKey = settings.licenseKey
-  const chatboxAIAutoText = licenseKey ? t('Auto (Use Chatbox AI)')! : t('None')!
+  const chatboxAIAutoText = t('None')!
 
   const chatboxImageGroups = useMemo(
     () => imageModelGroups.filter((group) => group.providerId === ModelProviderEnum.ChatboxAI),
@@ -391,14 +396,7 @@ export function RouteComponent() {
           })}
         </Stack>
       ))}
-      <Stack gap="xs" pt="sm" className="border-0 border-t border-solid border-chatbox-border-primary">
-        <Text size="sm" fw={500}>
-          {t('Speech recognition & speech synthesis')}
-        </Text>
-        <Text size="xs" c="chatbox-tertiary">
-          {t('Not available yet. No setup is needed.')}
-        </Text>
-      </Stack>
+      <SpeechSettings />
       <Button
         variant="subtle"
         color="gray"
@@ -411,7 +409,7 @@ export function RouteComponent() {
           void NiceModal.show('confirm', {
             title: t('Reset model selections?'),
             message: t(
-              'This replaces your selections on this page with automatic models and Chatbox services. Your provider credentials are kept. Some services require Chatbox AI.'
+              'This resets model selections to automatic chat choices and local parsing. Your configured search service, speech settings and provider credentials are kept.'
             ),
             confirmText: t('Reset selections'),
             cancelText: t('Cancel'),
@@ -721,7 +719,7 @@ function autoTextForSlot(
 ) {
   if (slotId === 'llm') return t('Auto (Use Last Used)')
   if (slotId === 'fast') return t('Auto (Use Chat Model)')
-  if (slotId === 'image') return licenseKey ? t('Chatbox AI / Image model') : t('None')
+  if (slotId === 'image') return t('None')
   return chatboxAIAutoText
 }
 

@@ -352,7 +352,8 @@
     "officeparser": "5.0.0",
     "sanitize-filename": "^1.6.3",
     "ua-parser-js": "^2.0.10",
-    "uuid": "^9.0.0"
+    "uuid": "^9.0.0",
+    "ws": "8.19.0"
   },
   "optionalDependencies": {
     "@rollup/rollup-darwin-arm64": "4.48.1",

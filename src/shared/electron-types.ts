@@ -1,6 +1,8 @@
+import type { LocalChatCall, LocalChatResult } from './local-chat-api'
 import type { BuiltInBrowserTabs } from './built-in-browser'
 
 export interface ElectronIPC {
+  onLocalChatApiRequest: (handler: (call: LocalChatCall) => Promise<LocalChatResult>) => () => void
   invoke: (channel: string, ...args: any[]) => Promise<any>
   getPathForFile: (file: File) => string
   onSystemThemeChange: (callback: () => void) => () => void

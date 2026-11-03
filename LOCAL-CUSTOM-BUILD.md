@@ -52,3 +52,13 @@ fnm install 22.21.1
 fnm use 22.21.1
 node --version
 ```
+
+## November 3: local help, speech defaults and optional web access
+
+Kokoro defaults to http://localhost:8880, kokoro, af_heart, 1.1x. Existing explicit speech preferences are retained. Speech controls moved from Chat to Default Models and replace the old unavailable placeholder; Whisper dictation setup is described there. Auto-read remains opt-in.
+
+Bundled skill seeds/discovery and built-in MCP presets are removed. Existing custom skills and custom MCP servers remain. Grok (xAI) and LM Studio lead the provider picker; Xiaomi/MiMo is omitted from that picker without deleting saved data. Image Creator calls your configured image endpoint; it does not contain a local image inference engine.
+
+Help opens a new normal chat with the bundled README and build notes as context, retaining the current/default custom chat model. No request is sent automatically. API keys, settings, logs and other conversations are not attached. Questions subsequently go to your chosen provider.
+
+See LOCAL-CHAT-API.md for authenticated localhost API/browser access, its shared desktop pipeline, and scripts/Test-LocalChatApi.ps1 for live acceptance testing with an existing Strata conversation.

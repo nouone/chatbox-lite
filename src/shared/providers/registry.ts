@@ -34,12 +34,18 @@ export function clearProviderRegistry(): void {
 }
 
 export function getSystemProviders(): BuiltinProviderBaseInfo[] {
-  return getAllProviders().map((def) => ({
-    id: def.id as BuiltinProviderBaseInfo['id'],
-    name: def.name,
-    type: def.type,
-    description: def.description,
-    urls: def.urls,
-    defaultSettings: def.defaultSettings,
-  }))
+  return getAllProviders()
+    .filter((def) => !/xiaomi|mimo/i.test(def.id + ' ' + def.name))
+    .sort((a, b) => {
+      const rank = (id: string) => (id.toLowerCase() === 'xai' ? 0 : /lm.?studio/i.test(id) ? 1 : 2)
+      return rank(a.id) - rank(b.id)
+    })
+    .map((def) => ({
+      id: def.id as BuiltinProviderBaseInfo['id'],
+      name: def.name,
+      type: def.type,
+      description: def.description,
+      urls: def.urls,
+      defaultSettings: def.defaultSettings,
+    }))
 }

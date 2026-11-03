@@ -12,6 +12,7 @@ import { CHATBOX_QA_PREFLIGHT } from './qa-preflight'
 // solve electron breaking changes, see https://www.electronjs.org/docs/latest/breaking-changes#behavior-changed-directory-databases-in-userdata-will-be-deleted
 // since 1.21.0, and this NEEDS to be the first import that initializes Electron's app module.
 import './legacy-database-migration'
+import { registerLocalChatApi } from './local-chat-api/desktop'
 import { registerFileTransferIpc } from './file-transfer-ipc'
 
 /* eslint global-require: off, no-console: off, promise/always-return: off */
@@ -761,7 +762,9 @@ if (quitForInstallRequested) {
       installSessionPrivacy(session.defaultSession)
       app.on('session-created', installSessionPrivacy)
       await knowledgeBaseInitPromise
+      const startLocalApi = registerLocalChatApi(() => mainWindow)
       await createWindow()
+      void startLocalApi?.().catch((error) => console.error('[Lite API] Could not start:', error.message))
       startupWindowCreated = true
       await initializeSessionAttachmentRagAfterAppReady()
       ensureTray()

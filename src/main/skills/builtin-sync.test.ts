@@ -26,7 +26,7 @@ vi.mock('./builtin', () => ({
   builtinSkills: [{ metadata: { name: 'local-help', description: 'Local help' }, body: 'local content', version: 1 }],
 }))
 
-import { getBuiltinSkillsDir, syncBuiltinSkills } from './builtin-sync'
+import { getBuiltinSkillsDir, syncBuiltinSkills, discoverBuiltinSkills, ensureBuiltinSeeded } from './builtin-sync'
 
 describe('syncBuiltinSkills', () => {
   beforeEach(() => {
@@ -39,12 +39,16 @@ describe('syncBuiltinSkills', () => {
     fs.rmSync(userDataRoot.current, { recursive: true, force: true })
   })
 
-  it('uses bundled skills and never checks a vendor manifest', async () => {
+  it('never seeds, discovers or synchronizes bundled skills, including old installed snapshots', async () => {
     const transport = vi.fn()
     vi.stubGlobal('fetch', transport)
     expect(await syncBuiltinSkills('en')).toBe(false)
     expect(await syncBuiltinSkills('zh')).toBe(false)
     expect(transport).not.toHaveBeenCalled()
-    expect(fs.existsSync(path.join(getBuiltinSkillsDir(), 'manifest.json'))).toBe(true)
+    ensureBuiltinSeeded()
+    expect(fs.existsSync(getBuiltinSkillsDir())).toBe(false)
+    fs.mkdirSync(path.join(getBuiltinSkillsDir(), 'old-skill'), { recursive: true })
+    fs.writeFileSync(path.join(getBuiltinSkillsDir(), 'old-skill', 'SKILL.md'), 'old vendor skill')
+    expect(discoverBuiltinSkills()).toEqual([])
   })
 })

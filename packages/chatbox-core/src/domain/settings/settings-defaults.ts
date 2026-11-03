@@ -18,6 +18,14 @@ export function getDefaultDocumentParser(host: SettingsHostDefaults): DocumentPa
  */
 export function createDefaultSettings(): Settings {
   return {
+    textToSpeech: {
+      enabled: true,
+      apiBaseUrl: 'http://localhost:8880',
+      model: 'kokoro',
+      voice: 'af_heart',
+      speed: 1.1,
+      autoRead: false,
+    },
     showWordCount: false,
     showTokenCount: false,
     showTokenUsed: true,

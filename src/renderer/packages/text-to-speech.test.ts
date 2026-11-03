@@ -163,9 +163,16 @@ describe('OpenAI-compatible speech', () => {
       expected
     )
   })
-  it('persists speech configuration without changing older settings', () => {
+  it('defaults missing speech configuration to Kokoro while preserving explicit older settings', () => {
     const schema = SettingsSchema.pick({ textToSpeech: true })
-    expect(schema.parse({}).textToSpeech).toBeUndefined()
+    expect(schema.parse({}).textToSpeech).toEqual({
+      enabled: true,
+      apiBaseUrl: 'http://localhost:8880',
+      model: 'kokoro',
+      voice: 'af_heart',
+      speed: 1.1,
+      autoRead: false,
+    })
     const settings = { enabled: true, apiBaseUrl: 'http://localhost:8880', model: 'kokoro', voice: 'af_heart' }
     expect(schema.parse({ textToSpeech: settings }).textToSpeech).toEqual(settings)
   })

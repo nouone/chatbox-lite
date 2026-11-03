@@ -363,3 +363,20 @@ test('removes saved vendor search/MCP choices while preserving configured Tavily
   expect(tavily.extension.webSearch.provider).toBe('tavily')
   expect(tavily.extension.webSearch.tavilyApiKey).toBe('configured-key')
 })
+
+test('uses local Kokoro defaults while preserving explicit speech preferences', () => {
+  expect(defaultSettings().textToSpeech).toMatchObject({
+    enabled: true,
+    apiBaseUrl: 'http://localhost:8880',
+    model: 'kokoro',
+    voice: 'af_heart',
+    speed: 1.1,
+    autoRead: false,
+  })
+  const old = { ...defaultSettings() } as Record<string, unknown>
+  delete old.textToSpeech
+  expect(SettingsSchema.parse(old).textToSpeech).toMatchObject({ model: 'kokoro', speed: 1.1 })
+  expect(
+    SettingsSchema.parse({ ...old, textToSpeech: { enabled: false, speed: 0.9, voice: 'chosen-voice' } }).textToSpeech
+  ).toMatchObject({ enabled: false, speed: 0.9, voice: 'chosen-voice' })
+})

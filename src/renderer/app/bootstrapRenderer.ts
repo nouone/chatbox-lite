@@ -1,3 +1,4 @@
+import { initLocalChatApiBridge } from '@/packages/local-chat-api'
 /// <reference types="vite/client" />
 
 import type { Settings } from '@shared/types'
@@ -118,6 +119,7 @@ export async function bootstrapRenderer(application: RendererApplication): Promi
   scheduleStorageCleanup(sessionMigrationTrickle)
 
   if (platform.type === 'desktop') {
+    initLocalChatApiBridge()
     initUpdateListeners()
     initSessionAttachmentRagMaintenance({ sessionMigrationDone: sessionMigrationTrickle.done })
   }

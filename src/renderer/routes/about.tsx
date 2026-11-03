@@ -30,7 +30,9 @@ function RouteComponent() {
                 <Text size="sm">Manual Lite updates only</Text>
               </Flex>
               <Text>Custom AI endpoints, local voice, and a streamlined interface.</Text>
-              <Text c="chatbox-tertiary">Independent community edition based on Chatbox.</Text>
+              <Text c="chatbox-tertiary">
+                Independent community edition based on Chatbox. Lite build: 2026-11-03 (local API and voice).
+              </Text>
             </Stack>
           </Flex>
 
@@ -48,6 +50,10 @@ function RouteComponent() {
             <Text>Independent sidebar text size, theme-aware icons, and improved reply scrolling.</Text>
             <Text>Sentry, Google Analytics, and Plausible reporting removed. Account and upgrade screens removed.</Text>
             <Divider />
+            <Text>
+              Optional authenticated localhost API and browser chat use the same desktop conversation pipeline. Bundled
+              skills and MCP presets are removed; custom skills and servers remain.
+            </Text>
             <Title order={3}>Help and setup</Title>
             <Text>
               Microphone: run scripts/setup-local-speech.ps1 from the source folder to install whisper.cpp and its
@@ -56,8 +62,8 @@ function RouteComponent() {
             </Text>
             <Text>
               Read-aloud: start your Kokoro OpenAI-compatible speech server (default http://localhost:8880). Choose a
-              voice and speed in speech settings. Enable Auto-read replies beside the input to read completed replies
-              automatically.
+              voice and speed under Settings / Default Models. Enable Auto-read replies beside the input to read
+              completed replies automatically.
             </Text>
             <Text>
               Appearance includes independent sidebar text size and theme controls. Vendor account, login, welcome and

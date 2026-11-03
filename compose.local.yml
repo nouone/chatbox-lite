@@ -1,0 +1,27 @@
+name: chatbox-lite-local
+services:
+  kokoro:
+    image: ${KOKORO_IMAGE:-ghcr.io/remsky/kokoro-fastapi-cpu:latest}
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8880:8880"
+    environment:
+      API_LOG_LEVEL: WARNING
+  embeddings:
+    image: ghcr.io/huggingface/text-embeddings-inference:cpu-1.9
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:8086:80"
+    command:
+      - --model-id
+      - BAAI/bge-small-en-v1.5
+      - --served-model-name
+      - text-embeddings-inference
+      - --port
+      - "80"
+    environment:
+      HF_HUB_DISABLE_TELEMETRY: "1"
+    volumes:
+      - embedding-cache:/data
+volumes:
+  embedding-cache:

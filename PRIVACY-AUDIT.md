@@ -13,7 +13,7 @@ Audit of the inherited Chatbox source and this Lite branch, November 2, 2026. Th
 | Free-trial marketing in custom-provider errors and purchase/upgrade quota cards | Trial blocks removed from `GenericMessageError.tsx`; `QuotaExhaustedError.tsx` shows a plain provider-limit error. |
 | Automatic license validation and hosted model catalog requests | `useAutoValidate` performs no network request or entitlement grant; the hosted model query is disabled and exposes no saved models. Hosted Chatbox provider entries are filtered out of provider setup and selection. |
 | Account/login/upgrade welcome cards and restoration setting | Removed from settings, chat/image layouts, and provider lists. Old account routes redirect to provider configuration. The vendor guide route redirects to Lite help. No environment flag or settings switch restores these screens. Compatibility welcome/quota/download components render nothing. |
-| Built-in skill backend manifest sync | `syncBuiltinSkills` in `src/main/skills/builtin-sync.ts` seeds local bundled assets only. |
+| Built-in skill backend manifest sync | `syncBuiltinSkills` in `src/main/skills/builtin-sync.ts` returns without seeding or discovering bundled assets. Old builtin-skills snapshots are ignored; custom skills remain. |
 | Background public model catalog refresh | `src/renderer/packages/model-registry/fetch.ts` reads the bundled snapshot/local cache, including for unknown models and refresh calls. Configured-provider model discovery is separate and remains available. |
 | Vendor-hosted artifact iframe receiving generated HTML by postMessage | `src/renderer/components/Artifact.tsx` uses a sandboxed local `srcDoc` iframe instead. Explicit preview URLs remain explicit user content. |
 | Web CORS relay through the vendor | `src/renderer/utils/request.ts` connects to the provider directly; the desktop direct transport is retained. Web providers must support CORS. |
@@ -41,3 +41,7 @@ Manual test after installing/restarting the updated Lite build:
 3. In Developer Tools Network, enable Preserve log and inspect startup, idle, two chat replies and an HTML preview. None should request a vendor API, telemetry endpoint, notification feed or remote artifact host. Main-process traffic needs OS/network tooling to inspect separately; DevTools alone is not a complete traffic audit.
 4. Test your configured endpoint, microphone transcription, Kokoro manual/automatic reading, and Tavily. These should retain their intended connections.
 5. Update Lite manually from its source or a Lite installer. Building alone does not replace an installed app.
+
+## Optional local web access (November 3)
+
+The new API is disabled unless CBL_API_ENABLED=1. It binds 127.0.0.1, requires a private bearer token, rejects unrelated browser origins/Host headers, and relays requests into the same renderer controller used by Desktop Send. The browser page contains no external scripts. It adds no vendor service and creates no separate AI client. Remote/custom provider requests and normal desktop tool approvals remain part of the existing pipeline. See LOCAL-CHAT-API.md for limits and test status. Live network connections were denied with EACCES in this development environment; real Strata/browser acceptance remains a user-run check.

@@ -6,12 +6,14 @@ An independent, streamlined derivative of [Chatbox](https://github.com/chatboxai
 
 - **Custom AI endpoints:** OpenAI-compatible provider support, optional Strata Off/Low/Medium/High thinking controls, and provider-reported generation speed when supplied by the server.
 - **Local Whisper microphone input:** whisper.cpp transcription, recording level animation, Stop-to-transcribe, and a nearby Send arrow. Transcription becomes an editable draft.
-- **Kokoro audio playback:** read responses aloud, automatically read completed replies, select a voice, and adjust speed. Speech normalization expands common dates, units, abbreviations, compass directions, and Bible references while omitting URLs and code. Voice quality depends on the speech server and model; there is no separate client HQ switch.
+- **Kokoro audio playback:** read responses aloud, automatically read completed replies, select a voice, and adjust speed. Defaults are `http://localhost:8880`, model `kokoro`, voice `af_heart`, speed `1.1`; auto-read remains opt-in. Controls now live in **Settings > Default Models**, alongside local Whisper instructions. Speech normalization expands common dates, units, abbreviations, compass directions, and Bible references while omitting URLs and code. Voice quality depends on the speech server and model; there is no separate client HQ switch.
 - **Tavily search:** retains Chatbox's Tavily configuration and web search support. No additional search-loop limit is introduced.
 - **Interface improvements:** independent sidebar font size, theme-aware chat icons, warm theme surfaces, the smiley application icon, nearby Send arrow, and streaming scroll-follow fixes.
 - **No account or upgrade interface:** vendor welcome cards, account/login screens, upgrade/quota prompts, download banners, and the hosted Chatbox provider are removed. There is no restore toggle or environment switch. Custom providers remain available.
 - **Analytics removed:** Sentry reporting, Google Analytics, and Plausible scripts/transports are removed. Vendor update checks, remote configuration, promotional notifications and hosted preview requests are also removed. See the audit below.
-- **Local help:** the sidebar Help button opens About with Lite features and voice setup, rather than the original guide chatbot. Upstream credits and GPL links remain available.
+- **Help chat:** the sidebar Help button opens a normal persisted conversation with the bundled README and setup guide included as context, using your configured chat model. It sends no question automatically and attaches no keys, settings, logs or other chats. About retains Lite features and upstream GPL credits.
+- **No bundled skills or MCP presets:** bundled skill seeding/discovery and vendor MCP presets are removed. Old bundled skill snapshots are ignored. Your own skills and custom MCP server configuration remain available.
+- **Local web/API access:** opt-in localhost port 8085, authenticated HTTP, WebSocket snapshots and a standalone browser chat page. Submissions use the desktop Send controller and existing saved conversations. See [LOCAL-CHAT-API.md](LOCAL-CHAT-API.md) for enablement and the PowerShell live proof.
 - **Windows packaging fixes:** explicit package registry, local production dependency verification, and a separate Lite installer identity and Chatbox Lite Contributors publisher metadata, without private signing credentials. This metadata does not make an unsigned installer signed.
 
 ## Found and removed: privacy audit
@@ -27,7 +29,7 @@ The following behaviors were found in the inherited source and removed or disabl
 | `/api/dialog_config` and `/api/client_notifications/next` requests, including device/language/version or displayed-notification history | Remote promotional dialogs and notifications no longer mount or fetch. |
 | Free-trial ads attached to custom-provider errors and vendor quota purchase cards | Removed. Errors explain the provider failure without upgrade or purchase actions. |
 | Automatic saved-license validation | No background vendor license calls. Hosted account, subscription, cloud parsing and vendor model services remain unavailable; paid features are not unlocked. |
-| Built-in skill manifest/detail synchronization from the vendor | Bundled local skills retained; remote sync disabled. |
+| Built-in skill manifest/detail synchronization from the vendor | No bundled skills are seeded or discovered; custom skills remain. |
 | Automatic `models.dev` catalog downloads at startup or on unknown model IDs | Bundled snapshot and local cache only. Fetching models from your configured provider is preserved. |
 | Generated artifact HTML posted to `artifact-preview.chatboxai.app` in an iframe | Sandboxed local `srcDoc` preview; no vendor frame receives the code. |
 | Vendor CORS proxy for web provider requests | Direct provider requests. Browser builds need provider CORS support; Desktop keeps its direct transport. |
@@ -59,14 +61,18 @@ pnpm run dev
 
 1. Configure your custom provider and send two consecutive replies. Confirm scrolling follows streamed text and pauses when you deliberately scroll upward.
 2. With the `hf` command available, run `powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\setup-local-speech.ps1` from the checkout to install whisper.cpp and its English model. The script explains how to install the download tool if missing. Record with the microphone, stop, review the transcription, and send it.
-3. Run your Kokoro/OpenAI-compatible speech service separately. The default URL is `http://localhost:8880`; configure the speech settings or set `AUDIO_TTS_OPENAI_API_BASE_URL` before launching. Test manual reading, voice and speed selection, then Auto-read replies.
+3. Run your Kokoro/OpenAI-compatible speech service separately. For a one-command Docker setup for Kokoro and document embeddings, follow [Local services](LOCAL-SERVICES.md). The default speech URL is `http://localhost:8880`; configure it in Default Models or set `AUDIO_TTS_OPENAI_API_BASE_URL` before launching. Test manual reading, voice and speed selection, then Auto-read replies.
 4. Configure Tavily if you want web search, and test a search-enabled reply.
 5. Change sidebar text size and theme. Confirm there is no Account navigation, restore toggle, hosted Chatbox provider, welcome login/upgrade card, or enabled-looking Error Reporting switch.
-6. Open Help and About. Confirm Lite branding, Whisper/Kokoro instructions, and upstream license credits.
+6. Open Help: a new chat should contain the local docs as context and keep your selected model. Ask a question; normal provider charges/availability apply. About remains local and retains source/license credits.
+7. In Model Providers confirm Grok (xAI), then LM Studio, appear first and Xiaomi/MiMo is absent. Image Creator uses an image-capable model at a configured endpoint; set a custom model type to Image, then choose it under Default Models / Image creation. It does not run an image engine inside Lite.
+8. For web/API testing follow [LOCAL-CHAT-API.md](LOCAL-CHAT-API.md). Live Strata and browser socket validation must be done on your normal desktop session; handler tests here do not certify that live round trip.
 
 ## Build a Windows installer
 
 Close the development app, then run:
+
+Prepare Whisper using `scripts/setup-local-speech.ps1` **before packaging** if you want microphone dictation in the installer. Its files must be in this checkout's `assets/whisper` directory. The installed app reads its own `resources/assets/whisper`, not the build drive. Rebuilding source alone does not update an installed app.
 
 ```powershell
 pnpm run build

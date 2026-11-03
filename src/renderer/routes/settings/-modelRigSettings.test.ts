@@ -114,7 +114,7 @@ describe('model rig slot settings', () => {
     expect(isSlotPresetOn('image', settings(), { provider: 'openai', modelId: 'gpt-image-1' })).toBe(false)
   })
 
-  test('applying Chatbox presets clears custom models and restores built-in parser and search', () => {
+  test('resetting selections keeps configured search and uses local parsing', () => {
     const current = settings({
       defaultChatModel: { provider: 'openai', model: 'gpt-4.1' },
       extension: {
@@ -130,8 +130,8 @@ describe('model rig slot settings', () => {
       defaultEmbeddingModel: undefined,
       defaultRerankModel: undefined,
     })
-    expect(applyAllPresetsExtension(current).webSearch.provider).toBe('build-in')
-    expect(applyAllPresetsExtension(current).documentParser?.type).toBe('chatbox-ai')
+    expect(applyAllPresetsExtension(current).webSearch.provider).toBe('tavily')
+    expect(applyAllPresetsExtension(current).documentParser?.type).toBe('local')
     expect(applyAllPresetsExtension(current).webSearch.tavilyApiKey).toBe('secret')
   })
 
@@ -205,7 +205,7 @@ describe('model rig slot tests', () => {
     expect(pinged).toEqual(['openai/gpt-4.1'])
   })
 
-  test('web search built-in requires a license before it searches', async () => {
+  test('legacy vendor search requires a configured alternative before it searches', async () => {
     const result = await runSlotTest('search', {
       settings: settings(),
       configuredProviderIds: new Set(['openai']),
@@ -216,7 +216,7 @@ describe('model rig slot tests', () => {
       searchWeb: async () => undefined,
     })
     expect(result.status).toBe('fail')
-    expect(result.error).toMatch(/not activated/i)
+    expect(result.error).toMatch(/choose a search service/i)
   })
 
   test('local document parser passes without a network call', async () => {

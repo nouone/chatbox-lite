@@ -487,8 +487,22 @@ export const SettingsSchema = GlobalSessionSettingsSchema.extend({
       speed: z.number().min(0.25).max(4).optional().catch(undefined),
       autoRead: z.boolean().optional(),
     })
-    .optional()
-    .catch(undefined),
+    .default({
+      enabled: true,
+      apiBaseUrl: 'http://localhost:8880',
+      model: 'kokoro',
+      voice: 'af_heart',
+      speed: 1.1,
+      autoRead: false,
+    })
+    .catch({
+      enabled: true,
+      apiBaseUrl: 'http://localhost:8880',
+      model: 'kokoro',
+      voice: 'af_heart',
+      speed: 1.1,
+      autoRead: false,
+    }),
   providers: z.record(z.string(), ProviderSettingsSchema).optional().catch(undefined),
   customProviders: z.array(CustomProviderBaseInfoSchema).optional().catch(undefined),
   favoritedModels: z
