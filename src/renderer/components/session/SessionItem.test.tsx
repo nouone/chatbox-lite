@@ -8,6 +8,8 @@ import { beforeEach, describe, expect, test, vi } from 'vitest'
 
 const {
   archiveSessionMock,
+  deleteSessionMock,
+  confirmSessionDeletionMock,
   countArchivedSessionsMetaMock,
   isSmallScreenMock,
   platformMock,
@@ -18,6 +20,8 @@ const {
   updateSessionHeaderMock,
 } = vi.hoisted(() => ({
   archiveSessionMock: vi.fn(),
+  deleteSessionMock: vi.fn(),
+  confirmSessionDeletionMock: vi.fn(),
   countArchivedSessionsMetaMock: vi.fn(),
   isSmallScreenMock: vi.fn(() => false),
   platformMock: { type: 'desktop' },
@@ -50,7 +54,13 @@ vi.mock('@/app/renderer-application', async (importOriginal) => {
     },
   }
 })
-vi.mock('@/stores/session/crud', () => ({ switchCurrentSession: switchCurrentSessionMock }))
+vi.mock('@/stores/session/crud', () => ({
+  switchCurrentSession: switchCurrentSessionMock,
+  deleteSession: deleteSessionMock,
+}))
+vi.mock('@/presentation/session/session-deletion-confirmation', () => ({
+  confirmSessionDeletion: confirmSessionDeletionMock,
+}))
 vi.mock('@/stores/toastActions', () => ({ add: toastAddMock }))
 vi.mock('@/stores/uiStore', () => ({
   useUIStore: (selector: (state: { setShowSidebar: () => void }) => unknown) => selector({ setShowSidebar: vi.fn() }),
@@ -96,6 +106,8 @@ describe('SessionItem', () => {
     isSmallScreenMock.mockReturnValue(false)
     platformMock.type = 'desktop'
     archiveSessionMock.mockResolvedValue(undefined)
+    deleteSessionMock.mockResolvedValue(undefined)
+    confirmSessionDeletionMock.mockResolvedValue(true)
     countArchivedSessionsMetaMock.mockResolvedValue(0)
     restoreSessionMock.mockResolvedValue(undefined)
     routerNavigateMock.mockResolvedValue(undefined)
@@ -125,6 +137,28 @@ describe('SessionItem', () => {
     expect(screen.getByText('Pin')).toBeTruthy()
     expect(screen.getByText('Archive')).toBeTruthy()
     expect(screen.queryByText('Adjust order')).toBeNull()
+  })
+
+  test('deletes the selected chat only after menu confirmation, using the shared deletion flow', async () => {
+    renderItem()
+    fireEvent.contextMenu(screen.getByTestId(TestId.sidebar.sessionItem))
+    fireEvent.click(await screen.findByText('Delete chat'))
+    expect(deleteSessionMock).not.toHaveBeenCalled()
+    fireEvent.click(await screen.findByText('Confirm?'))
+    await waitFor(() => expect(deleteSessionMock).toHaveBeenCalledWith(session.id))
+    expect(confirmSessionDeletionMock).toHaveBeenCalledWith(session.id)
+    expect(routerNavigateMock).toHaveBeenCalledWith({ to: '/', replace: true })
+  })
+
+  test('keeps the chat when its artifact deletion confirmation is declined', async () => {
+    confirmSessionDeletionMock.mockResolvedValue(false)
+    renderItem()
+    fireEvent.contextMenu(screen.getByTestId(TestId.sidebar.sessionItem))
+    fireEvent.click(await screen.findByText('Delete chat'))
+    fireEvent.click(await screen.findByText('Confirm?'))
+    await waitFor(() => expect(confirmSessionDeletionMock).toHaveBeenCalledWith(session.id))
+    expect(deleteSessionMock).not.toHaveBeenCalled()
+    expect(routerNavigateMock).not.toHaveBeenCalled()
   })
 
   test('uses long press instead of hover actions on a wide touch screen', async () => {

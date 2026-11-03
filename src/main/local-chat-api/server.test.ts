@@ -50,6 +50,29 @@ it('rejects missing credentials, hostile origins and Host headers before dispatc
   expect((await request('/api/chats', { headers: { host: 'hostile.example' } })).status).toBe(403)
   expect(dispatch).not.toHaveBeenCalled()
 })
+
+it('identifies CBL without credentials and revokes old HTTP and WebSocket tokens on rotation', async () => {
+  const { request, server, dispatch } = await setup()
+  const identity = await request('/api/status', { auth: false })
+  expect(JSON.parse(identity.body)).toEqual({ app: 'chatbox-lite', apiVersion: 1 })
+  const newToken = 'new-credential'.repeat(4)
+  const disconnected = { terminate: vi.fn() }
+  server.events.clients.add(disconnected as never)
+  server.setToken(newToken)
+  expect(disconnected.terminate).toHaveBeenCalledOnce()
+  server.events.clients.delete(disconnected as never)
+  expect((await request('/api/chats')).status).toBe(401)
+  expect((await request('/api/chats', { headers: { authorization: 'Bearer ' + newToken } })).status).toBe(200)
+  const end = vi.fn()
+  server.httpServer.emit(
+    'upgrade',
+    { url: '/api/events', headers: { host: '127.0.0.1:' + server.port, authorization: 'Bearer ' + token } },
+    { end },
+    Buffer.alloc(0)
+  )
+  expect(end).toHaveBeenCalledWith(expect.stringContaining('403 Forbidden'))
+  expect(dispatch).toHaveBeenCalledOnce()
+})
 it('routes list/history/send to the same renderer boundary', async () => {
   const { request, dispatch } = await setup()
   await request('/api/chats?limit=20&cursor=2')

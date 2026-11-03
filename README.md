@@ -66,7 +66,7 @@ pnpm run dev
 5. Change sidebar text size and theme. Confirm there is no Account navigation, restore toggle, hosted Chatbox provider, welcome login/upgrade card, or enabled-looking Error Reporting switch.
 6. Open Help: a new chat should contain the local docs as context and keep your selected model. Ask a question; normal provider charges/availability apply. About remains local and retains source/license credits.
 7. In Model Providers confirm Grok (xAI), then LM Studio, appear first and Xiaomi/MiMo is absent. Image Creator uses an image-capable model at a configured endpoint; set a custom model type to Image, then choose it under Default Models / Image creation. It does not run an image engine inside Lite.
-8. For web/API testing follow [LOCAL-CHAT-API.md](LOCAL-CHAT-API.md). Live Strata and browser socket validation must be done on your normal desktop session; handler tests here do not certify that live round trip.
+8. Enable the Local chat API under Settings → Advanced. Generate/copy its token and open the browser there. Follow [LOCAL-CHAT-API.md](LOCAL-CHAT-API.md) for testing. Live Strata and browser socket validation must be done on your normal desktop session; handler tests here do not certify that live round trip.
 
 ## Build a Windows installer
 
@@ -82,6 +82,12 @@ pnpm exec electron-builder --config electron-builder.lite.yml --win nsis --x64 -
 Keep the tracked `.npmrc` registry setting. Building does not update an already installed app: install the generated Lite installer from `release/build`. Export/import chats if the separate Lite profile is empty. See [build notes](LOCAL-CUSTOM-BUILD.md) for details. Source checks/builds do not verify microphone hardware, a running speech server, or installer behavior on your machine.
 
 ## Fork and upstream changes
+
+### November 3 follow-up
+
+Removed the remaining Wolters Kluwer China and Eastmoney MCP suggestion rows; custom servers and manual/JSON setup remain available. Removed Chatbox AI from the document parser picker and its points/activation copy; Local and the explicitly configured MinerU service remain. Added Delete chat to the chat sidebar context menu, using the existing deletion controller and confirmation flow.
+
+Settings → Advanced now includes local API enable/port controls, secure token generation/rotation, Copy token and Open browser. Token rotation disconnects old browser clients. Fixed API readiness being invalidated by subframe loading, and added a public identity check plus clearer errors to the PowerShell proof script. The browser is a small CBL-styled continuation view for existing chats; it uses the desktop conversation's model and tools. It is separate from llama-ui or any other service running on another port. If embeddings/llama-ui already uses 8085, choose 8087 for CBL.
 
 Commit your changes, create your own GitHub repository, and add it as `origin`. Keep the original Chatbox repository as `upstream`. Before importing upstream changes, back up app data, create an update branch, merge and resolve conflicts, then repeat the tests above. Do not apply the old incremental patches over this consolidated version. No fork or release is published automatically.
 

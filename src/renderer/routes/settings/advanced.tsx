@@ -4,6 +4,7 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { DiagnosticLogsRow } from '@/components/settings/DataSections'
+import { LocalChatApiSettings } from '@/components/settings/LocalChatApiSettings'
 import { isValidProxyAddress } from '@/components/settings/proxy-address'
 import { SettingRow, SettingsPage, SettingsSection } from '@/components/settings/SettingsLayout'
 import { useFieldDraft } from '@/hooks/useFieldDraft'
@@ -125,6 +126,7 @@ export function RouteComponent() {
 
   return (
     <SettingsPage title={t('Advanced')} description={t('Network, diagnostics and privacy.')}>
+      <LocalChatApiSettings />
       <SettingsSection title={t('Network')}>
         <ProxyRow />
       </SettingsSection>

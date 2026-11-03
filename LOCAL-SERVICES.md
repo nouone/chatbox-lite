@@ -17,6 +17,8 @@ Already running Kokoro on port 8880? Keep that instance and start only embedding
 docker compose -f compose.local.yml up -d embeddings
 ```
 
+Already running an embedding server, such as llama.cpp/Jina on port 8085? Keep that service and its current CBL configuration. Start only Kokoro with `docker compose -f compose.local.yml up -d kokoro`, or start neither if both services already work. The Compose embeddings service is a separate TEI/BGE service on 8086; it does not manage your existing server or provide llama-ui. Use 8087 for CBL's optional chat API when 8085 is occupied.
+
 Both published ports bind to this computer only. These local endpoints have no API authentication; do not expose them publicly. Image/model downloads require internet access. These third-party services are separate from CBL's privacy audit.
 
 ## Configure CBL

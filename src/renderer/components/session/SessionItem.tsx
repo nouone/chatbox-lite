@@ -10,6 +10,7 @@ import {
   IconLoader2,
   IconPinned,
   IconPinnedFilled,
+  IconTrash,
 } from '@tabler/icons-react'
 import clsx from 'clsx'
 import dayjs from 'dayjs'
@@ -22,8 +23,9 @@ import { useIsSmallScreen } from '@/hooks/useScreenChange'
 import { useTouchLayout } from '@/hooks/useTouchLayout'
 import { navigateToSettings } from '@/modals/settings-navigation'
 import { showSessionArchiveUndo } from '@/presentation/session/session-archive-notification'
+import { confirmSessionDeletion } from '@/presentation/session/session-deletion-confirmation'
 import { router } from '@/router'
-import { switchCurrentSession } from '@/stores/session/crud'
+import { deleteSession, switchCurrentSession } from '@/stores/session/crud'
 import { useSessionActivity } from '@/stores/sessionActivityStore'
 import * as toastActions from '@/stores/toastActions'
 import { useUIStore } from '@/stores/uiStore'
@@ -97,6 +99,7 @@ function SessionItem(props: Props) {
   // const smallSize = theme.typography.pxToRem(20)
 
   const [archiving, setArchiving] = useState(false)
+  const [deleting, setDeleting] = useState(false)
   const [actionTooltipDismissed, setActionTooltipDismissed] = useState(false)
   const [renaming, setRenaming] = useState(false)
   const [draftName, setDraftName] = useState('')
@@ -148,7 +151,7 @@ function SessionItem(props: Props) {
   }
 
   const archiveCurrentSession = async () => {
-    if (archiving) {
+    if (archiving || deleting) {
       return
     }
     setArchiving(true)
@@ -198,6 +201,21 @@ function SessionItem(props: Props) {
     setActionTooltipDismissed(false)
   }
 
+  const deleteCurrentSession = async () => {
+    if (archiving || deleting) return
+    setDeleting(true)
+    try {
+      if (!(await confirmSessionDeletion(session.id))) return
+      await deleteSession(session.id)
+      if (selected) await router.navigate({ to: '/', replace: true })
+    } catch (error) {
+      console.error('Failed to delete chat:', error)
+      toastActions.add(t('Failed to delete chat. Please try again.') || '')
+    } finally {
+      setDeleting(false)
+    }
+  }
+
   const menuItems: ActionMenuItemProps[] = [
     {
       text: pinActionLabel || '',
@@ -230,9 +248,19 @@ function SessionItem(props: Props) {
     {
       text: archiveActionLabel || '',
       icon: IconArchive,
-      disabled: archiving,
+      disabled: archiving || deleting,
       onClick: () => {
         void archiveCurrentSession()
+      },
+    },
+    {
+      text: t('Delete chat') || '',
+      icon: IconTrash,
+      color: 'red',
+      disabled: archiving || deleting,
+      doubleCheck: true,
+      onClick: () => {
+        void deleteCurrentSession()
       },
     },
   ]
@@ -410,6 +438,7 @@ function SessionItem(props: Props) {
             size={20}
             color="chatbox-tertiary"
             loading={archiving}
+            disabled={deleting}
             onPointerDown={stopItemClick}
             onClick={async (event) => {
               stopItemClick(event)

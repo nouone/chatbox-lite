@@ -191,6 +191,7 @@ export const SETTINGS_SEARCH_ENTRIES: SettingsSearchEntry[] = [
   { page: 'data', id: 'import-data', label: 'Import Backup' },
   { page: 'data', id: 'archived-chats', label: 'Archived Chats' },
   { page: 'advanced', id: 'proxy', label: 'Network Proxy' },
+  { page: 'advanced', id: 'local-chat-api', label: 'Local chat API' },
   { page: 'advanced', id: 'diagnostic-logs', label: 'Diagnostic Logs' },
   { page: 'advanced', id: 'error-reporting', label: 'Error reporting removed' },
   ...(platform.type === 'desktop'

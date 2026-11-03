@@ -7,9 +7,10 @@ import { LOCAL_CHAT_WEB_UI } from './web-ui'
 type Dispatch = (call: LocalChatCall) => Promise<LocalChatResult>
 export async function startLocalChatApi(options: { port: number; token: string; dispatch: Dispatch }) {
   if (options.token.length < 32) throw new Error('The API token must have at least 32 characters.')
+  let currentToken = options.token
   const authorized = (candidate: string) => {
     const a = new TextEncoder().encode(candidate),
-      b = new TextEncoder().encode(options.token)
+      b = new TextEncoder().encode(currentToken)
     return a.length === b.length && timingSafeEqual(a, b)
   }
   const hostAllowed = (req: IncomingMessage) => {
@@ -36,6 +37,10 @@ export async function startLocalChatApi(options: { port: number; token: string; 
         return
       }
       const url = new URL(req.url || '/', `http://127.0.0.1:${port}`)
+      if (req.method === 'GET' && url.pathname === '/api/status') {
+        reply(res, 200, { app: 'chatbox-lite', apiVersion: 1 })
+        return
+      }
       if (req.method === 'GET' && url.pathname === '/') {
         res.writeHead(200, {
           'Content-Type': 'text/html; charset=utf-8',
@@ -170,6 +175,12 @@ export async function startLocalChatApi(options: { port: number; token: string; 
     port,
     httpServer: server,
     events: sockets,
+    setToken: (token: string) => {
+      if (token.length < 32) throw new Error('The API token must have at least 32 characters.')
+      currentToken = token
+      for (const ws of sockets.clients) ws.terminate()
+      server.closeAllConnections()
+    },
     close: async () => {
       for (const ws of sockets.clients) ws.terminate()
       sockets.close()

@@ -1,23 +1,24 @@
-import { randomBytes, randomUUID } from 'node:crypto'
+import { randomUUID } from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
-import { app, ipcMain, type BrowserWindow } from 'electron'
+import { app, clipboard, ipcMain, shell, type BrowserWindow } from 'electron'
+import { LOCAL_API_CHANNELS } from '../../shared/local-chat-api'
 import type { LocalChatCall, LocalChatResult } from '../../shared/local-chat-api'
 import { startLocalChatApi } from './server'
+import { createLocalApiManager } from './manager'
 
 /** IPC transports commands only; all chat state and generation stay in the renderer. */
 export function registerLocalChatApi(getWindow: () => BrowserWindow | null) {
-  if (process.env.CBL_API_ENABLED !== '1') return
   let ready = false
   const pending = new Map<string, { resolve: (value: LocalChatResult) => void; timer: ReturnType<typeof setTimeout> }>()
   ipcMain.on('lite-api:ready', (event) => {
-    if (event.sender === getWindow()?.webContents) {
+    if (event.sender === getWindow()?.webContents && event.senderFrame === getWindow()?.webContents.mainFrame) {
       ready = true
       console.info('[Lite API] Desktop controller ready')
     }
   })
   ipcMain.on('lite-api:response', (event, id: string, result: LocalChatResult) => {
-    if (event.sender !== getWindow()?.webContents) return
+    if (event.sender !== getWindow()?.webContents || event.senderFrame !== getWindow()?.webContents.mainFrame) return
     const request = pending.get(id)
     if (!request) return
     clearTimeout(request.timer)
@@ -27,7 +28,7 @@ export function registerLocalChatApi(getWindow: () => BrowserWindow | null) {
   const dispatch = (call: LocalChatCall) =>
     new Promise<LocalChatResult>((resolve) => {
       const window = getWindow()
-      if (!ready || !window || window.isDestroyed() || window.webContents.isLoading()) {
+      if (!ready || !window || window.isDestroyed()) {
         resolve({ status: 503, body: { error: 'Desktop chat controller is not ready' } })
         return
       }
@@ -46,30 +47,77 @@ export function registerLocalChatApi(getWindow: () => BrowserWindow | null) {
       pending.set(id, { resolve, timer })
       window.webContents.send('lite-api:request', { id, call })
     })
+  const profile = app.getPath('userData')
+  const tokenPath = path.join(profile, 'local-api-token.txt')
+  const preferencesPath = path.join(profile, 'local-api-settings.json')
+  let saved: { enabled?: boolean; port?: number } = {}
+  let token = process.env.CBL_API_TOKEN || ''
+  try {
+    saved = JSON.parse(fs.readFileSync(preferencesPath, 'utf8')) || {}
+  } catch {}
+  if (!token) {
+    try {
+      token = fs.readFileSync(tokenPath, 'utf8').trim()
+    } catch {}
+  }
+  const writePrivateFile = (target: string, value: string) => {
+    const temporary = target + '.tmp'
+    fs.writeFileSync(temporary, value, { mode: 0o600 })
+    fs.renameSync(temporary, target)
+  }
+  const manager = createLocalApiManager({
+    preferences: {
+      enabled: process.env.CBL_API_ENABLED === undefined ? saved.enabled === true : process.env.CBL_API_ENABLED === '1',
+      port: Number(process.env.CBL_API_PORT || (Number.isInteger(saved.port) ? saved.port : 8085)),
+    },
+    token,
+    saveToken: (value) => writePrivateFile(tokenPath, value),
+    savePreferences: (value) => writePrivateFile(preferencesPath, JSON.stringify(value)),
+    start: async (port, activeToken) => {
+      const server = await startLocalChatApi({ port, token: activeToken, dispatch })
+      console.info(`[Lite API] http://127.0.0.1:${server.port}`)
+      return server
+    },
+  })
+  const assertMainFrame = (event: Electron.IpcMainInvokeEvent) => {
+    const window = getWindow()
+    if (!window || event.sender !== window.webContents || event.senderFrame !== window.webContents.mainFrame)
+      throw new Error('Local API settings are available only in the desktop window.')
+  }
+  ipcMain.handle(LOCAL_API_CHANNELS.status, (event) => {
+    assertMainFrame(event)
+    return manager.status()
+  })
+  ipcMain.handle(LOCAL_API_CHANNELS.configure, (event, preferences) => {
+    assertMainFrame(event)
+    return manager.configure(preferences)
+  })
+  ipcMain.handle(LOCAL_API_CHANNELS.rotateToken, (event) => {
+    assertMainFrame(event)
+    return manager.rotateToken()
+  })
+  ipcMain.handle(LOCAL_API_CHANNELS.copyToken, (event) => {
+    assertMainFrame(event)
+    const value = manager.getToken()
+    if (value.length < 32) throw new Error('Generate a token first.')
+    clipboard.writeText(value)
+  })
+  ipcMain.handle(LOCAL_API_CHANNELS.openBrowser, (event) => {
+    assertMainFrame(event)
+    const state = manager.status()
+    if (!state.running) throw new Error('Enable the API first.')
+    return shell.openExternal(state.url)
+  })
+  app.once('before-quit', () => {
+    void manager.close()
+  })
   return async () => {
-    const port = Number(process.env.CBL_API_PORT || 8085)
-    if (!Number.isInteger(port) || port < 1 || port > 65535) throw new Error('CBL_API_PORT must be 1 to 65535')
-    const tokenPath = path.join(app.getPath('userData'), 'local-api-token.txt')
-    let token = process.env.CBL_API_TOKEN || ''
-    if (!token) {
-      try {
-        token = fs.readFileSync(tokenPath, 'utf8').trim()
-      } catch {}
-      if (token.length < 32) {
-        token = randomBytes(32).toString('hex')
-        fs.writeFileSync(tokenPath, token, { mode: 0o600 })
-      }
-    }
-    const server = await startLocalChatApi({ port, token, dispatch })
-    console.info(
-      `[Lite API] http://127.0.0.1:${server.port} (token ${process.env.CBL_API_TOKEN ? 'supplied by environment' : 'file: ' + tokenPath})`
-    )
-    getWindow()?.webContents.on('did-start-loading', () => {
-      ready = false
+    getWindow()?.webContents.on('did-start-navigation', (_event, _url, isInPlace, isMainFrame) => {
+      // Iframes and hash navigation must not invalidate the initialized chat controller.
+      if (isMainFrame && !isInPlace) ready = false
     })
-    app.once('before-quit', () => {
-      void server.close()
-    })
-    return server
+    const state = await manager.start()
+    if (state.error) console.error('[Lite API]', state.error)
+    return state
   }
 }

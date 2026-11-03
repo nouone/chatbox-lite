@@ -2,7 +2,22 @@
 
 This is an optional local interface to the running Chatbox Lite desktop application. It is **disabled by default**, binds **127.0.0.1 only**, and uses a bearer token. It is not a separate Strata client or chat engine. Keep Desktop running and unlock/approve any normal desktop prompts there.
 
-## Start on port 8085
+## Enable in Settings (recommended)
+
+Open **Settings → Advanced → Local chat API**. Leave the port at 8085, or choose another available port such as 8087 and click Apply port. Turn on Enable local chat API. A secure token is generated automatically if needed. Click Copy token, then Open browser and paste it into the page. Tokens are never displayed in the Settings page or embedded in the browser URL.
+
+Generate new token immediately revokes the previous token and disconnects existing browser/WebSocket clients. Copy the replacement and reconnect. The switch and port are saved for the next launch; no restart is needed for changes. Disable the switch to stop listening. A port conflict is shown in Settings instead of silently leaving you connected to another service.
+
+For PowerShell tests, click Copy token in Settings and then, from your source checkout, run:
+
+```powershell
+$env:CBL_API_TOKEN = Get-Clipboard
+.\scripts\Test-LocalChatApi.ps1 -BaseUrl 'http://127.0.0.1:8087'
+```
+
+Use the port shown in Settings. The script checks CBL's identity before sending credentials, bypasses proxies for local requests, and prints the server's actual error response.
+
+## Optional environment launch on port 8085
 
 Close older Desktop/development instances first. In PowerShell from your source checkout, using Node 22:
 
@@ -16,13 +31,15 @@ Start-Process powershell -WorkingDirectory $PWD -ArgumentList '-NoProfile', '-No
 
 The new development window inherits these variables. Keep the original PowerShell window for API commands: it still has the same token. For browser login, read `$env:CBL_API_TOKEN` in that original shell and paste it into the local page, keeping it private. Do not put the token in screenshots, URLs, commits, or shared logs.
 
-For an installed build, set the same variables before launching its executable with `Start-Process`; fully quit an already-running instance first. Rebuild/reinstall the new code before testing an older installed app. Clearing `CBL_API_ENABLED` and restarting disables the server.
+For an installed build, set the same variables before launching its executable with `Start-Process`; fully quit an already-running instance first. Rebuild/reinstall the new code before testing an older installed app. Environment variables override saved Settings at startup. To return to the UI settings, clear the three `CBL_API_*` environment variables from your launch shell and restart. To disable the API, switch it off in Settings.
 
-If `CBL_API_TOKEN` is omitted, the app generates/reuses `local-api-token.txt` in its desktop profile. Its path is printed in the API startup log. Keep that file private. Use `-TokenFile` with the proof script instead of setting the token manually. Changing the API token does not change provider keys or conversation data.
+If `CBL_API_TOKEN` is omitted, enabling the API generates/reuses `local-api-token.txt` in its desktop profile. Use Copy token in Settings, or supply the private file's path with `-TokenFile`. Changing the API token does not change provider keys or conversation data.
 
 ## Browser interface
 
 Open **http://127.0.0.1:8085/**. Enter the local API token, connect, select an existing conversation, and send a question. The page has no external scripts, keeps the token in memory only, and uses the same API and WebSocket as other clients. It currently shows the latest bounded history window; paginated older history is available via HTTP. Create new conversations and manage settings/files/approvals in Desktop.
+
+Use the actual port shown in Settings: if your embedding server/llama-ui already uses 8085, choose **8087** for CBL and open **http://127.0.0.1:8087/**. These are separate services. The browser is a minimal CBL-styled continuation view: existing chats, live replies, and the Send arrow. There is no independent model picker or tool setup. It uses the selected desktop conversation's settings and renders message text safely as plain text; rich Markdown, attachments and management remain in Desktop. Streaming follows the bottom when you are already near it and leaves you in place when you scroll upward.
 
 ## First proof using your existing Strata conversation
 
@@ -50,6 +67,7 @@ Invoke-RestMethod -Method Post 'http://127.0.0.1:8085/api/chats/YOUR-CHAT-ID/mes
 
 | Endpoint | Behavior |
 | --- | --- |
+| `GET /api/status` | Public, local-only server identity (`app: chatbox-lite`, `apiVersion: 1`); no credentials, chat data or settings. |
 | `GET /api/chats?limit=50&cursor=0` | Active conversation metadata from the desktop repository. Returns `items`, `nextCursor`, `total`. Limits 1–100. |
 | `GET /api/chats/:id?limit=50` | Bounded transcript history, message IDs, roles, text, generation/error status, and `nextCursor`. Pass that cursor URL-encoded to retrieve an older page. System prompts and provider credentials are not returned. |
 | `POST /api/chats/:id/messages` | JSON `{ "content": "question" }`. Returns 202 with `chatId`, `messageId`. Rejects missing/busy/paused conversations and invalid/oversized text. No new attachment upload or tool-approval endpoint is provided. |
