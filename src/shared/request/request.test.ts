@@ -14,30 +14,21 @@ describe('createAfetch', () => {
     vi.unstubAllGlobals()
   })
 
-  it('adds platform metadata without dropping caller-provided Chatbox headers', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 200 }))
-    vi.stubGlobal('fetch', fetchMock)
+  it('blocks vendor requests before sending identifiers or credentials', async () => {
+    const fetchMock = vi.fn()
+    const afetch = createAfetch(platformInfo, fetchMock)
+    await expect(
+      afetch('https://api.chatboxai.app/api/profile', { headers: { Authorization: 'private' } }, { retry: 3 })
+    ).rejects.toThrow('disabled')
+    expect(fetchMock).not.toHaveBeenCalled()
+  })
 
-    const afetch = createAfetch(platformInfo)
-    const url = 'https://api.chatboxai.app/gateway/openai/v1/chat/completions'
-
-    await afetch(url, {
-      headers: {
-        'chatbox-session-id': 'session-123',
-        'chatbox-agent-mode': 'true',
-      },
-    })
-
-    expect(fetchMock).toHaveBeenCalledWith(url, {
-      headers: {
-        'chatbox-session-id': 'session-123',
-        'chatbox-agent-mode': 'true',
-        'CHATBOX-PLATFORM': 'darwin',
-        'CHATBOX-PLATFORM-TYPE': 'desktop',
-        'CHATBOX-OS': 'macos',
-        'CHATBOX-VERSION': '1.0.0',
-      },
-    })
+  it('preserves custom-provider headers without app identity metadata', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response('ok'))
+    const afetch = createAfetch(platformInfo, fetchMock)
+    const init = { headers: { Authorization: 'Bearer private' } }
+    await afetch('https://provider.example/v1/chat', init)
+    expect(fetchMock).toHaveBeenCalledExactlyOnceWith('https://provider.example/v1/chat', init)
   })
 
   it.each([
@@ -62,7 +53,7 @@ describe('createAfetch', () => {
     const afetch = createAfetch(platformInfo)
 
     await expect(
-      afetch('https://api.chatboxai.app/gateway/openai/v1/chat/completions', {}, { parseChatboxRemoteError: true })
+      afetch('https://provider.example/v1/chat/completions', {}, { parseChatboxRemoteError: true })
     ).rejects.toMatchObject({
       code: clientCode,
       requestId: 'req-from-body',
@@ -83,7 +74,7 @@ describe('createAfetch', () => {
     const afetch = createAfetch(platformInfo)
 
     await expect(
-      afetch('https://api.chatboxai.app/gateway/openai/v1/chat/completions', {}, { parseChatboxRemoteError: true })
+      afetch('https://provider.example/v1/chat/completions', {}, { parseChatboxRemoteError: true })
     ).rejects.toMatchObject({
       code: 10001,
       statusCode: 500,
@@ -109,7 +100,7 @@ describe('createAfetch', () => {
 
     await expect(
       afetch(
-        'https://chatboxai.app/api/auth/login_or_signup_with_email_code',
+        'https://provider.example/auth/login_or_signup_with_email_code',
         {},
         {
           parseChatboxRemoteError: true,
@@ -140,7 +131,7 @@ describe('createAfetch', () => {
 
     await expect(
       afetch(
-        'https://chatboxai.app/api/auth/web_auth_token/generate',
+        'https://provider.example/auth/web_auth_token/generate',
         {},
         {
           parseChatboxRemoteError: true,

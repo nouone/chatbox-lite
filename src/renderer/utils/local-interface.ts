@@ -1,4 +1,4 @@
-/** Account and upgrade UI is hidden by default; the preference is persisted in settings. */
-export function isLocalInterface(showAccountFeatures = false): boolean {
-  return !showAccountFeatures
+/** Lite permanently excludes vendor account and upgrade screens. */
+export function isLocalInterface(): boolean {
+  return true
 }

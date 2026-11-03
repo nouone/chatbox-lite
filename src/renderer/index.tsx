@@ -1,3 +1,5 @@
+import '../shared/install-network-privacy'
+
 import { SplashScreen } from '@capacitor/splash-screen'
 import { ChatboxProvider } from '@chatbox/react'
 import '@mantine/core/styles.css'
@@ -46,7 +48,6 @@ import './setup/protect'
 
 if (CHATBOX_BUILD_TARGET === 'mobile_app') {
   void import('./setup/mobile_safe_area')
-
 }
 
 // ==========渲染节点==============

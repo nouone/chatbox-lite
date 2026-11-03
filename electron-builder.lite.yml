@@ -2,6 +2,11 @@ extends: ./electron-builder.yml
 productName: Chatbox Lite
 appId: local.chatbox.lite
 publish: null
+extraMetadata:
+  author:
+    name: Chatbox Lite Contributors
+    email: 4097153+nouone@users.noreply.github.com
+    url: https://github.com/nouone
 nsis:
   shortcutName: Chatbox Lite
   uninstallDisplayName: Chatbox Lite

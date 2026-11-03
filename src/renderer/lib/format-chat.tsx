@@ -106,11 +106,11 @@ function renderHtmlDocument(sessionName: string, content: string, interactiveScr
 <head>
     <meta charset="utf-8">
     <title>${escapedSessionName}</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.tailwindcss.com?plugins=typography"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/katex@0.16.8/dist/katex.min.css">
-    <link rel="shortcut icon" href="https://chatboxai.app/icon.png">
     <style>
+      body { font: 16px/1.6 system-ui, sans-serif; margin: 2rem auto; max-width: 72rem; padding: 0 1rem; color: #242424; background: #faf9f5; }
+      pre { white-space: pre-wrap; overflow-wrap: anywhere; padding: 1rem; background: #eee; }
+      img { max-width: 100%; }
+      h1 { font-size: 1.5rem; }
       .chatbox-fork-navigation { display: flex; justify-content: flex-end; align-items: center; gap: 0.5rem; margin: -0.5rem 1rem 0.75rem; color: #868e96; }
       .chatbox-fork-navigation button { appearance: none; border: 0; border-radius: 9999px; background: transparent; color: inherit; cursor: pointer; font-size: 1.25rem; line-height: 1; padding: 0.25rem 0.5rem; }
       .chatbox-fork-navigation button:hover { background: #f1f3f5; color: #495057; }
@@ -121,18 +121,12 @@ function renderHtmlDocument(sessionName: string, content: string, interactiveScr
     <div class='mx-auto max-w-5xl shadow-md prose bg-white px-2 py-4'>
         <h1 class='flex flex-row justify-between items-center my-4 h-8'>
             <span>${escapedSessionName}</span>
-            <a href="https://chatboxai.app" target="_blank" >
-                <img src='https://chatboxai.app/icon.png' class="w-12">
-            </a>
+
         </h1>
         <hr />
         ${content}
         <hr />
-        <a href="https://chatboxai.app" style="display: flex; align-items: center;" class="text-sky-500" target="_blank">
-            <img src='https://chatboxai.app/icon.png' class="w-12 pr-2">
-            <b style='font-size:30px'>Chatbox AI</b>
-        </a>
-        <p><a href="https://chatboxai.app" target="_blank">https://chatboxai.app</a></p>
+        <p>Exported with Chatbox Lite · Based on open-source Chatbox</p>
     </div>
     ${interactiveScript}
 </body>

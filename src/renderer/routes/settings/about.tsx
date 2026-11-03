@@ -7,9 +7,8 @@ import { SettingRow, SettingSwitchRow, SettingsPage, SettingsSection } from '@/c
 import useVersion from '@/hooks/useVersion'
 import platform from '@/platform'
 import { router } from '@/router'
-import { UpdateSection } from '@/routes/about'
 import iconPNG from '@/static/icon.png'
-import { useLanguage, useSettingsStore } from '@/stores/settingsStore'
+import { useSettingsStore } from '@/stores/settingsStore'
 
 export const Route = createFileRoute('/settings/about')({
   component: RouteComponent,
@@ -18,10 +17,7 @@ export const Route = createFileRoute('/settings/about')({
 export function RouteComponent() {
   const { t } = useTranslation()
   const version = useVersion()
-  const language = useLanguage()
   const autoLaunch = useSettingsStore((s) => s.autoLaunch)
-  const autoUpdate = useSettingsStore((s) => s.autoUpdate)
-  const betaUpdate = useSettingsStore((s) => s.betaUpdate)
   const setSettings = useSettingsStore((s) => s.setSettings)
   const hasVersion = /\d/.test(version.version)
 
@@ -33,10 +29,10 @@ export function RouteComponent() {
           label={
             <Flex align="center" gap="sm">
               <Image src={iconPNG} w={32} h={32} radius="md" />
-              <span>Chatbox{hasVersion ? ` ${version.version}` : ''}</span>
+              <span>Chatbox Lite{hasVersion ? ` ${version.version}` : ''}</span>
             </Flex>
           }
-          control={<UpdateSection language={language} needCheckUpdate={version.needCheckUpdate} />}
+          description="Upstream update checks are removed. Update Lite from its source or a Lite installer."
         />
         <SettingRow
           id="about-chatbox"
@@ -63,19 +59,6 @@ export function RouteComponent() {
             label={t('Launch at system startup')}
             checked={autoLaunch}
             onChange={(checked) => setSettings({ autoLaunch: checked })}
-          />
-          <SettingSwitchRow
-            id="auto-update"
-            label={t('Automatic updates')}
-            checked={autoUpdate}
-            onChange={(checked) => setSettings({ autoUpdate: checked })}
-          />
-          <SettingSwitchRow
-            id="beta-update"
-            label={t('Beta updates')}
-            description={t('Get new features earlier; beta builds may be less stable.')}
-            checked={betaUpdate}
-            onChange={(checked) => setSettings({ betaUpdate: checked })}
           />
         </SettingsSection>
       )}

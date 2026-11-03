@@ -160,3 +160,11 @@ test('both HTML formats use the session title for an unnamed active thread', asy
   ordinary.window.close()
   interactive.window.close()
 })
+
+test('exports without vendor assets or third-party styling scripts', async () => {
+  const html = await formatChatAsHtml('Local export', [])
+  expect(html).not.toContain('chatboxai.app')
+  expect(html).not.toContain('cdn.tailwindcss.com')
+  expect(html).not.toContain('cdn.jsdelivr.net')
+  expect(html).toContain('Chatbox Lite')
+})

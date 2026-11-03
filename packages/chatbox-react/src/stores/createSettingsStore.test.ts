@@ -52,30 +52,6 @@ class DeferredSettingsStorage extends MemorySettingsStorage {
 }
 
 describe('createSettingsStore', () => {
-  test('notifies account visibility changes immediately and restores the saved preference', async () => {
-    const storage = new MemorySettingsStorage()
-    const service = new SettingsService(storage, { isDesktopLike: false })
-    const store = createSettingsStore(service)
-    await store.getState().hydrate()
-    const changes: boolean[] = []
-    const unsubscribe = store.subscribe((state) => changes.push(state.showAccountFeatures))
-    expect(store.getState().showAccountFeatures).toBe(false)
-    store.getState().setSettings({ showAccountFeatures: true })
-    expect(changes).toEqual([true])
-    await service.flushPersistence()
-    const restoredService = new SettingsService(storage, { isDesktopLike: false })
-    const restored = createSettingsStore(restoredService)
-    await restored.getState().hydrate()
-    expect(restored.getState().showAccountFeatures).toBe(true)
-    store.getState().setSettings({ showAccountFeatures: false })
-    expect(changes).toEqual([true, false])
-    unsubscribe()
-    store.getState().destroy()
-    restored.getState().destroy()
-    service.dispose()
-    restoredService.dispose()
-  })
-
   test('projects hydration and routes compatibility setState through SettingsService', async () => {
     const storage = new MemorySettingsStorage()
     const service = new SettingsService(storage, { isDesktopLike: false })

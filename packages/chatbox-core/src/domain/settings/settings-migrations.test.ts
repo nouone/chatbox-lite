@@ -93,7 +93,7 @@ describe('settings migrations', () => {
     expect(migrated.extension.documentParser).toEqual({ type: 'local' })
   })
 
-  test('filters unavailable built-in state without changing custom servers', () => {
+  test('removes vendor built-in state without changing custom servers', () => {
     const defaults = createDefaultSettings()
     const migrated = migrateSettings(
       {
@@ -117,7 +117,7 @@ describe('settings migrations', () => {
       { isDesktopLike: true }
     )
 
-    expect(migrated.mcp.enabledBuiltinServers).toEqual(['fetch', 'context7'])
+    expect(migrated.mcp.enabledBuiltinServers).toEqual([])
     expect(migrated.mcp.servers).toEqual([
       expect.objectContaining({
         id: 'sequentialthinking',
@@ -126,7 +126,7 @@ describe('settings migrations', () => {
     ])
   })
 
-  test.each([0, 5, 6])('removes built-in EdgeOne from version %i without changing custom servers', (version) => {
+  test.each([0, 5, 6])('removes vendor built-ins from version %i without changing custom servers', (version) => {
     const defaults = createDefaultSettings()
     const customServer = {
       id: 'edgeone-pages',
@@ -146,7 +146,7 @@ describe('settings migrations', () => {
       { isDesktopLike: true }
     )
 
-    expect(migrated.mcp.enabledBuiltinServers).toEqual(['fetch', 'arxiv', 'context7'])
+    expect(migrated.mcp.enabledBuiltinServers).toEqual([])
     expect(migrated.mcp.servers).toEqual([expect.objectContaining(customServer)])
   })
 

@@ -63,9 +63,7 @@ import { prefetchModelRegistry } from '@/packages/model-registry'
 import { getOS } from '@/packages/navigator'
 import * as remote from '@/packages/remote'
 import { sessionStartupRecovery, useSessionStartupLoadTarget } from '@/packages/session-startup-recovery'
-import ClientNotificationWindow from '@/pages/ClientNotificationWindow'
 import PictureDialog from '@/pages/PictureDialog'
-import RemoteDialogWindow from '@/pages/RemoteDialogWindow'
 import SearchDialog from '@/pages/SearchDialog'
 import platform from '@/platform'
 import { getSettingsSearchParam, navigateToDynamicPath, router } from '@/router'
@@ -274,7 +272,7 @@ function Root() {
 
       // Auto-navigate to guide for new users who need setup
       if (!isExceeded && !onboardingCompleted && needsSetup) {
-        router.navigate({ to: '/guide', replace: true })
+        router.navigate({ to: '/about', replace: true })
         return
       }
 
@@ -460,9 +458,9 @@ function Root() {
       {/* 图片预览 */}
       <PictureDialog />
       {/* 似乎是从后端拉一个弹窗的配置 */}
-      <RemoteDialogWindow />
+      {/* Lite does not load remote promotional dialogs. */}
       {/* 一次性客户端通知，与现有远程弹窗和更新提示保持独立 */}
-      <ClientNotificationWindow />
+      {/* Lite does not load vendor notifications. */}
       {/* IndexedDB schema 与当前版本不匹配时的升级/刷新引导 */}
       <DbSchemaGuardDialog />
       <BackupTaskOverlay />

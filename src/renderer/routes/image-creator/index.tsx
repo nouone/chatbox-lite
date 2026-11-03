@@ -27,7 +27,6 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { JK_PAGE_NAMES } from '@/analytics/jk-events'
-import { ChatboxWelcomeCard } from '@/components/common/ChatboxWelcomeCard'
 import errorNoticeClasses from '@/components/common/ErrorNotice.module.css'
 import { ImageModelSelect } from '@/components/ImageModelSelect'
 import { SEND_BUTTON_BLOCKED_CLASS } from '@/components/InputBox/inputSurface'
@@ -223,21 +222,19 @@ function ImageCreatorPage() {
   const { providers } = useProviders()
   const imageModelGroups = useImageModelGroups()
   const hasLicense = useSettingsStore((s) => Boolean(s.licenseKey))
-  const showAccountFeatures = useSettingsStore((s) => s.showAccountFeatures)
   const hasExpiredLicense = useSettingsStore((s) => s.hasExpiredLicense)
   const isLoggedIn = useAuthInfoStore((s) => Boolean(s.accessToken && s.refreshToken))
   const { isExceeded, isExceededResolved } = useVersion()
   const welcomeCardMode = useMemo(
     () =>
       getHomeWelcomeCardMode({
-        showAccountFeatures,
         providerCount: providers.length,
         isLoggedIn,
         hasLicense,
         hasExpiredLicense,
         hideForStoreReview: isExceeded || !isExceededResolved,
       }),
-    [providers.length, isLoggedIn, hasLicense, hasExpiredLicense, isExceeded, isExceededResolved, showAccountFeatures]
+    [providers.length, isLoggedIn, hasLicense, hasExpiredLicense, isExceeded, isExceededResolved]
   )
 
   const [prompt, setPrompt] = useState('')
@@ -530,10 +527,6 @@ function ImageCreatorPage() {
           {/* Input Area */}
           <Box py="md" px="sm">
             <Stack gap="sm" maw={800} mx="auto">
-              {!currentRecord && welcomeCardMode !== 'none' && (
-                <ChatboxWelcomeCard mode={welcomeCardMode} pageName={JK_PAGE_NAMES.IMAGE_PAGE} />
-              )}
-
               <ReferenceImagesPreview
                 images={referenceImages}
                 onRemove={handleRemoveReferenceImage}

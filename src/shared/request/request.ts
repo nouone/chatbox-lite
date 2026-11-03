@@ -1,3 +1,4 @@
+import { assertAllowedNetworkUrl } from '../network-privacy'
 import { ApiError, BaseError, ChatboxAIAPIError, NetworkError } from '../models/errors'
 import type { AbortSignalLike } from '../types/adapters'
 import { parseJsonOrEmpty } from '../utils/json_utils'
@@ -108,6 +109,7 @@ export function createAfetch(
       parseChatboxRemoteError?: boolean
     } = {}
   ) {
+    assertAllowedNetworkUrl(typeof url === 'string' || url instanceof URL ? url : url.url)
     let requestError: BaseError | null = null
     const retry = options.retry || 0
     for (let i = 0; i < retry + 1; i++) {
@@ -284,6 +286,7 @@ export function createAuthenticatedAfetch(config: AuthenticatedAfetchConfig) {
       headers: buildHeaders(tokens.accessToken),
     }
 
+    assertAllowedNetworkUrl(typeof url === 'string' || url instanceof URL ? url : url.url)
     let requestError: BaseError | null = null
     const retry = options.retry || 0
 

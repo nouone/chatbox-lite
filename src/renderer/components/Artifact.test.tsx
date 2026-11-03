@@ -14,7 +14,7 @@ vi.mock('@ebay/nice-modal-react', () => ({ default: { show: mocks.show } }))
 vi.mock('@/hooks/useScreenChange', () => ({ useIsSmallScreen: () => false }))
 vi.mock('@/lib/utils', () => ({ cn: (...values: string[]) => values.join(' ') }))
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (value: string) => value }) }))
-import { MessageArtifact } from './Artifact'
+import { Artifact, MessageArtifact } from './Artifact'
 
 const props = {
   sessionId: 's',
@@ -104,4 +104,12 @@ describe('lazy message artifacts', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Fullscreen' }))
     await waitFor(() => expect(mocks.show).toHaveBeenCalledTimes(1))
   })
+})
+
+it('renders generated HTML locally without a vendor iframe or postMessage upload', () => {
+  const view = render(<Artifact htmlCode="<h1>private artifact</h1>" />)
+  const frame = view.container.querySelector('iframe')!
+  expect(frame.getAttribute('src')).toBeNull()
+  expect(frame.getAttribute('srcdoc')).toBe('<h1>private artifact</h1>')
+  expect(frame.getAttribute('sandbox')).toBe('allow-scripts allow-forms')
 })

@@ -108,8 +108,8 @@ async function getAuthenticatedAfetch() {
 // ========== API ORIGIN 根据可用性维护 ==========
 
 // const RELEASE_ORIGIN = 'https://releases.chatboxai.app'
-export function getAPIOrigin() {
-  return chatboxaiAPI.getChatboxAPIOrigin()
+export function getAPIOrigin(): string {
+  throw new Error('Chatbox vendor services are disabled in Lite. Use a configured AI endpoint.')
 }
 
 export function getChatboxOrigin() {
@@ -139,20 +139,7 @@ const getChatboxHeaders = async () => {
 // ========== 各个接口方法 ==========
 
 export async function checkNeedUpdate(version: string, os: string, config: Config, settings: Settings) {
-  type Response = {
-    need_update?: boolean
-  }
-  // const res = await ofetch<Response>(`${RELEASE_ORIGIN}/chatbox_need_update/${version}`, {
-  const res = await ofetch<Response>(`${getAPIOrigin()}/chatbox_need_update/${version}`, {
-    method: 'POST',
-    retry: 3,
-    body: {
-      uuid: config.uuid,
-      os: os,
-      allowReportingAndTracking: settings.allowReportingAndTracking ? 1 : 0,
-    },
-  })
-  return !!res.need_update
+  return false
 }
 
 // export async function getSponsorAd(): Promise<null | SponsorAd> {
@@ -246,14 +233,7 @@ export async function getPremiumPrice() {
 }
 
 export async function getRemoteConfig(config: keyof RemoteConfig) {
-  type Response = {
-    data: Pick<RemoteConfig, typeof config>
-  }
-  const res = await ofetch<Response>(`${getAPIOrigin()}/api/remote_config/${config}`, {
-    retry: 3,
-    headers: await getChatboxHeaders(),
-  })
-  return res['data']
+  return { setting_chatboxai_first: false } as Pick<RemoteConfig, typeof config>
 }
 
 /**
@@ -351,26 +331,11 @@ const ClientNotificationResponseSchema = z.object({
 export type ClientNotification = z.infer<typeof ClientNotificationSchema>
 
 export async function getNextClientNotification(params: { locale: string; displayed_batch_ids: string[] }) {
-  const response = await ofetch<unknown>(`${getAPIOrigin()}/api/client_notifications/next`, {
-    method: 'POST',
-    retry: 0,
-    body: params,
-    headers: await getChatboxHeaders(),
-  })
-  return ClientNotificationResponseSchema.parse(response).data
+  return null as ClientNotification | null
 }
 
 export async function getDialogConfig(params: { uuid: string; language: string; version: string }) {
-  type Response = {
-    data: null | DialogConfig
-  }
-  const res = await ofetch<Response>(`${getAPIOrigin()}/api/dialog_config`, {
-    method: 'POST',
-    retry: 3,
-    body: params,
-    headers: await getChatboxHeaders(),
-  })
-  return res['data'] || null
+  return null as DialogConfig | null
 }
 
 export async function getLicenseDetail(params: { licenseKey: string }) {
@@ -1199,15 +1164,13 @@ export async function claimFreeAgentModeReward(licenseKey: string): Promise<Clai
 
 // ========== Image Generation API ==========
 
-const IMAGE_GEN_API_ORIGIN = getAPIOrigin()
-
 export type { ImageCompletionRequest, ImageGenerationItem } from '@chatbox/core/application/image-generation'
 export type ImageGenerationTaskResponse = ImageGenerationAPIResponse
 export { IMAGE_GENERATION_POLL_INTERVAL_MS }
 
 function imageGenerationClient(licenseKey: string) {
   return createImageGenerationAsyncClient({
-    apiOrigin: IMAGE_GEN_API_ORIGIN,
+    apiOrigin: getAPIOrigin(),
     getLicenseKey: () => licenseKey,
     getHeaders: getChatboxHeaders,
     request: { fetchWithOptions: async (...args) => (await getAfetch())(...args) },

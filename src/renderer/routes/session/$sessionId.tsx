@@ -9,7 +9,6 @@ import { useStore } from 'zustand'
 import { JK_PAGE_NAMES } from '@/analytics/jk-events'
 import { rendererApplication } from '@/app/renderer-application'
 import MessageList, { type MessageListRef } from '@/components/chat/MessageList'
-import { ChatboxWelcomeCard } from '@/components/common/ChatboxWelcomeCard'
 import { ErrorBoundary } from '@/components/common/ErrorBoundary'
 import InputBox, { type InputBoxPayload } from '@/components/InputBox/InputBox'
 import { paddedContentColumnClassName } from '@/components/layout/contentColumn'
@@ -88,7 +87,6 @@ function RouteComponent() {
   const hasLicense = Boolean(licenseKey)
   const licenseDetail = useSettingsStore((s) => s.licenseDetail)
   const licensePlanName = useSettingsStore((s) => s.licensePlanName)
-  const showAccountFeatures = useSettingsStore((s) => s.showAccountFeatures)
   const hasExpiredLicense = useSettingsStore((s) => s.hasExpiredLicense)
   const autoScrollNewMessagesToTop = useSettingsStore((s) => s.autoScrollNewMessagesToTop)
   const isLoggedIn = useAuthInfoStore((s) => Boolean(s.accessToken && s.refreshToken))
@@ -111,14 +109,13 @@ function RouteComponent() {
   const welcomeCardMode = useMemo(
     () =>
       getHomeWelcomeCardMode({
-        showAccountFeatures,
         providerCount: providers.length,
         isLoggedIn,
         hasLicense,
         hasExpiredLicense,
         hideForStoreReview: isExceeded || !isExceededResolved,
       }),
-    [providers.length, isLoggedIn, hasLicense, hasExpiredLicense, isExceeded, isExceededResolved, showAccountFeatures]
+    [providers.length, isLoggedIn, hasLicense, hasExpiredLicense, isExceeded, isExceededResolved]
   )
 
   const shouldShowTemplateWelcomeCard = useMemo(
@@ -297,20 +294,6 @@ function RouteComponent() {
         />
 
         <Box className="relative">
-          {shouldShowTemplateWelcomeCard && (
-            // absolute — taken out of flow, doesn't affect layout of siblings
-            // bottom: '100%' — positioned right above the parent box's top edge (like a tooltip anchoring upward)
-            <Box className="pointer-events-none absolute left-0 right-0 z-10" style={{ bottom: '100%' }} mb="sm">
-              <Box className={paddedContentColumnClassName(widthFull)}>
-                <ChatboxWelcomeCard
-                  mode={welcomeCardMode}
-                  pageName={JK_PAGE_NAMES.CHAT_PAGE}
-                  className="pointer-events-auto w-full"
-                />
-              </Box>
-            </Box>
-          )}
-
           {/* <ScrollButtons /> */}
           <ErrorBoundary name="session-inputbox">
             <InputBox

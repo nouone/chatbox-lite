@@ -219,8 +219,8 @@ export default class MenuBuilder {
       submenu: [
         {
           label: 'Learn More',
-          click() {
-            shell.openExternal('https://chatboxai.app')
+          click: () => {
+            this.mainWindow.webContents.send('navigate-to', '/about')
           },
         },
         {
@@ -310,8 +310,8 @@ export default class MenuBuilder {
         submenu: [
           {
             label: 'Learn More',
-            click() {
-              shell.openExternal('https://chatboxai.app')
+            click: () => {
+              this.mainWindow.webContents.send('navigate-to', '/about')
             },
           },
           {

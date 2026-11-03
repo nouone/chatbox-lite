@@ -332,38 +332,6 @@ export function GenericMessageError(props: {
           />
         </div>
       )}
-      {!licenseKey && msg.aiProvider !== ModelProviderEnum.ChatboxAI && (
-        <div className={classes.trial}>
-          <Tooltip
-            label={t(
-              'If you have never had a license before, you can claim it after logging in on the official website.'
-            )}
-            withArrow
-            multiline
-            maw={240}
-            position="bottom-start"
-          >
-            <Button
-              variant="default"
-              size="xs"
-              radius="sm"
-              fw={400}
-              styles={{ label: { whiteSpace: 'normal', textAlign: 'start' }, root: { height: 'auto' } }}
-              leftSection={<span className={classes.trialDot} aria-hidden="true" />}
-              rightSection={<IconArrowRight size={14} />}
-              onClick={() => {
-                trackJkClickEvent(JK_EVENTS.FREE_LICENSE_CLAIM_CLICK, {
-                  pageName: JK_PAGE_NAMES.CHAT_PAGE,
-                  content: 'chat_error',
-                })
-                platform.openLink('https://chatboxai.app/login')
-              }}
-            >
-              {t('Chatbox AI free trial available')}
-            </Button>
-          </Tooltip>
-        </div>
-      )}
     </ErrorNotice>
   )
 }

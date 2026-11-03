@@ -65,58 +65,8 @@ export function initLoginLicenseStateReconciliation() {
  * @returns {boolean} whether the user has validated before
  */
 export function useAutoValidate(): boolean {
-  const licenseKey = useSettingsStore((state) => state.licenseKey)
-  const licenseInstances = useSettingsStore((state) => state.licenseInstances)
-  const clearValidatedData = (key: string, instance: string) => {
-    const current = settingsStore.getState()
-    if (current.licenseKey !== key || current.licenseInstances?.[key] !== instance) return
-    settingsStore.setState((state) => ({
-      licenseKey: '',
-      licenseInstances: omit(state.licenseInstances, state.licenseKey || ''),
-      licenseDetail: undefined,
-      licensePlanName: undefined,
-      licenseActivationMethod: undefined,
-      hasExpiredLicense: true,
-    }))
-  }
-  useEffect(() => {
-    void (async () => {
-      if (!licenseKey || !licenseInstances) {
-        // 这里不清除数据，因为可能是本地数据尚未加载
-        return
-      }
-      const instanceId = licenseInstances[licenseKey] || ''
-      try {
-        // 在 lemonsqueezy 检查 license 是否有效，主要检查是否过期、被禁用的情况。若无效则清除相关数据
-        const result = await remote.validateLicense({
-          licenseKey: licenseKey,
-          instanceId: instanceId,
-        })
-        if (result.valid === false) {
-          clearValidatedData(licenseKey, instanceId)
-          log.info(`clear license validated data due to invalid result: ${JSON.stringify(result)}`)
-          return
-        }
-      } catch (err) {
-        // 如果错误码为 401 或 403，则清除数据
-        if (err instanceof FetchError && err.status && [401, 403, 404].includes(err.status)) {
-          clearValidatedData(licenseKey, instanceId)
-          log.info(`clear license validated data due to respones status: ${err.status}`)
-        } else if (!(err instanceof FetchError)) {
-          // Expected API/network failures keep the current validation state and stay out of Sentry.
-          reportError(err, {
-            domain: 'subscription',
-            operation: 'validate_license',
-          })
-        }
-      }
-    })()
-  }, [licenseKey, licenseInstances?.[licenseKey || '']])
-  // licenseKey 且对应的 instanceId 都存在时，表示验证通过
-  if (!licenseKey || !licenseInstances) {
-    return false
-  }
-  return !!licenseInstances[licenseKey]
+  // Vendor services are unavailable in Lite; this does not unlock paid features.
+  return false
 }
 
 /**

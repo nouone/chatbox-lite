@@ -1,3 +1,4 @@
+import { assertAllowedNetworkUrl } from '../shared/network-privacy'
 import { net } from 'electron'
 import type { FetchImplementation } from '../shared/request/request'
 
@@ -105,6 +106,7 @@ async function harmonyNetRequest(input: RequestInfo | URL, init: RequestInit = {
  * use the lower-level Chromium-backed net.request API.
  */
 export const mainFetch: FetchImplementation = (input, init) => {
+  assertAllowedNetworkUrl(getRequestUrl(input))
   if (isHarmonyBuild()) {
     return harmonyNetRequest(input, init)
   }
@@ -113,5 +115,6 @@ export const mainFetch: FetchImplementation = (input, init) => {
 
 /** Use the default Electron session so Desktop direct requests honor the app's proxy configuration. */
 export const desktopSessionFetch: FetchImplementation = (input, init) => {
+  assertAllowedNetworkUrl(getRequestUrl(input))
   return net.fetch(getRequestUrl(input), init)
 }

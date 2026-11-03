@@ -1,8 +1,7 @@
-import { getHomeWelcomeCardMode as resolveMode } from '@chatbox/core/application/settings'
-import { isLocalInterface } from './local-interface'
-
+import type { getHomeWelcomeCardMode as resolveMode, HomeWelcomeCardMode } from '@chatbox/core/application/settings'
 export type { HomeWelcomeCardMode } from '@chatbox/core/application/settings'
 
-export function getHomeWelcomeCardMode(params: Parameters<typeof resolveMode>[0] & { showAccountFeatures?: boolean }) {
-  return isLocalInterface(params.showAccountFeatures) ? 'none' : resolveMode(params)
+/** Vendor account/welcome screens are not part of Chatbox Lite. */
+export function getHomeWelcomeCardMode(_params: Parameters<typeof resolveMode>[0]): HomeWelcomeCardMode {
+  return 'none'
 }

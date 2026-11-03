@@ -20,7 +20,6 @@ import { z } from 'zod'
 import { trackJkClickEvent } from '@/analytics/jk'
 import { JK_EVENTS, JK_PAGE_NAMES } from '@/analytics/jk-events'
 import { rendererApplication } from '@/app/renderer-application'
-import { ChatboxWelcomeCard } from '@/components/common/ChatboxWelcomeCard'
 import { ScalableIcon } from '@/components/common/ScalableIcon'
 import { ImageInStorage } from '@/components/Image'
 import InputBox, { type InputBoxPayload } from '@/components/InputBox/InputBox'
@@ -109,21 +108,19 @@ function Index() {
   const licenseKey = useSettingsStore((s) => s.licenseKey)
   const licenseDetail = useSettingsStore((s) => s.licenseDetail)
   const licensePlanName = useSettingsStore((s) => s.licensePlanName)
-  const showAccountFeatures = useSettingsStore((s) => s.showAccountFeatures)
   const hasExpiredLicense = useSettingsStore((s) => s.hasExpiredLicense)
   const isLoggedIn = useAuthInfoStore((s) => Boolean(s.accessToken && s.refreshToken))
   const { isExceeded, isExceededResolved } = useVersion()
   const welcomeCardMode = useMemo(
     () =>
       getHomeWelcomeCardMode({
-        showAccountFeatures,
         providerCount: providers.length,
         isLoggedIn,
         hasLicense,
         hasExpiredLicense,
         hideForStoreReview: isExceeded || !isExceededResolved,
       }),
-    [providers.length, isLoggedIn, hasLicense, hasExpiredLicense, isExceeded, isExceededResolved, showAccountFeatures]
+    [providers.length, isLoggedIn, hasLicense, hasExpiredLicense, isExceeded, isExceededResolved]
   )
 
   const selectedModel = useMemo(() => {
@@ -500,18 +497,6 @@ function Index() {
           )}
 
           <Box className="relative">
-            {welcomeCardMode !== 'none' && (
-              <Box className="pointer-events-none absolute left-0 right-0 z-10" style={{ bottom: '100%' }} mb="sm">
-                <Box className={paddedContentColumnClassName(widthFull)}>
-                  <ChatboxWelcomeCard
-                    mode={welcomeCardMode}
-                    pageName={JK_PAGE_NAMES.CHAT_PAGE}
-                    className="pointer-events-auto w-full"
-                  />
-                </Box>
-              </Box>
-            )}
-
             <InputBox
               sessionType="chat"
               sessionId="new"

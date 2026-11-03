@@ -1,6 +1,5 @@
 import { Box, Flex, Text, TextInput, UnstyledButton } from '@mantine/core'
 import { TestId } from '@shared/automation/testids'
-import { isLocalInterface } from '@/utils/local-interface'
 import { IconChevronLeft, IconChevronRight, IconSearch, IconSparkles, IconX } from '@tabler/icons-react'
 import {
   createFileRoute,
@@ -50,14 +49,13 @@ export function RouteComponent() {
   const router = useRouter()
   const canGoBack = useCanGoBack()
   const isSmallScreen = useIsSmallScreen()
-  const showAccountFeatures = useSettingsStore((s) => s.showAccountFeatures)
   const section = useSettingsSection()
   const navItem = useMemo(
     () =>
-      getSettingsNavGroups(showAccountFeatures)
+      getSettingsNavGroups()
         .flatMap((group) => group.items)
         .find((item) => item.key === section),
-    [section, showAccountFeatures]
+    [section]
   )
   const pageTitle =
     !isSmallScreen || !section
@@ -105,11 +103,10 @@ interface SettingsSearchResult {
 
 function useSettingsSearch(query: string): SettingsSearchResult[] {
   const { t } = useTranslation()
-  const showAccountFeatures = useSettingsStore((s) => s.showAccountFeatures)
   return useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase()
     if (!normalized) return []
-    const navItems = getSettingsNavGroups(showAccountFeatures).flatMap((group) => group.items)
+    const navItems = getSettingsNavGroups().flatMap((group) => group.items)
     const pageLabel = (item: SettingsNavItem | undefined) =>
       item ? (item.noTranslate ? item.label : String(t(item.label))) : ''
     const pages: SettingsSearchResult[] = navItems.map((item) => ({
@@ -133,7 +130,7 @@ function useSettingsSearch(query: string): SettingsSearchResult[] {
     return [...pages, ...rows].filter(
       (result) => matchesQuery(result.label, normalized) || matchesQuery(result.entry.label, normalized)
     )
-  }, [query, t, showAccountFeatures])
+  }, [query, t])
 }
 
 function SettingsSearchInput({
@@ -221,14 +218,10 @@ export function SettingsRoot() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const pathname = useRouterState({ select: (s) => s.location.pathname })
-  const showAccountFeatures = useSettingsStore((s) => s.showAccountFeatures)
   const section = useSettingsSection()
   const activeKey = settingsNavKeyForSection(section)
   const isSmallScreen = useIsSmallScreen()
-  const { providers: availableProviders } = useProviders()
-  const isChatboxAIActivated = availableProviders.some((p) => p.id === 'chatbox-ai')
-  const licensePlanName = useSettingsStore((s) => s.licensePlanName)
-  const groups = useMemo(() => getSettingsNavGroups(showAccountFeatures), [showAccountFeatures])
+  const groups = useMemo(() => getSettingsNavGroups(), [])
   const meta = useSettingsNavMeta()
   const [query, setQuery] = useState('')
   const results = useSettingsSearch(query)
@@ -276,39 +269,6 @@ export function SettingsRoot() {
             </div>
           ) : (
             <>
-              {!isLocalInterface(showAccountFeatures) && (
-                <Link to="/settings/chatbox-ai" className="block no-underline">
-                  <Flex
-                    align="center"
-                    gap="sm"
-                    className="rounded-xl bg-chatbox-background-primary px-3.5 py-3 text-chatbox-tint-primary"
-                  >
-                    <Flex
-                      align="center"
-                      justify="center"
-                      className="size-10 shrink-0 rounded-full bg-chatbox-background-brand-secondary text-chatbox-tint-brand"
-                    >
-                      <ScalableIcon icon={IconSparkles} size={22} strokeWidth={ICON_STROKE_WIDTH} />
-                    </Flex>
-                    <Flex direction="column" flex={1} miw={0}>
-                      <Text fz={16} fw={600} lh="22px">
-                        Chatbox AI
-                      </Text>
-                      <Text
-                        fz={13}
-                        lh="18px"
-                        c={isChatboxAIActivated ? 'chatbox-success' : 'chatbox-tertiary'}
-                        truncate
-                      >
-                        {isChatboxAIActivated
-                          ? [t('Activated'), licensePlanName].filter(Boolean).join(' · ')
-                          : t('Not activated')}
-                      </Text>
-                    </Flex>
-                    <ScalableIcon icon={IconChevronRight} size={20} className="text-chatbox-tint-tertiary" />
-                  </Flex>
-                </Link>
-              )}
               {groups
                 .filter((group) => group.items.some((item) => item.key !== 'chatbox-ai'))
                 .map((group) => (
@@ -401,11 +361,6 @@ export function SettingsRoot() {
                       <Text span fz={14} lh="20px" flex={1} lineClamp={1} className="!text-inherit !font-[inherit]">
                         {itemLabel(item)}
                       </Text>
-                      {item.key === 'chatbox-ai' && isChatboxAIActivated && (
-                        <Text span fz={11} c="chatbox-success">
-                          {t('Activated')}
-                        </Text>
-                      )}
                     </Link>
                   )
                 })}

@@ -17,7 +17,10 @@ export const useProviders = () => {
   const licenseKey = useSettingsStore((state) => state.licenseKey)
   const providerSettingsMap = useSettingsStore((state) => state.providers)
 
-  const allProviderBaseInfos = useMemo(() => [...SystemProviders(), ...(customProviders || [])], [customProviders])
+  const allProviderBaseInfos = useMemo(
+    () => [...SystemProviders(), ...(customProviders || [])].filter((p) => p.id !== ModelProviderEnum.ChatboxAI),
+    [customProviders]
+  )
   const providers = useMemo(
     () =>
       allProviderBaseInfos

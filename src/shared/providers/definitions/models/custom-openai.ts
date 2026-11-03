@@ -76,7 +76,6 @@ export default class CustomOpenAI extends AbstractAISDKModel {
       fetch: fetchFunction,
       headers: this.options.apiHost.includes('openrouter.ai')
         ? {
-            'HTTP-Referer': 'https://chatboxai.app',
             'X-Title': 'Chatbox AI',
           }
         : this.options.apiHost.includes('aihubmix.com')

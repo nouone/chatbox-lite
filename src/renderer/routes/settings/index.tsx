@@ -1,8 +1,6 @@
 import { createFileRoute, useNavigate } from '@tanstack/react-router'
 import { zodValidator } from '@tanstack/zod-adapter'
-import { isLocalInterface } from '@/utils/local-interface'
 import { useEffect } from 'react'
-import { useSettingsStore } from '@/stores/settingsStore'
 import { z } from 'zod'
 import { useIsSmallScreen } from '@/hooks/useScreenChange'
 
@@ -18,12 +16,11 @@ export const Route = createFileRoute('/settings/')({
 export function RouteComponent() {
   const isSmallScreen = useIsSmallScreen()
   const navigate = useNavigate()
-  const showAccountFeatures = useSettingsStore((s) => s.showAccountFeatures)
   useEffect(() => {
     if (!isSmallScreen) {
-      navigate({ to: isLocalInterface(showAccountFeatures) ? '/settings/chat' : '/settings/chatbox-ai', replace: true })
+      navigate({ to: '/settings/provider', replace: true })
     }
-  }, [isSmallScreen, navigate, showAccountFeatures])
+  }, [isSmallScreen, navigate])
 
   return null
 }

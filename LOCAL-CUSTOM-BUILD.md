@@ -12,7 +12,7 @@ For microphone assets, run `powershell -NoProfile -ExecutionPolicy Bypass -File 
 
 For a local Windows installer, retain your existing packaging procedure. The output scripts/electron-builder configuration in this tree do not include private signing credentials. Keep a separate application identity/install location to avoid replacing stock Chatbox. Chat history, API credentials, installed program files and personal settings are not part of this source baseline.
 
-The app can still connect to configured providers, speech servers and normal update/remote-config services; removing analytics does not make every app feature offline. Keep automatic updates from replacing this custom build with stock upstream.
+Vendor background updates, remote configuration, license checks, promotional notifications and hosted artifact previews are removed. Updates are manual. Configured providers, speech/search services, MCP servers and content you open may use the network. See README.md and PRIVACY-AUDIT.md for the audit and limits.
 
 Before upstream upgrades, create a branch, commit your current changes and back up Chatbox data. Review upstream changes against the local baseline; do not blindly replay old patches. The supplied consolidated patch is for the exact upstream base above. The incremental Git bundle requires that base commit to be present.
 
@@ -32,9 +32,9 @@ Before upstream upgrades, create a branch, commit your current changes and back 
 Use `electron-builder.lite.yml` for the distinct Chatbox Lite application identity. After `pnpm run build`, run `pnpm exec electron-builder --config electron-builder.lite.yml --win nsis --x64 --publish never`. This packaging configuration is supplied but the installer was not generated in this validation run. Export your chats from the existing app and import them into Lite if its separate profile is empty.
 
 
-## Restore the account, upgrade and welcome screens
+## Account and upgrade screens removed
 
-In Settings / Appearance, enable **Show account and upgrade features**. This persisted switch restores account settings and original welcome cards immediately, without rebuilding or environment variables. Existing welcome-card eligibility rules still apply. Subscription checks remain intact and removed analytics stay removed.
+Account/login/upgrade welcomes, hosted Chatbox provider selection and promotional banners are removed permanently. There is no environment variable or restore toggle. Old account URLs lead to custom-provider setup and the guide URL leads to local Help/About. Vendor account services are unavailable; Lite does not unlock paid features.
 
 ## Application icon
 

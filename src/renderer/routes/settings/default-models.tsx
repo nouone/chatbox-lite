@@ -596,7 +596,7 @@ function SlotSelector(
   if (props.slotId === 'search') {
     const options = WEB_SEARCH_PROVIDERS.map((item) => ({
       value: item.value,
-      label: item.value === 'build-in' ? t('Chatbox AI Search') : item.label,
+      label: item.label,
     }))
     return (
       <AdaptiveSelect

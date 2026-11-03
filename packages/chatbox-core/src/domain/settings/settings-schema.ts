@@ -344,7 +344,12 @@ const ShortcutSettingSchema = z.preprocess(
 
 const ExtensionSettingsSchema = z.object({
   webSearch: z.object({
-    provider: z.enum(['build-in', 'bing', 'tavily', 'bocha', 'querit', 'searxng']).catch('build-in'),
+    provider: z
+      .enum(['build-in', 'bing', 'tavily', 'bocha', 'querit', 'searxng'])
+      .catch('bing')
+      .transform((provider): 'build-in' | 'bing' | 'tavily' | 'bocha' | 'querit' | 'searxng' =>
+        provider === 'build-in' ? 'bing' : provider
+      ),
     tavilyApiKey: z.string().optional(),
     bochaApiKey: z.string().optional(),
     queritApiKey: z.string().optional(),
@@ -419,7 +424,10 @@ const MCPSettingsSchema = z.object({
         return parsed.success ? [parsed.data] : []
       })
     ),
-  enabledBuiltinServers: z.array(z.string()).catch([]),
+  enabledBuiltinServers: z
+    .array(z.string())
+    .catch([])
+    .transform(() => [] as string[]),
   oauth: z.record(z.string(), MCPOAuthStateSchema).optional().catch(undefined),
 })
 
@@ -583,7 +591,6 @@ export const SettingsSchema = GlobalSessionSettingsSchema.extend({
   ]),
   languageInited: z.boolean().optional(),
   fontSize: z.number().catch(14),
-  showAccountFeatures: z.boolean().catch(false),
   sidebarFontSize: z.number().min(10).max(22).catch(14),
   spellCheck: z.boolean().optional(),
 
@@ -595,7 +602,10 @@ export const SettingsSchema = GlobalSessionSettingsSchema.extend({
 
   proxy: z.string().optional(), // 代理地址
 
-  allowReportingAndTracking: z.boolean().optional(), // 是否允许错误报告和事件追踪
+  allowReportingAndTracking: z
+    .boolean()
+    .catch(false)
+    .transform(() => false), // 是否允许错误报告和事件追踪
 
   userAvatarKey: z.string().optional(), // 用户头像的 key
   defaultAssistantAvatarKey: z.string().optional(), // 默认助手头像的 key
@@ -621,7 +631,10 @@ export const SettingsSchema = GlobalSessionSettingsSchema.extend({
   pauseOnToolCallLimit: z.boolean().default(true),
 
   autoLaunch: z.boolean().default(false),
-  autoUpdate: z.boolean().default(true), // 是否自动检查更新
+  autoUpdate: z
+    .boolean()
+    .catch(false)
+    .transform(() => false), // 是否自动检查更新
   betaUpdate: z.boolean().default(false), // 是否自动检查 beta 更新
 
   shortcuts: ShortcutSettingSchema,

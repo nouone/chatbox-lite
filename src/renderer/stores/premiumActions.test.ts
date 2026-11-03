@@ -308,17 +308,10 @@ describe('license activation commit', () => {
 })
 
 afterEach(cleanup)
-it('ignores invalid validation for a replaced license', async () => {
+it('does not validate a saved license online or unlock paid services', () => {
   resetSettings({ licenseKey: 'old', licenseInstances: { old: 'old-instance' } })
-  let complete!: (value: { valid: boolean }) => void
-  remoteMocks.validateLicense.mockImplementationOnce(
-    () =>
-      new Promise((resolve) => {
-        complete = resolve
-      })
-  )
-  renderHook(() => useAutoValidate())
-  resetSettings({ licenseKey: 'new', licenseInstances: { new: 'new-instance' } })
-  await act(async () => complete({ valid: false }))
-  expect(stateControls.current).toMatchObject({ licenseKey: 'new', licenseInstances: { new: 'new-instance' } })
+  const { result } = renderHook(() => useAutoValidate())
+  expect(result.current).toBe(false)
+  expect(remoteMocks.validateLicense).not.toHaveBeenCalled()
+  expect(stateControls.current).toMatchObject({ licenseKey: 'old' })
 })

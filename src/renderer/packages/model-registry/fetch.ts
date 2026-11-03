@@ -1,16 +1,13 @@
 import { setRuntimeRegistry } from '@shared/model-registry/enrich'
 import { applyRegistryOverlays } from '@shared/model-registry/legacy-overrides'
 import { MODELS_DEV_SNAPSHOT } from '@shared/model-registry/snapshot.generated'
-import { transformFullResponse } from '@shared/model-registry/transform'
-import type { ModelRegistryData, ModelsDevResponse } from '@shared/model-registry/types'
+import type { ModelRegistryData } from '@shared/model-registry/types'
 import platform from '@/platform'
 
 const BLOB_KEY = 'model-registry-cache-v2'
 const CACHE_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000 // 7 days
 /** Skip another models.dev fetch for unknown model ids after a recent attempt. */
 export const UNKNOWN_MODEL_REFRESH_COOLDOWN_MS = 60 * 60 * 1000 // 1 hour
-const FETCH_TIMEOUT_MS = 15_000 // 15 seconds
-const API_URL = 'https://models.dev/api.json'
 
 interface CacheEntry {
   data: ModelRegistryData
@@ -18,8 +15,6 @@ interface CacheEntry {
 }
 
 let memoryCache: ModelRegistryData | null = null
-let fetchPromise: Promise<ModelRegistryData> | null = null
-let lastNetworkAttemptAt = 0
 let registryVersion = 0
 const listeners = new Set<() => void>()
 
@@ -45,15 +40,6 @@ async function readBlobCache(): Promise<CacheEntry | null> {
     return JSON.parse(cached) as CacheEntry
   } catch {
     return null
-  }
-}
-
-async function writeBlobCache(data: ModelRegistryData): Promise<void> {
-  try {
-    const entry: CacheEntry = { data, timestamp: Date.now() }
-    await platform.setStoreBlob(BLOB_KEY, JSON.stringify(entry))
-  } catch {
-    // storage might be unavailable or full
   }
 }
 
@@ -96,35 +82,11 @@ export async function getRegistry(): Promise<ModelRegistryData> {
  * Fetch fresh data from models.dev and update all caches.
  * Deduplicates concurrent calls.
  */
+/** Lite uses its bundled catalog and local cache; model discovery uses configured providers. */
 export function fetchAndUpdateRegistry(
   fallbackData: ModelRegistryData = getRegistrySync()
 ): Promise<ModelRegistryData> {
-  if (fetchPromise) return fetchPromise
-
-  lastNetworkAttemptAt = Date.now()
-  fetchPromise = (async () => {
-    try {
-      const controller = new AbortController()
-      const timeoutId = setTimeout(() => controller.abort(), FETCH_TIMEOUT_MS)
-      const response = await fetch(API_URL, { signal: controller.signal })
-      clearTimeout(timeoutId)
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}`)
-      }
-      const raw = (await response.json()) as ModelsDevResponse
-      const transformed = transformFullResponse(raw)
-      const overlaidData = applyRegistry(transformed)
-      await writeBlobCache(overlaidData)
-      return overlaidData
-    } catch (error) {
-      console.warn('[model-registry] Fetch failed, using fallback:', error)
-      return applyRegistry(fallbackData)
-    } finally {
-      fetchPromise = null
-    }
-  })()
-
-  return fetchPromise
+  return Promise.resolve(applyRegistry(fallbackData))
 }
 
 /**
@@ -152,11 +114,7 @@ export async function prefetchModelRegistry(): Promise<void> {
  * ids do not hit the network on every request.
  */
 export function requestUnknownModelRegistryRefresh(): Promise<ModelRegistryData> | null {
-  if (fetchPromise) return fetchPromise
-  if (lastNetworkAttemptAt > 0 && Date.now() - lastNetworkAttemptAt < UNKNOWN_MODEL_REFRESH_COOLDOWN_MS) {
-    return null
-  }
-  return fetchAndUpdateRegistry()
+  return null
 }
 
 /**

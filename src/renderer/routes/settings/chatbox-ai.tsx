@@ -1,8 +1,5 @@
-import { createFileRoute } from '@tanstack/react-router'
-import { ChatboxAISettings } from './provider/chatbox-ai/-components/ChatboxAISettings'
-
+import { createFileRoute, Navigate } from '@tanstack/react-router'
 export const Route = createFileRoute('/settings/chatbox-ai')({ component: RouteComponent })
-
 export function RouteComponent() {
-  return <ChatboxAISettings padded />
+  return <Navigate to="/settings/provider" replace />
 }

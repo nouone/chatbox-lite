@@ -29,7 +29,6 @@ import useVersion from '@/hooks/useVersion'
 import platform from '@/platform'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { featureFlags } from '@/utils/feature-flags'
-import { isLocalInterface } from '@/utils/local-interface'
 
 export type SettingsPageKey =
   | 'chatbox-ai'
@@ -64,7 +63,7 @@ export interface SettingsNavGroup {
 }
 
 /** Settings navigation shared by the desktop sidebar, the small-screen index and settings search. */
-export function getSettingsNavGroups(showAccountFeatures = false): SettingsNavGroup[] {
+export function getSettingsNavGroups(): SettingsNavGroup[] {
   const capabilities: SettingsNavItem[] = [
     { key: 'web-search', label: 'Web Search', icon: IconWorldWww },
     ...(featureFlags.mcp
@@ -85,14 +84,6 @@ export function getSettingsNavGroups(showAccountFeatures = false): SettingsNavGr
   ]
 
   return [
-    ...(!isLocalInterface(showAccountFeatures)
-      ? [
-          {
-            title: 'Account',
-            items: [{ key: 'chatbox-ai' as const, label: 'Chatbox AI', noTranslate: true, icon: IconSparkles }],
-          },
-        ]
-      : []),
     {
       title: 'Models',
       items: [
@@ -153,7 +144,6 @@ export interface SettingsSearchEntry {
  * search for a page name lands on the page.
  */
 export const SETTINGS_SEARCH_ENTRIES: SettingsSearchEntry[] = [
-  { page: 'appearance', id: 'show-account-features', label: 'Show account and upgrade features' },
   { page: 'chat', id: 'system-prompt', label: 'System prompt' },
   { page: 'chat', id: 'max-context', label: 'Context message limit' },
   { page: 'chat', id: 'temperature', label: 'Temperature' },
@@ -202,13 +192,9 @@ export const SETTINGS_SEARCH_ENTRIES: SettingsSearchEntry[] = [
   { page: 'data', id: 'archived-chats', label: 'Archived Chats' },
   { page: 'advanced', id: 'proxy', label: 'Network Proxy' },
   { page: 'advanced', id: 'diagnostic-logs', label: 'Diagnostic Logs' },
-  { page: 'advanced', id: 'error-reporting', label: 'Error Reporting' },
+  { page: 'advanced', id: 'error-reporting', label: 'Error reporting removed' },
   ...(platform.type === 'desktop'
-    ? ([
-        { page: 'about', id: 'auto-launch', label: 'Launch at system startup' },
-        { page: 'about', id: 'auto-update', label: 'Automatic updates' },
-        { page: 'about', id: 'beta-update', label: 'Beta updates' },
-      ] satisfies SettingsSearchEntry[])
+    ? ([{ page: 'about', id: 'auto-launch', label: 'Launch at system startup' }] satisfies SettingsSearchEntry[])
     : []),
 ]
 

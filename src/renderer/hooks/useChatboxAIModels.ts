@@ -102,42 +102,22 @@ const useChatboxAIModels = () => {
         modelList,
       }
     },
+    enabled: false,
     staleTime: 3600 * 1000,
     refetchOnWindowFocus: 'always',
   })
 
-  const allChatboxAIModels = useMemo(
-    () => data?.models || chatboxAISettings?.models || [],
-    [data, chatboxAISettings?.models]
-  )
+  const allChatboxAIModels = useMemo(() => [] as ProviderModelInfo[], [data, chatboxAISettings?.models])
 
-  const chatboxAIImageModels = useMemo(
-    () =>
-      data?.imageModels.map(
-        (item) =>
-          ({
-            modelId: item.modelId,
-            nickname: item.modelName,
-            description: item.description,
-            labels: item.labels,
-            capabilities: item.capabilities,
-            type: item.type || 'image',
-            contextWindow: item.contextWindow || undefined,
-          }) satisfies ProviderModelInfo & { description?: string }
-      ) || [],
-    [data]
-  )
+  const chatboxAIImageModels = useMemo(() => [] as ProviderModelInfo[], [])
 
-  const chatboxAIModels = useMemo(
-    () => allChatboxAIModels.filter((m) => !chatboxAISettings?.excludedModels?.includes(m.modelId)),
-    [allChatboxAIModels, chatboxAISettings]
-  )
+  const chatboxAIModels = useMemo(() => [] as ProviderModelInfo[], [allChatboxAIModels, chatboxAISettings])
 
   return {
     allChatboxAIModels,
     chatboxAIModels,
     chatboxAIImageModels,
-    chatboxAIModelList: data?.modelList || null,
+    chatboxAIModelList: null as ChatboxAIModelList | null,
     ...others,
   }
 }

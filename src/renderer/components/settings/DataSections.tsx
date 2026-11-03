@@ -129,9 +129,7 @@ export function DiagnosticLogsRow() {
     <SettingRow
       id="diagnostic-logs"
       label={t('Diagnostic Logs')}
-      description={t(
-        'Export application logs for troubleshooting. These logs may be requested by support to help diagnose issues.'
-      )}
+      description={t('Save troubleshooting logs to a local file. Nothing is uploaded automatically.')}
       control={
         <Button variant="default" size="xs" onClick={handleExportLogs} disabled={isExporting} loading={isExporting}>
           {isExporting ? t('Exporting...') : t('Export Logs')}

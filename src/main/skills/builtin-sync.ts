@@ -288,64 +288,7 @@ function buildMetadataFromDetail(detail: RemoteSkillDetail): SkillMetadata {
  */
 export async function syncBuiltinSkills(lang?: string): Promise<boolean> {
   ensureBuiltinSeeded()
-
-  const origin = getApiOrigin()
-  const langQuery = lang ? `?lang=${encodeURIComponent(lang)}` : ''
-  const manifestUrl = `${origin}/api/builtin_skills${langQuery}`
-
-  log.info(`syncBuiltinSkills: fetching manifest from ${manifestUrl}`)
-  const remote = await fetchJson<{ data: RemoteManifestItem[] }>(manifestUrl)
-  if (!remote || !Array.isArray(remote.data)) {
-    log.warn(`syncBuiltinSkills: no usable manifest from ${manifestUrl}, keeping local snapshot`)
-    return false
-  }
-
-  const manifest = readManifest()
-  let changed = false
-
-  for (const item of remote.data) {
-    if (!item?.name || typeof item.hash !== 'string') continue
-    // 安全：name 会被用作快照目录路径，必须校验，防止后端异常/被篡改的 name（如 "../foo"）
-    // 导致 writeSnapshotSkill 写到快照目录之外
-    if (!isValidSkillName(item.name)) {
-      log.warn(`syncBuiltinSkills: skipping invalid skill name "${item.name}"`)
-      continue
-    }
-    const local = manifest.skills[item.name]
-    if (local && local.hash === item.hash) continue // 内容未变，跳过
-
-    const detailUrl = `${origin}/api/builtin_skills/${encodeURIComponent(item.name)}${langQuery}`
-    const detailRes = await fetchJson<{ data: RemoteSkillDetail }>(detailUrl)
-    const detail = detailRes?.data
-    if (!detail || typeof detail.body !== 'string' || !detail.body.trim()) {
-      log.warn(`syncBuiltinSkills: skipping "${item.name}", invalid detail`)
-      continue
-    }
-
-    try {
-      const files = Array.isArray(detail.files) ? detail.files : []
-      const localHash = hashSkillContent(detail.body, files)
-      if (detail.hash && detail.hash !== localHash) {
-        log.warn(`syncBuiltinSkills: hash mismatch for "${item.name}", remote=${detail.hash}, local=${localHash}`)
-      }
-      writeSnapshotSkill(item.name, buildMetadataFromDetail(detail), detail.body, files, { replaceDir: true })
-      manifest.skills[item.name] = {
-        version: detail.version ?? item.version ?? 1,
-        hash: detail.hash || localHash,
-        updatedAt: Date.now(),
-        origin: 'remote',
-      }
-      changed = true
-      log.info(`syncBuiltinSkills: updated "${item.name}" from backend`)
-    } catch (error) {
-      log.error(`syncBuiltinSkills: failed to write "${item.name}"`, error)
-    }
-  }
-
-  manifest.syncedAt = Date.now()
-  writeManifest(manifest)
-  log.info(`syncBuiltinSkills: done, remote=${remote.data.length} skill(s), changed=${changed}`)
-  return changed
+  return false
 }
 
 /** 从快照目录发现所有内置 skill（解析 SKILL.md），标记 isBuiltin。 */

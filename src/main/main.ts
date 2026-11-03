@@ -2,6 +2,9 @@
 // references at top level. Must run before any module that loads pdfjs, so keep
 // this as the very first import. See pdfjs-globals.ts for details.
 import './pdfjs-globals'
+import '../shared/install-network-privacy'
+import { assertAllowedNetworkUrl, isBlockedVendorUrl } from '../shared/network-privacy'
+import { installSessionPrivacy } from './network-privacy'
 
 // Validate QA profile and task isolation before any Electron module can touch userData.
 import { CHATBOX_QA_PREFLIGHT } from './qa-preflight'
@@ -641,7 +644,7 @@ async function createWindow() {
 
   // Open urls in the user's browser
   mainWindow.webContents.setWindowOpenHandler((edata) => {
-    shell.openExternal(edata.url)
+    if (!isBlockedVendorUrl(edata.url)) shell.openExternal(edata.url)
     return { action: 'deny' }
   })
 
@@ -755,6 +758,8 @@ if (quitForInstallRequested) {
   app
     .whenReady()
     .then(async () => {
+      installSessionPrivacy(session.defaultSession)
+      app.on('session-created', installSessionPrivacy)
       await knowledgeBaseInitPromise
       await createWindow()
       startupWindowCreated = true
@@ -940,6 +945,7 @@ ipcMain.handle('getLocale', () => {
   }
 })
 ipcMain.handle('openLink', (event, link) => {
+  assertAllowedNetworkUrl(link)
   return shell.openExternal(link)
 })
 ipcMain.handle('window:is-focused', () => {

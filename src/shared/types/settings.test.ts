@@ -7,16 +7,6 @@ import {
 } from './agent-persona'
 import { ProviderModelInfoSchema, SessionSettingsSchema, SettingsSchema } from './settings'
 
-test('account features default off for existing settings and survive a settings round trip', () => {
-  const previous = { ...defaultSettings() } as Partial<ReturnType<typeof defaultSettings>>
-  delete previous.showAccountFeatures
-  expect(SettingsSchema.parse(previous).showAccountFeatures).toBe(false)
-  for (const showAccountFeatures of [true, false]) {
-    const saved = JSON.parse(JSON.stringify({ ...defaultSettings(), showAccountFeatures }))
-    expect(SettingsSchema.parse(saved).showAccountFeatures).toBe(showAccountFeatures)
-  }
-})
-
 test('persists the Strata protocol opt-in and ignores unknown protocols', () => {
   const model = { modelId: 'strata-local', reasoningControl: 'strata' }
   expect(ProviderModelInfoSchema.parse(JSON.parse(JSON.stringify(model))).reasoningControl).toBe('strata')
@@ -346,4 +336,30 @@ describe('SettingsSchema mcp servers', () => {
     expect(parsed.mcp.servers).toEqual([])
     expect(parsed.mcp.enabledBuiltinServers).toEqual([])
   })
+})
+
+test('old reporting and auto-update consent cannot re-enable removed Lite services', () => {
+  const parsed = SettingsSchema.parse({ ...defaultSettings(), allowReportingAndTracking: true, autoUpdate: true })
+  expect(parsed.allowReportingAndTracking).toBe(false)
+  expect(parsed.autoUpdate).toBe(false)
+})
+
+test('removes saved vendor search/MCP choices while preserving configured Tavily', () => {
+  const settings = defaultSettings()
+  const parsed = SettingsSchema.parse({
+    ...settings,
+    extension: { ...settings.extension, webSearch: { ...settings.extension.webSearch, provider: 'build-in' } },
+    mcp: { ...settings.mcp, enabledBuiltinServers: ['vendor-server'] },
+  })
+  expect(parsed.extension.webSearch.provider).toBe('bing')
+  expect(parsed.mcp.enabledBuiltinServers).toEqual([])
+  const tavily = SettingsSchema.parse({
+    ...settings,
+    extension: {
+      ...settings.extension,
+      webSearch: { ...settings.extension.webSearch, provider: 'tavily', tavilyApiKey: 'configured-key' },
+    },
+  })
+  expect(tavily.extension.webSearch.provider).toBe('tavily')
+  expect(tavily.extension.webSearch.tavilyApiKey).toBe('configured-key')
 })
