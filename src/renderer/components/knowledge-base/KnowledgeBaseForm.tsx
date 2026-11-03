@@ -1,4 +1,4 @@
-import { Button, Group, Input, PasswordInput, Pill, Radio, Select, Stack, Text } from '@mantine/core'
+import { Button, Group, Input, PasswordInput, Select, Stack, Text } from '@mantine/core'
 import type { DocumentParserConfig, DocumentParserType } from '@shared/types/settings'
 import { IconCheck, IconTrash, IconX } from '@tabler/icons-react'
 import type React from 'react'
@@ -75,65 +75,6 @@ export const KnowledgeBaseModelSelectors: React.FC<ModelSelectorsProps> = ({
         comboboxProps={{ withinPortal: false, position: 'bottom' }}
       />
     </>
-  )
-}
-
-interface KnowledgeBaseChatboxAIInfoProps {
-  showModelsLabel?: boolean
-  hasError?: boolean
-}
-
-export const KnowledgeBaseChatboxAIInfo: React.FC<KnowledgeBaseChatboxAIInfoProps> = ({
-  showModelsLabel = false,
-  hasError = false,
-}) => {
-  const { t } = useTranslation()
-
-  return (
-    <Stack gap="sm">
-      {showModelsLabel && (
-        <Group>
-          {t('Models')}: <Pill>Chatbox AI</Pill>
-        </Group>
-      )}
-      <Text size="sm" c="dimmed">
-        {t(
-          'Chatbox AI provides all the essential model support required for knowledge base processing. Consumes compute points.'
-        )}
-      </Text>
-      {hasError && (
-        <Text size="sm" c="red">
-          {t('Failed to load Chatbox AI models configuration')}
-        </Text>
-      )}
-    </Stack>
-  )
-}
-
-interface KnowledgeBaseProviderModeSelectProps {
-  value: 'chatbox-ai' | 'custom'
-  onChange: (value: 'chatbox-ai' | 'custom') => void
-  isChatboxAIDisabled?: boolean
-}
-
-export const KnowledgeBaseProviderModeSelect: React.FC<KnowledgeBaseProviderModeSelectProps> = ({
-  value,
-  onChange,
-  isChatboxAIDisabled = false,
-}) => {
-  const { t } = useTranslation()
-
-  return (
-    <Radio.Group
-      label={t('Model Provider')}
-      value={value}
-      onChange={(value) => onChange(value as 'chatbox-ai' | 'custom')}
-    >
-      <Group mt="xs">
-        <Radio value="chatbox-ai" label="Chatbox AI" disabled={isChatboxAIDisabled} />
-        <Radio value="custom" label={t('Custom')} />
-      </Group>
-    </Radio.Group>
   )
 }
 
@@ -219,14 +160,7 @@ const PARSER_OPTIONS: { value: DocumentParserType; label: string; description: s
   {
     value: 'local',
     label: 'Local',
-    description:
-      'Uses built-in document parsing feature, supports common file types. Free usage, no compute points will be consumed.',
-  },
-  {
-    value: 'chatbox-ai',
-    label: 'Chatbox AI',
-    description:
-      'Cloud-based document parsing service, supports PDF, Office files, EPUB and many other file types. Consumes compute points.',
+    description: 'Parses supported documents on your device.',
   },
   {
     value: 'mineru',
@@ -308,7 +242,8 @@ export const DocumentParserSelector: React.FC<DocumentParserSelectorProps> = ({
     }
   }, [mineruToken, t])
 
-  const selectedOption = PARSER_OPTIONS.find((opt) => opt.value === parserConfig.type)
+  const parserType = parserConfig.type === 'chatbox-ai' || parserConfig.type === 'none' ? 'local' : parserConfig.type
+  const selectedOption = PARSER_OPTIONS.find((opt) => opt.value === parserType)
 
   return (
     <Stack gap="xs">
@@ -319,7 +254,7 @@ export const DocumentParserSelector: React.FC<DocumentParserSelectorProps> = ({
           value: opt.value,
           label: t(opt.label),
         }))}
-        value={parserConfig.type}
+        value={parserType}
         onChange={handleParserTypeChange}
         allowDeselect={false}
         disabled={disabled}
@@ -380,7 +315,7 @@ interface DocumentParserDisplayProps {
 
 export const DocumentParserDisplay: React.FC<DocumentParserDisplayProps> = ({ parserType }) => {
   const { t } = useTranslation()
-  const currentType = parserType || 'local'
+  const currentType = !parserType || parserType === 'chatbox-ai' || parserType === 'none' ? 'local' : parserType
 
   return (
     <Select

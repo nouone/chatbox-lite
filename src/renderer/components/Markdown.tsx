@@ -16,11 +16,9 @@ import {
   useState,
 } from 'react'
 import { useTranslation } from 'react-i18next'
-import ReactMarkdown from 'react-markdown'
+import type ReactMarkdown from 'react-markdown'
+import { MessageMarkdown, messageRemarkPlugins } from '@shared/components/MessageMarkdown'
 import rehypeKatex from 'rehype-katex'
-import remarkBreaks from 'remark-breaks'
-import remarkGfm from 'remark-gfm'
-import remarkMath from 'remark-math'
 import * as latex from '../packages/latex'
 import { isRenderableCodeLanguage } from './Artifact'
 import 'katex/dist/katex.min.css' // `rehype-katex` does not import the CSS for you
@@ -159,10 +157,7 @@ function Markdown(props: {
     [children, enableLaTeXRendering]
   )
   const remarkPlugins = useMemo<RemarkPlugins>(
-    () =>
-      enableLaTeXRendering
-        ? [remarkGfm, remarkMath, remarkBreaks, [remarkAddCodeIndex, { generating }]]
-        : [remarkGfm, remarkBreaks, [remarkAddCodeIndex, { generating }]],
+    () => [...messageRemarkPlugins(enableLaTeXRendering), [remarkAddCodeIndex, { generating }]],
     [enableLaTeXRendering, generating]
   )
   const streamingSegments = useStreamingTextSegments(processedChildren, generating, uniqueId)
@@ -175,7 +170,7 @@ function Markdown(props: {
 
   return (
     <ImageViewer>
-      <ReactMarkdown
+      <MessageMarkdown
         className={`break-words [overflow-wrap:anywhere] ${className || ''}`}
         remarkPlugins={remarkPlugins}
         rehypePlugins={rehypePlugins}
@@ -246,7 +241,7 @@ function Markdown(props: {
         )}
       >
         {processedChildren}
-      </ReactMarkdown>
+      </MessageMarkdown>
     </ImageViewer>
   )
 }

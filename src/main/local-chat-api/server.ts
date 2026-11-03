@@ -1,13 +1,63 @@
 import { createServer, type IncomingMessage, type ServerResponse } from 'node:http'
 import { timingSafeEqual } from 'node:crypto'
 import { WebSocketServer, WebSocket } from 'ws'
-import type { LocalChatCall, LocalChatResult } from '../../shared/local-chat-api'
+import {
+  normalizeTailnetOrigin,
+  normalizeLanAddress,
+  type LocalChatCall,
+  type LocalChatResult,
+} from '../../shared/local-chat-api'
+import { BROWSER_COOKIE, browserCookie, createBrowserPairing, readBrowserCookie } from './browser-pairing'
 import { LOCAL_CHAT_WEB_UI } from './web-ui'
+import { createWebChatPresentation } from './presentation'
+
+class RequestError extends Error {
+  constructor(
+    public status: number,
+    message: string
+  ) {
+    super(message)
+  }
+}
+async function readJson(req: IncomingMessage, limit = 65536) {
+  if (!req.headers['content-type']?.startsWith('application/json')) throw new RequestError(415, 'Use application/json')
+  let size = 0
+  const chunks: Uint8Array[] = []
+  const stream = req as IncomingMessage & { iterator(options: { destroyOnReturn: boolean }): AsyncIterable<Uint8Array> }
+  for await (const chunk of stream.iterator({ destroyOnReturn: false })) {
+    size += chunk.byteLength
+    if (size > limit) {
+      req.resume()
+      throw new RequestError(413, 'Message body too large')
+    }
+    chunks.push(new Uint8Array(chunk))
+  }
+  try {
+    return JSON.parse(Buffer.concat(chunks).toString('utf8'))
+  } catch {
+    throw new RequestError(400, 'Invalid JSON')
+  }
+}
 
 type Dispatch = (call: LocalChatCall) => Promise<LocalChatResult>
-export async function startLocalChatApi(options: { port: number; token: string; dispatch: Dispatch }) {
+export async function startLocalChatApi(options: {
+  port: number
+  token: string
+  dispatch: Dispatch
+  publicOrigin?: string
+  lanAddress?: string
+}) {
   if (options.token.length < 32) throw new Error('The API token must have at least 32 characters.')
   let currentToken = options.token
+  const publicOrigin = normalizeTailnetOrigin(options.publicOrigin)
+  const lanAddress = normalizeLanAddress(options.lanAddress)
+  const lanOrigin = lanAddress ? `http://${lanAddress}:${options.port}` : undefined
+  const publicHost = publicOrigin ? new URL(publicOrigin).host : undefined
+  const pairing = createBrowserPairing(() => currentToken)
+  const browserAuthorized = (req: IncomingMessage) => pairing.valid(readBrowserCookie(req.headers.cookie))
+  const secureCookie = (req: IncomingMessage) => Boolean(publicHost && req.headers.host === publicHost)
+
+  const present = createWebChatPresentation()
   const authorized = (candidate: string) => {
     const a = new TextEncoder().encode(candidate),
       b = new TextEncoder().encode(currentToken)
@@ -15,17 +65,26 @@ export async function startLocalChatApi(options: { port: number; token: string; 
   }
   const hostAllowed = (req: IncomingMessage) => {
     const host = req.headers.host || ''
-    return host === `127.0.0.1:${port}` || host === `localhost:${port}`
+    return (
+      !req.headers['tailscale-funnel-request'] &&
+      (host === `127.0.0.1:${port}` ||
+        host === `localhost:${port}` ||
+        Boolean(publicHost && host === publicHost) ||
+        Boolean(lanAddress && host === `${lanAddress}:${port}`))
+    )
   }
   const originAllowed = (req: IncomingMessage) =>
     !req.headers.origin ||
     req.headers.origin === `http://127.0.0.1:${port}` ||
-    req.headers.origin === `http://localhost:${port}`
+    req.headers.origin === `http://localhost:${port}` ||
+    Boolean(publicOrigin && req.headers.origin === publicOrigin) ||
+    Boolean(lanOrigin && req.headers.origin === lanOrigin)
   const reply = (res: ServerResponse, status: number, body: unknown) => {
     res.writeHead(status, {
       'Content-Type': 'application/json; charset=utf-8',
       'Cache-Control': 'no-store',
       'X-Content-Type-Options': 'nosniff',
+      'Referrer-Policy': 'no-referrer',
     })
     res.end(JSON.stringify(body))
   }
@@ -51,8 +110,38 @@ export async function startLocalChatApi(options: { port: number; token: string; 
         res.end(LOCAL_CHAT_WEB_UI)
         return
       }
-      if (!authorized(req.headers.authorization?.replace(/^Bearer /i, '') || '')) {
+      if (req.method === 'POST' && url.pathname === '/api/pair') {
+        const body = await readJson(req, 2048)
+        const remembered = body?.remember === true
+        const credential =
+          (publicOrigin || lanAddress) && typeof body?.code === 'string' && body.code.length <= 100
+            ? pairing.redeem(body.code, remembered)
+            : undefined
+        if (!credential) {
+          reply(res, 401, { error: 'Pairing code expired or already used. Create a new code in Desktop.' })
+          return
+        }
+        res.setHeader('Set-Cookie', browserCookie(credential, remembered, secureCookie(req)))
+        reply(res, 200, { paired: true })
+        return
+      }
+      if (req.method === 'POST' && url.pathname === '/api/logout') {
+        res.setHeader(
+          'Set-Cookie',
+          `${BROWSER_COOKIE}=; Path=/; HttpOnly; SameSite=Strict; Max-Age=0${secureCookie(req) ? '; Secure' : ''}`
+        )
+        reply(res, 200, { signedOut: true })
+        return
+      }
+      if (!authorized(req.headers.authorization?.replace(/^Bearer /i, '') || '') && !browserAuthorized(req)) {
         reply(res, 401, { error: 'Bearer token required' })
+        return
+      }
+      if (req.method === 'POST' && url.pathname === '/api/session') {
+        const body = await readJson(req, 2048)
+        const remembered = body?.remember === true
+        res.setHeader('Set-Cookie', browserCookie(pairing.issue(remembered), remembered, secureCookie(req)))
+        reply(res, 200, { paired: true })
         return
       }
       let call: LocalChatCall
@@ -61,32 +150,7 @@ export async function startLocalChatApi(options: { port: number; token: string; 
       else if (req.method === 'GET' && match && !match[2])
         call = { action: 'read', chatId: decodeURIComponent(match[1]) }
       else if (req.method === 'POST' && match?.[2]) {
-        if (!req.headers['content-type']?.startsWith('application/json')) {
-          reply(res, 415, { error: 'Use application/json' })
-          return
-        }
-        let size = 0
-        const chunks: Uint8Array[] = []
-        // Node 22 supports iterator(); the older Electron Node typings omit it.
-        const bodyStream = req as IncomingMessage & {
-          iterator(options: { destroyOnReturn: boolean }): AsyncIterable<Uint8Array>
-        }
-        for await (const chunk of bodyStream.iterator({ destroyOnReturn: false })) {
-          size += Buffer.byteLength(chunk)
-          if (size > 65536) {
-            req.resume()
-            reply(res, 413, { error: 'Message body too large' })
-            return
-          }
-          chunks.push(new Uint8Array(chunk))
-        }
-        let input: unknown
-        try {
-          input = JSON.parse(Buffer.concat(chunks).toString('utf8'))
-        } catch {
-          reply(res, 400, { error: 'Invalid JSON' })
-          return
-        }
+        const input: unknown = await readJson(req)
         const content = (input as { content?: unknown } | null)?.content
         if (typeof content !== 'string' || !content.trim() || content.length > 60000) {
           reply(res, 400, { error: 'content must be non-empty text (max 60000 characters)' })
@@ -105,8 +169,13 @@ export async function startLocalChatApi(options: { port: number; token: string; 
       }
       call.limit = limit
       const result = await options.dispatch(call)
-      reply(res, result.status, result.body)
-    } catch {
+      const output = call.action === 'read' && url.searchParams.get('view') === 'web' ? present(result) : result
+      reply(res, output.status, output.body)
+    } catch (error) {
+      if (error instanceof RequestError && !res.headersSent) {
+        reply(res, error.status, { error: error.message })
+        return
+      }
       if (!res.headersSent) reply(res, 503, { error: 'Desktop chat controller unavailable' })
     }
   })
@@ -123,7 +192,7 @@ export async function startLocalChatApi(options: { port: number; token: string; 
       req.url !== '/api/events' ||
       !hostAllowed(req) ||
       !originAllowed(req) ||
-      !authorized(token) ||
+      (!authorized(token) && !browserAuthorized(req)) ||
       sockets.clients.size >= 8
     ) {
       socket.end('HTTP/1.1 403 Forbidden\r\nConnection: close\r\n\r\n')
@@ -133,6 +202,7 @@ export async function startLocalChatApi(options: { port: number; token: string; 
   })
   sockets.on('connection', (ws) => {
     let chatId: string | undefined
+    let browserView = false
     let busy = false
     let previous = ''
     ws.on('error', () => undefined)
@@ -142,6 +212,7 @@ export async function startLocalChatApi(options: { port: number; token: string; 
         if (message.type !== 'subscribe' || typeof message.chatId !== 'string' || message.chatId.length > 200)
           throw new Error()
         chatId = message.chatId
+        browserView = message.view === 'web'
         previous = ''
       } catch {
         ws.close(1008, 'Send a subscribe message with chatId')
@@ -151,7 +222,8 @@ export async function startLocalChatApi(options: { port: number; token: string; 
       if (busy || !chatId || ws.readyState !== WebSocket.OPEN) return
       busy = true
       try {
-        const result = await options.dispatch({ action: 'read', chatId, limit: 100 })
+        const raw = await options.dispatch({ action: 'read', chatId, limit: 100 })
+        const result = browserView ? present(raw) : raw
         const snapshot = JSON.stringify({ type: 'chat.snapshot', status: result.status, chat: result.body })
         if (snapshot !== previous && ws.readyState === WebSocket.OPEN && ws.bufferedAmount < 2 * 1024 * 1024) {
           ws.send(snapshot)
@@ -165,27 +237,57 @@ export async function startLocalChatApi(options: { port: number; token: string; 
     }, 250)
     ws.once('close', () => clearInterval(timer))
   })
+  const lanServer = lanAddress
+    ? createServer(server.listeners('request')[0] as import('node:http').RequestListener)
+    : undefined
+  if (lanServer) {
+    lanServer.requestTimeout = server.requestTimeout
+    lanServer.headersTimeout = server.headersTimeout
+    lanServer.on('upgrade', server.listeners('upgrade')[0] as never)
+  }
   await new Promise<void>((resolve, reject) => {
     server.once('error', reject)
     server.listen(port, '127.0.0.1', resolve)
   })
   const address = server.address()
   if (address && typeof address !== 'string') port = address.port
+  if (lanServer) {
+    try {
+      await new Promise<void>((resolve, reject) => {
+        lanServer.once('error', reject)
+        lanServer.listen(port, lanAddress, resolve)
+      })
+    } catch (error) {
+      server.close()
+      sockets.close()
+      throw error
+    }
+  }
   return {
     port,
     httpServer: server,
+    createPairing: (scope?: string) => {
+      if (!publicOrigin && !lanAddress) throw new Error('Configure a LAN or Tailscale address first.')
+      return pairing.create(scope)
+    },
     events: sockets,
     setToken: (token: string) => {
       if (token.length < 32) throw new Error('The API token must have at least 32 characters.')
       currentToken = token
+      pairing.cancel()
       for (const ws of sockets.clients) ws.terminate()
       server.closeAllConnections()
+      lanServer?.closeAllConnections()
     },
     close: async () => {
       for (const ws of sockets.clients) ws.terminate()
       sockets.close()
       server.closeAllConnections()
-      await new Promise<void>((resolve) => server.close(() => resolve()))
+      lanServer?.closeAllConnections()
+      await Promise.all([
+        new Promise<void>((resolve) => server.close(() => resolve())),
+        ...(lanServer ? [new Promise<void>((resolve) => lanServer.close(() => resolve()))] : []),
+      ])
     },
   }
 }

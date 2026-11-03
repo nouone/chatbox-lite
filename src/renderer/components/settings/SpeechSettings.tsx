@@ -1,13 +1,28 @@
-import { NumberInput, PasswordInput, Stack, TextInput, Text } from '@mantine/core'
-import { useId } from 'react'
+import { Button, Loader, NumberInput, PasswordInput, Stack, TextInput, Text } from '@mantine/core'
+import { createMessage } from '@shared/types'
+import { IconPlayerStop, IconVolume } from '@tabler/icons-react'
+import { useEffect, useId, useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
 import { SettingSwitchRow, SettingsSection } from './SettingsLayout'
-import { DEFAULT_TTS_BASE_URL } from '@/packages/text-to-speech'
+import { DEFAULT_TTS_BASE_URL, responseSpeechPlayer } from '@/packages/text-to-speech'
+import { useReplySpeech } from '@/components/chat/ReadAloudButton'
 import { useSettingsStore } from '@/stores/settingsStore'
 export function SpeechSettings() {
   const readAloudId = useId()
   const { t } = useTranslation()
   const { setSettings, ...settings } = useSettingsStore((state) => state)
+  const playbackId = `voice-test-${readAloudId}`
+  const sample = useMemo(
+    () => createMessage('assistant', 'Hello. This is your selected voice and speaking speed in Chatbox Lite.'),
+    []
+  )
+  const { active, loading, startReading } = useReplySpeech(sample, playbackId)
+  useEffect(
+    () => () => {
+      if (responseSpeechPlayer.getSnapshot().id === playbackId) responseSpeechPlayer.stop()
+    },
+    [playbackId]
+  )
   return (
     <>
       <SettingsSection title="Microphone / Whisper" description="Transcribe speech locally into an editable draft.">
@@ -74,6 +89,22 @@ export function SpeechSettings() {
                 })
               }
             />
+            <Button
+              variant="light"
+              style={{ alignSelf: 'flex-start' }}
+              leftSection={
+                active && loading ? (
+                  <Loader size={16} />
+                ) : active ? (
+                  <IconPlayerStop size={16} />
+                ) : (
+                  <IconVolume size={16} />
+                )
+              }
+              onClick={() => (active ? responseSpeechPlayer.stop() : startReading())}
+            >
+              {active ? t('Stop test') : t('Test voice')}
+            </Button>
           </Stack>
         )}
       </SettingsSection>

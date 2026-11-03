@@ -128,7 +128,7 @@ export async function processFileWithMastra(
     const embeddingInstance = await getEmbeddingProvider(kbId)
     const vectorStore = getVectorStore()
     const indexName = `kb_${kbId}`
-    const BATCH_SIZE = 50 // Process chunks in batches of 50
+    const BATCH_SIZE = 32 // Compatible with the default TEI client batch limit.
 
     // Ensure vector index exists by getting dimension from first remaining chunk
     const firstEmbedding = await embedMany({

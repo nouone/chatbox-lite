@@ -7,6 +7,38 @@ vi.mock('@/platform', () => ({ default: { type: 'desktop' } }))
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }))
 import { LocalChatApiSettings } from './LocalChatApiSettings'
 
+it('automatically shows both labelled QR codes and the Tailscale link when addresses and a token are ready', async () => {
+  const state = {
+    enabled: true,
+    running: true,
+    port: 8088,
+    url: 'http://127.0.0.1:8088',
+    hasToken: true,
+    publicOrigin: 'https://pc.example.ts.net:8443',
+    lanAddress: '192.168.1.10',
+  }
+  const invoke = vi.fn(async (channel: string) =>
+    channel === LOCAL_API_CHANNELS.pairPhone
+      ? {
+          tailnet: { url: state.publicOrigin + '/#pair=one-use-tailnet', expiresAt: Date.now() + 300000 },
+          lan: { url: 'http://192.168.1.10:8088/#pair=one-use-lan', expiresAt: Date.now() + 300000 },
+        }
+      : state
+  )
+  Object.defineProperty(window, 'electronAPI', { configurable: true, value: { invoke } })
+  window.matchMedia = vi
+    .fn()
+    .mockReturnValue({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })
+  const view = render(
+    <MantineProvider>
+      <LocalChatApiSettings />
+    </MantineProvider>
+  )
+  await waitFor(() => expect(view.container.querySelectorAll('svg[aria-label$="pairing QR code"]').length).toBe(2))
+  expect(screen.getByRole('link', { name: state.publicOrigin }).getAttribute('href')).toBe(state.publicOrigin)
+  expect(invoke).toHaveBeenCalledWith(LOCAL_API_CHANNELS.pairPhone)
+})
+
 it('enables the saved local API, copies through main, and rotates credentials without rendering the secret', async () => {
   let state = { enabled: false, running: false, port: 8085, url: 'http://127.0.0.1:8085', hasToken: false }
   const invoke = vi.fn(async (channel: string, preferences?: { enabled: boolean; port: number }) => {
@@ -26,7 +58,12 @@ it('enables the saved local API, copies through main, and rotates credentials wi
   await waitFor(() => expect((toggle as HTMLInputElement).disabled).toBe(false))
   fireEvent.click(toggle)
   await screen.findByText('Running at http://127.0.0.1:8085')
-  expect(invoke).toHaveBeenCalledWith(LOCAL_API_CHANNELS.configure, { enabled: true, port: 8085 })
+  expect(invoke).toHaveBeenCalledWith(LOCAL_API_CHANNELS.configure, {
+    enabled: true,
+    port: 8085,
+    publicOrigin: '',
+    lanAddress: '',
+  })
   fireEvent.click(screen.getByRole('button', { name: 'Copy token' }))
   await screen.findByRole('button', { name: 'Copied' })
   expect(invoke).toHaveBeenCalledWith(LOCAL_API_CHANNELS.copyToken)

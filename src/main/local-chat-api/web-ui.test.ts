@@ -5,20 +5,28 @@ import { LOCAL_CHAT_WEB_UI } from './web-ui'
 
 async function setup() {
   document.body.innerHTML = LOCAL_CHAT_WEB_UI.split('<body>')[1].split('<script>')[0]
-  let history = {
+  const history = {
     id: 'existing-chat',
     messages: [{ id: 'a', role: 'assistant', text: '<img src=x onerror=alert(1)>' }],
     generating: false,
   }
-  const fetch = vi.fn(async (url: string, options?: { method?: string; body?: string }) => ({
-    ok: true,
-    json: async () =>
-      url.startsWith('/api/chats?')
-        ? { items: [{ id: 'existing-chat', name: 'Desktop chat' }], nextCursor: null }
-        : options?.method === 'POST'
-          ? { messageId: 'new-message' }
-          : history,
-  }))
+  let paired = false
+  const fetch = vi.fn(
+    async (url: string, options?: { method?: string; body?: string; headers?: Record<string, string> }) => {
+      if (url === '/api/session' && options?.headers?.Authorization) paired = true
+      if (!options?.headers?.Authorization && !paired)
+        return { ok: false, json: async () => ({ error: 'Bearer token required' }) }
+      return {
+        ok: true,
+        json: async () =>
+          url.startsWith('/api/chats?')
+            ? { items: [{ id: 'existing-chat', name: 'Desktop chat' }], nextCursor: null }
+            : options?.method === 'POST'
+              ? { messageId: 'new-message' }
+              : history,
+      }
+    }
+  )
   const sockets: FakeSocket[] = []
   class FakeSocket {
     onopen?: () => void
@@ -45,7 +53,9 @@ it('continues the selected desktop chat, renders response text safely, and sends
   expect(document.querySelector('#messages img')).toBeNull()
   expect(document.querySelector('.bubble')!.textContent).toContain('<img')
   sockets[0].onopen!()
-  expect(sockets[0].send).toHaveBeenCalledWith(JSON.stringify({ type: 'subscribe', chatId: 'existing-chat' }))
+  expect(sockets[0].send).toHaveBeenCalledWith(
+    JSON.stringify({ type: 'subscribe', chatId: 'existing-chat', view: 'web' })
+  )
   fireEvent.input(document.getElementById('content')!, { target: { value: 'Continue our desktop conversation' } })
   fireEvent.submit(document.getElementById('composer')!)
   await waitFor(() =>

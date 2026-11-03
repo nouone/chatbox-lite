@@ -13,6 +13,30 @@ function setup(token = '') {
   return { manager: createLocalApiManager(options), options, server }
 }
 
+it('creates separate LAN and Tailscale pairing links without embedding the API token', async () => {
+  const root = 'root-token'.repeat(8)
+  const createPairing = vi.fn((scope?: string) => ({ code: `one-use-${scope}`, expiresAt: Date.now() + 300000 }))
+  const options = {
+    preferences: { enabled: false, port: 8088 },
+    token: root,
+    savePreferences: vi.fn(),
+    saveToken: vi.fn(),
+    start: vi.fn().mockResolvedValue({ close: vi.fn(), setToken: vi.fn(), createPairing }),
+  }
+  const manager = createLocalApiManager(options)
+  await manager.configure({
+    enabled: true,
+    port: 8088,
+    publicOrigin: 'https://pc.example.ts.net:8443',
+    lanAddress: '192.168.1.10',
+  })
+  const links = await manager.pairPhone()
+  expect(links.tailnet?.url).toBe('https://pc.example.ts.net:8443/#pair=one-use-tailnet')
+  expect(links.lan?.url).toBe('http://192.168.1.10:8088/#pair=one-use-lan')
+  expect(JSON.stringify(links)).not.toContain(root)
+  expect(options.start).toHaveBeenCalledWith(8088, root, 'https://pc.example.ts.net:8443', '192.168.1.10')
+})
+
 it('stays off by default, generates and saves a strong token on enable, and stops on disable', async () => {
   const { manager, options, server } = setup()
   await manager.start()
@@ -25,7 +49,7 @@ it('stays off by default, generates and saves a strong token on enable, and stop
   })
   expect(manager.getToken()).toMatch(/^[a-f0-9]{64}$/)
   expect(options.saveToken).toHaveBeenCalledWith(manager.getToken())
-  expect(options.start).toHaveBeenCalledWith(8087, manager.getToken())
+  expect(options.start).toHaveBeenCalledWith(8087, manager.getToken(), undefined, undefined)
   expect(manager.status()).not.toHaveProperty('token')
   await manager.configure({ enabled: false, port: 8087 })
   expect(server.close).toHaveBeenCalledOnce()

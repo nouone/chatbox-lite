@@ -85,6 +85,10 @@ Keep the tracked `.npmrc` registry setting. Building does not update an already 
 
 ### November 3 follow-up
 
+The finished continuation view shares the desktop Markdown parser, with formatted emphasis, lists, links, code and tables. Desktop retains its advanced code/artifact controls. Read aloud settings include Test voice using the configured server/voice/speed. Knowledge-base creation uses configured providers directly and offers no hosted Chatbox AI mode. Document embedding requests use batches of at most 32 inputs, matching the supplied TEI service's default.
+
+Optional phone access supports two labelled one-use QR codes: a static private LAN address and a Tailscale HTTPS address. Pairing can remember a device for 30 days without storing the main API token on it. See [phone access](LOCAL-PHONE-ACCESS.md) for setup, firewall, revocation and test limits. Both modes are opt-in; localhost access remains available.
+
 Embedding models now use an actual embedding request in Test Model, rather than chat/vision/tool probes. Failed document retries use the configured knowledge-base parser; the old compute-credit dialog and forced hosted-parser retry are removed. Existing hosted-parser references fall back to Local, while an explicitly configured MinerU service is retained. File-error guidance links to Document Parser settings instead of account or upgrade pages.
 
 Removed the remaining Wolters Kluwer China and Eastmoney MCP suggestion rows; custom servers and manual/JSON setup remain available. Removed Chatbox AI from the document parser picker and its points/activation copy; Local and the explicitly configured MinerU service remain. Added Delete chat to the chat sidebar context menu, using the existing deletion controller and confirmation flow.

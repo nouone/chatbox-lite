@@ -46,7 +46,8 @@ export function modelRefsEqual(a?: ModelRef, b?: ModelRef) {
 
 export function effectiveParserType(settings: Settings, platformDefault: DocumentParserType): DocumentParserType {
   const type = settings.extension?.documentParser?.type
-  if (!type || type === 'none') return platformDefault
+  if (type === 'chatbox-ai') return 'local'
+  if (!type || type === 'none') return platformDefault === 'chatbox-ai' ? 'local' : platformDefault
   return type
 }
 

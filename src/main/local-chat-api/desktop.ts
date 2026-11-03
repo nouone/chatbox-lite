@@ -50,7 +50,7 @@ export function registerLocalChatApi(getWindow: () => BrowserWindow | null) {
   const profile = app.getPath('userData')
   const tokenPath = path.join(profile, 'local-api-token.txt')
   const preferencesPath = path.join(profile, 'local-api-settings.json')
-  let saved: { enabled?: boolean; port?: number } = {}
+  let saved: { enabled?: boolean; port?: number; publicOrigin?: string; lanAddress?: string } = {}
   let token = process.env.CBL_API_TOKEN || ''
   try {
     saved = JSON.parse(fs.readFileSync(preferencesPath, 'utf8')) || {}
@@ -69,12 +69,14 @@ export function registerLocalChatApi(getWindow: () => BrowserWindow | null) {
     preferences: {
       enabled: process.env.CBL_API_ENABLED === undefined ? saved.enabled === true : process.env.CBL_API_ENABLED === '1',
       port: Number(process.env.CBL_API_PORT || (Number.isInteger(saved.port) ? saved.port : 8085)),
+      ...(typeof saved.publicOrigin === 'string' ? { publicOrigin: saved.publicOrigin } : {}),
+      ...(typeof saved.lanAddress === 'string' ? { lanAddress: saved.lanAddress } : {}),
     },
     token,
     saveToken: (value) => writePrivateFile(tokenPath, value),
     savePreferences: (value) => writePrivateFile(preferencesPath, JSON.stringify(value)),
-    start: async (port, activeToken) => {
-      const server = await startLocalChatApi({ port, token: activeToken, dispatch })
+    start: async (port, activeToken, publicOrigin, lanAddress) => {
+      const server = await startLocalChatApi({ port, token: activeToken, dispatch, publicOrigin, lanAddress })
       console.info(`[Lite API] http://127.0.0.1:${server.port}`)
       return server
     },
@@ -107,6 +109,10 @@ export function registerLocalChatApi(getWindow: () => BrowserWindow | null) {
     const state = manager.status()
     if (!state.running) throw new Error('Enable the API first.')
     return shell.openExternal(state.url)
+  })
+  ipcMain.handle(LOCAL_API_CHANNELS.pairPhone, (event) => {
+    assertMainFrame(event)
+    return manager.pairPhone()
   })
   app.once('before-quit', () => {
     void manager.close()

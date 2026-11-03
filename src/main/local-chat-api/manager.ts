@@ -1,8 +1,12 @@
 import { randomBytes } from 'node:crypto'
-import type { LocalApiStatus } from '../../shared/local-chat-api'
+import { normalizeTailnetOrigin, normalizeLanAddress, type LocalApiStatus } from '../../shared/local-chat-api'
 
-type Preferences = { enabled: boolean; port: number }
-type RunningServer = { close: () => Promise<void>; setToken: (token: string) => void }
+type Preferences = { enabled: boolean; port: number; publicOrigin?: string; lanAddress?: string }
+type RunningServer = {
+  close: () => Promise<void>
+  setToken: (token: string) => void
+  createPairing?: (scope?: string) => { code: string; expiresAt: number }
+}
 
 /** Serializes settings changes so rapid toggles cannot leave multiple listeners running. */
 export function createLocalApiManager(options: {
@@ -10,7 +14,7 @@ export function createLocalApiManager(options: {
   token: string
   savePreferences: (value: Preferences) => void
   saveToken: (value: string) => void
-  start: (port: number, token: string) => Promise<RunningServer>
+  start: (port: number, token: string, publicOrigin?: string, lanAddress?: string) => Promise<RunningServer>
 }) {
   let preferences = { ...options.preferences }
   let token = options.token
@@ -39,17 +43,31 @@ export function createLocalApiManager(options: {
     enqueue(async () => {
       if (typeof next?.enabled !== 'boolean' || !Number.isInteger(next.port) || next.port < 1 || next.port > 65535)
         throw new Error('Use a port from 1 to 65535.')
+      const publicOrigin = normalizeTailnetOrigin(next.publicOrigin)
+      const lanAddress = normalizeLanAddress(next.lanAddress)
+      next = {
+        enabled: next.enabled,
+        port: next.port,
+        ...(publicOrigin ? { publicOrigin } : {}),
+        ...(lanAddress ? { lanAddress } : {}),
+      }
       if (persist) options.savePreferences(next)
-      if (server && (!next.enabled || next.port !== preferences.port)) {
+      if (
+        server &&
+        (!next.enabled ||
+          next.port !== preferences.port ||
+          next.publicOrigin !== preferences.publicOrigin ||
+          next.lanAddress !== preferences.lanAddress)
+      ) {
         await server.close()
         server = undefined
       }
-      preferences = { enabled: next.enabled, port: next.port }
+      preferences = { ...next }
       error = undefined
       if (next.enabled && !server) {
         try {
           if (token.length < 32) rotate()
-          server = await options.start(next.port, token)
+          server = await options.start(next.port, token, next.publicOrigin, next.lanAddress)
         } catch (cause) {
           const code = (cause as NodeJS.ErrnoException)?.code
           error =
@@ -72,6 +90,24 @@ export function createLocalApiManager(options: {
         return status()
       }),
     getToken: () => token,
+    pairPhone: () =>
+      enqueue(async () => {
+        if (!server?.createPairing || (!preferences.publicOrigin && !preferences.lanAddress))
+          throw new Error('Enable the API and apply a LAN or Tailscale address first.')
+        const result: import('../../shared/local-chat-api').LocalApiPairingSet = {}
+        if (preferences.publicOrigin) {
+          const pair = server.createPairing('tailnet')
+          result.tailnet = { url: `${preferences.publicOrigin}/#pair=${pair.code}`, expiresAt: pair.expiresAt }
+        }
+        if (preferences.lanAddress) {
+          const pair = server.createPairing('lan')
+          result.lan = {
+            url: `http://${preferences.lanAddress}:${preferences.port}/#pair=${pair.code}`,
+            expiresAt: pair.expiresAt,
+          }
+        }
+        return result
+      }),
     close: () =>
       enqueue(async () => {
         await server?.close()

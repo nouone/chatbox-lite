@@ -6,6 +6,7 @@ import { createAutoReadCompletionHandler } from '@/packages/auto-read-reply'
 import { responseSpeechPlayer } from '@/packages/text-to-speech'
 import { fireEvent, render, screen, waitFor } from '@/test-utils'
 import ReadAloudButton from './ReadAloudButton'
+import { SpeechSettings } from '@/components/settings/SpeechSettings'
 
 const state = vi.hoisted(() => ({ textToSpeech: { enabled: true } as Settings['textToSpeech'] | undefined }))
 const synthesize = vi.hoisted(() => vi.fn())
@@ -49,6 +50,32 @@ afterEach(() => {
 })
 
 const message = { id: 'one', role: 'assistant' as const, contentParts: [{ type: 'text' as const, text: 'Hello' }] }
+
+it('tests the configured voice and speed from Settings and lets the sample be stopped', async () => {
+  state.textToSpeech = {
+    enabled: true,
+    apiBaseUrl: 'http://localhost:8880',
+    model: 'kokoro',
+    voice: 'af_heart',
+    speed: 1.1,
+  }
+  render(
+    <MantineProvider>
+      <SpeechSettings />
+    </MantineProvider>
+  )
+  fireEvent.click(screen.getByRole('button', { name: 'Test voice' }))
+  await waitFor(() =>
+    expect(synthesize).toHaveBeenCalledWith(
+      expect.stringContaining('selected voice'),
+      expect.objectContaining({ apiBaseUrl: 'http://localhost:8880', voice: 'af_heart', speed: 1.1 }),
+      expect.any(Function),
+      expect.any(AbortSignal)
+    )
+  )
+  fireEvent.click(await screen.findByRole('button', { name: 'Stop test' }))
+  expect(responseSpeechPlayer.getSnapshot().id).toBeUndefined()
+})
 function mount() {
   return render(
     <MantineProvider>

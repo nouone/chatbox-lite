@@ -14,11 +14,9 @@ import KnowledgeBaseDocuments from '../knowledge-base/KnowledgeBaseDocuments'
 import {
   DocumentParserDisplay,
   DocumentParserSelector,
-  KnowledgeBaseChatboxAIInfo,
   KnowledgeBaseFormActions,
   KnowledgeBaseModelSelectors,
   KnowledgeBaseNameInput,
-  KnowledgeBaseProviderModeSelect,
 } from '../knowledge-base/KnowledgeBaseForm'
 import KnowledgeBaseMenu from '../knowledge-base/KnowledgeBaseMenu'
 import { RemoteRetryModal } from '../knowledge-base/RemoteRetryModal'
@@ -312,8 +310,6 @@ function KnowledgeBaseFormFixture() {
       <Paper withBorder radius="md" p="md" maw={640}>
         <Stack gap="md">
           <KnowledgeBaseNameInput value={name} onChange={setName} label="Name" />
-          <KnowledgeBaseProviderModeSelect value={providerMode} onChange={setProviderMode} />
-          <KnowledgeBaseChatboxAIInfo showModelsLabel />
           <DocumentParserSelector parserConfig={parserConfig} onParserConfigChange={setParserConfig} />
           <KnowledgeBaseModelSelectors
             embeddingModelList={embeddingModels}

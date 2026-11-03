@@ -31,7 +31,8 @@ function RouteComponent() {
               </Flex>
               <Text>Custom AI endpoints, local voice, and a streamlined interface.</Text>
               <Text c="chatbox-tertiary">
-                Independent community edition based on Chatbox. Lite build: 2026-11-03 (local API and voice).
+                Independent community edition based on Chatbox. Lite build: 2026-11-03 (Markdown, QR access and document
+                fixes).
               </Text>
             </Stack>
           </Flex>

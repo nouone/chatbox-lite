@@ -9,9 +9,9 @@ afterEach(async () => {
   vi.useRealTimers()
   for (const server of running.splice(0)) await server.close()
 })
-async function setup() {
+async function setup(extra: { publicOrigin?: string } = {}) {
   const dispatch = vi.fn().mockResolvedValue({ status: 200, body: { items: [] } })
-  const server = await startLocalChatApi({ port: 0, token, dispatch })
+  const server = await startLocalChatApi({ port: 0, token, dispatch, ...extra })
   running.push(server)
   const request = (
     url: string,
@@ -32,9 +32,12 @@ async function setup() {
       let headers = {}
       const res = {
         headersSent: false,
+        setHeader: (name: string, value: string) => {
+          headers = { ...headers, [name]: value }
+        },
         writeHead: (s: number, h: Record<string, string>) => {
           status = s
-          headers = h
+          headers = { ...headers, ...h }
           res.headersSent = true
         },
         end: (body: string) => resolve({ status, body, headers }),
@@ -49,6 +52,41 @@ it('rejects missing credentials, hostile origins and Host headers before dispatc
   expect((await request('/api/chats', { headers: { origin: 'https://hostile.example' } })).status).toBe(403)
   expect((await request('/api/chats', { headers: { host: 'hostile.example' } })).status).toBe(403)
   expect(dispatch).not.toHaveBeenCalled()
+})
+
+it('pairs a Tailscale browser once, authenticates HTTP and WebSocket by HttpOnly cookie, and revokes on rotation', async () => {
+  const origin = 'https://pc.example.ts.net:8443'
+  const { request, server } = await setup({ publicOrigin: origin })
+  const code = server.createPairing().code
+  const headers = { host: 'pc.example.ts.net:8443', origin, 'content-type': 'application/json' }
+  const paired = await request('/api/pair', {
+    method: 'POST',
+    auth: false,
+    headers,
+    body: JSON.stringify({ code, remember: true }),
+  })
+  expect(paired.status).toBe(200)
+  expect(paired.headers['Set-Cookie']).toContain('HttpOnly; SameSite=Strict; Secure')
+  const cookie = paired.headers['Set-Cookie'].split(';')[0]
+  expect((await request('/api/chats', { auth: false, headers: { ...headers, cookie } })).status).toBe(200)
+  expect(
+    (await request('/api/pair', { method: 'POST', auth: false, headers, body: JSON.stringify({ code }) })).status
+  ).toBe(401)
+  expect(
+    (await request('/api/chats', { auth: false, headers: { ...headers, cookie, origin: 'https://hostile.example' } }))
+      .status
+  ).toBe(403)
+  expect((await request('/api/chats', { headers: { ...headers, 'tailscale-funnel-request': '?1' } })).status).toBe(403)
+  const upgrade = vi.spyOn(server.events, 'handleUpgrade').mockImplementation(() => undefined)
+  server.httpServer.emit(
+    'upgrade',
+    { url: '/api/events', headers: { ...headers, cookie, 'sec-websocket-protocol': 'cbl-api' } },
+    { end: vi.fn() },
+    Buffer.alloc(0)
+  )
+  expect(upgrade).toHaveBeenCalledOnce()
+  server.setToken('new-root'.repeat(8))
+  expect((await request('/api/chats', { auth: false, headers: { ...headers, cookie } })).status).toBe(401)
 })
 
 it('identifies CBL without credentials and revokes old HTTP and WebSocket tokens on rotation', async () => {

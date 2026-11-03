@@ -3,7 +3,7 @@ import { SystemProviders } from '@shared/defaults'
 import type { KnowledgeBase, ProviderModelInfo } from '@shared/types'
 import type { DocumentParserConfig, DocumentParserType } from '@shared/types/settings'
 import { parseKnowledgeBaseModelString } from '@shared/utils/knowledge-base-model-parser'
-import { IconAlertTriangle, IconInfoCircle, IconLogin, IconPlus } from '@tabler/icons-react'
+import { IconAlertTriangle, IconInfoCircle, IconPlus } from '@tabler/icons-react'
 import compact from 'lodash/compact'
 import flatten from 'lodash/flatten'
 import type React from 'react'
@@ -13,11 +13,8 @@ import { Modal } from '@/components/layout/Overlay'
 import { SettingsListItem, SettingsPage, SettingsSection } from '@/components/settings/SettingsLayout'
 import { AppTooltip as Tooltip } from '@/components/ui/tooltip'
 import { useProviders } from '@/hooks/useProviders'
-import { navigateToSettings } from '@/modals/settings-navigation'
-import * as remote from '@/packages/remote'
 import { toastError } from '@/packages/toast'
 import platform from '@/platform'
-import { useAuthInfoStore } from '@/stores/authInfoStore'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { trackEvent } from '@/utils/track'
 import { ScalableIcon } from '../common/ScalableIcon'
@@ -25,11 +22,9 @@ import KnowledgeBaseDocuments from './KnowledgeBaseDocuments'
 import {
   DocumentParserDisplay,
   DocumentParserSelector,
-  KnowledgeBaseChatboxAIInfo,
   KnowledgeBaseFormActions,
   KnowledgeBaseModelSelectors,
   KnowledgeBaseNameInput,
-  KnowledgeBaseProviderModeSelect,
 } from './KnowledgeBaseForm'
 
 interface ModelPillProps {
@@ -119,12 +114,7 @@ const KnowledgeBasePage: React.FC = () => {
   const [kbList, setKbList] = useState<KnowledgeBase[]>([])
   const [newKbName, setNewKbName] = useState('')
   const [showCreate, setShowCreate] = useState(false)
-  const licenseKey = useSettingsStore((state) => state.licenseKey)
   const customProviders = useSettingsStore((state) => state.customProviders)
-  const accessToken = useAuthInfoStore((state) => state.accessToken)
-  const refreshToken = useAuthInfoStore((state) => state.refreshToken)
-  const isLoggedIn = !!(accessToken && refreshToken)
-
   const [newEmbeddingModel, setNewEmbeddingModel] = useState<string | null>(null)
   const [newRerankModel, setNewRerankModel] = useState<string | null>(null)
   const [newVisionModel, setNewVisionModel] = useState<string | null>(null)
@@ -134,48 +124,6 @@ const KnowledgeBasePage: React.FC = () => {
   const [editVisionModel, setEditVisionModel] = useState<string | null>(null)
   const [deleteConfirmKb, setDeleteConfirmKb] = useState<(Partial<KnowledgeBase> & { id: number }) | null>(null)
   const [isUnsupportedPlatform, setIsUnsupportedPlatform] = useState(false)
-
-  const [chatboxAIModels, setChatboxAIModels] = useState<{
-    embedding: string
-    vision: string
-    rerank: string
-  } | null>(null)
-
-  const canUseChatboxAIProvider = useMemo(() => {
-    return !!(chatboxAIModels && licenseKey)
-  }, [chatboxAIModels, licenseKey])
-
-  const isChatboxAIKnowledgeBase = useCallback(
-    (kb: KnowledgeBase) => {
-      // Use the stored providerMode if available
-      if (kb.providerMode) {
-        return kb.providerMode === 'chatbox-ai'
-      }
-      // Fallback for legacy KBs created before providerMode was stored: check embedding model
-      if (!chatboxAIModels) return false
-      return kb.embeddingModel === chatboxAIModels.embedding
-    },
-    [chatboxAIModels]
-  )
-
-  // Check if there are Chatbox AI KBs but user is not logged in — show login prompt.
-  // A KB counts as a Chatbox AI KB when its embedding model is the Chatbox AI embedding model.
-  const chatboxAIKbNeedsLogin = useMemo(() => {
-    if (canUseChatboxAIProvider) return false
-    if (!chatboxAIModels) return false
-    // key
-    return kbList.some((kb) => kb.embeddingModel === chatboxAIModels.embedding)
-  }, [canUseChatboxAIProvider, chatboxAIModels, kbList])
-
-  const [newProviderMode, setNewProviderMode] = useState<'chatbox-ai' | 'custom'>('custom')
-
-  useEffect(() => {
-    if (canUseChatboxAIProvider) {
-      setNewProviderMode('chatbox-ai')
-    } else {
-      setNewProviderMode('custom')
-    }
-  }, [canUseChatboxAIProvider])
 
   const { providers } = useProviders()
 
@@ -262,8 +210,6 @@ const KnowledgeBasePage: React.FC = () => {
 
   function formatParserType(parserType?: DocumentParserType): string {
     switch (parserType) {
-      case 'chatbox-ai':
-        return 'Chatbox AI'
       case 'mineru':
         return 'MinerU'
       default:
@@ -302,45 +248,14 @@ const KnowledgeBasePage: React.FC = () => {
     void checkPlatform()
   }, [])
 
-  // Fetch Chatbox AI models configuration
-  useEffect(() => {
-    const fetchChatboxAIModels = async () => {
-      try {
-        const config = await remote.getRemoteConfig('knowledge_base_models')
-        if (config.knowledge_base_models) {
-          setChatboxAIModels(config.knowledge_base_models)
-        }
-      } catch (error) {
-        toastError(t('Failed to fetch Chatbox AI models config, Error: {{error}}', { error: error }))
-      }
-    }
-    void fetchChatboxAIModels()
-  }, [t])
-
   const createKb = async () => {
     if (!newKbName) return
 
-    let embeddingModel: string
-    let rerankModel: string
-    let visionModel: string
-    let documentParser: DocumentParserConfig | undefined
-
-    if (newProviderMode === 'chatbox-ai') {
-      if (!chatboxAIModels) return
-      embeddingModel = chatboxAIModels.embedding
-      rerankModel = chatboxAIModels.rerank
-      visionModel = chatboxAIModels.vision
-      // Chatbox AI mode uses local parsing by default to save compute points
-      // Users can retry with server parsing (Chatbox AI) if local parsing fails
-      documentParser = { type: 'local' }
-    } else {
-      if (!newEmbeddingModel) return
-      embeddingModel = newEmbeddingModel
-      rerankModel = newRerankModel || ''
-      visionModel = newVisionModel || ''
-      // Custom mode uses the selected parser config
-      documentParser = newDocumentParser
-    }
+    if (!newEmbeddingModel) return
+    const embeddingModel = newEmbeddingModel
+    const rerankModel = newRerankModel || ''
+    const visionModel = newVisionModel || ''
+    const documentParser = newDocumentParser
 
     try {
       await knowledgeBaseController.create({
@@ -349,11 +264,11 @@ const KnowledgeBasePage: React.FC = () => {
         rerankModel: rerankModel,
         visionModel: visionModel,
         documentParser: documentParser,
-        providerMode: newProviderMode,
+        providerMode: 'custom',
       })
 
       trackEvent('knowledge_base_created', {
-        provider_mode: newProviderMode,
+        provider_mode: 'custom',
         document_parser: documentParser?.type || 'global',
         has_rerank_model: Boolean(rerankModel),
         has_vision_model: Boolean(visionModel),
@@ -361,7 +276,6 @@ const KnowledgeBasePage: React.FC = () => {
 
       // Reset form
       setNewKbName('')
-      setNewProviderMode('chatbox-ai')
       setNewEmbeddingModel(null)
       setNewRerankModel(null)
       setNewVisionModel(null)
@@ -445,38 +359,24 @@ const KnowledgeBasePage: React.FC = () => {
         <Stack gap="md">
           <KnowledgeBaseNameInput value={newKbName} onChange={setNewKbName} autoFocus />
 
-          <KnowledgeBaseProviderModeSelect
-            value={newProviderMode}
-            onChange={setNewProviderMode}
-            isChatboxAIDisabled={!canUseChatboxAIProvider}
+          <DocumentParserSelector parserConfig={newDocumentParser} onParserConfigChange={setNewDocumentParser} />
+          <KnowledgeBaseModelSelectors
+            embeddingModelList={embeddingModelList}
+            rerankModelList={rerankModelList}
+            visionModelList={visionModelList}
+            embeddingModel={newEmbeddingModel}
+            rerankModel={newRerankModel}
+            visionModel={newVisionModel}
+            onEmbeddingModelChange={setNewEmbeddingModel}
+            onRerankModelChange={setNewRerankModel}
+            onVisionModelChange={setNewVisionModel}
           />
-
-          {newProviderMode === 'chatbox-ai' ? (
-            <KnowledgeBaseChatboxAIInfo hasError={!chatboxAIModels} />
-          ) : (
-            <>
-              <DocumentParserSelector parserConfig={newDocumentParser} onParserConfigChange={setNewDocumentParser} />
-              <KnowledgeBaseModelSelectors
-                embeddingModelList={embeddingModelList}
-                rerankModelList={rerankModelList}
-                visionModelList={visionModelList}
-                embeddingModel={newEmbeddingModel}
-                rerankModel={newRerankModel}
-                visionModel={newVisionModel}
-                onEmbeddingModelChange={setNewEmbeddingModel}
-                onRerankModelChange={setNewRerankModel}
-                onVisionModelChange={setNewVisionModel}
-              />
-            </>
-          )}
 
           <KnowledgeBaseFormActions
             onCancel={() => setShowCreate(false)}
             onConfirm={createKb}
             confirmText={t('Create')}
-            isConfirmDisabled={
-              !newKbName || (newProviderMode === 'chatbox-ai' ? !canUseChatboxAIProvider : !newEmbeddingModel)
-            }
+            isConfirmDisabled={!newKbName || !newEmbeddingModel}
           />
         </Stack>
       </Modal>
@@ -487,24 +387,18 @@ const KnowledgeBasePage: React.FC = () => {
             onChange={(value) => editKb && setEditKb({ ...editKb, name: value })}
             label={t('Name') as string}
           />
-          {editKb && isChatboxAIKnowledgeBase(editKb as KnowledgeBase) ? (
-            <KnowledgeBaseChatboxAIInfo showModelsLabel />
-          ) : (
-            <>
-              <DocumentParserDisplay parserType={editKb?.documentParser?.type} />
-              <KnowledgeBaseModelSelectors
-                embeddingModelList={embeddingModelList}
-                rerankModelList={rerankModelList}
-                visionModelList={visionModelList}
-                embeddingModel={editKb ? `${editKb.embeddingModel}` : ''}
-                rerankModel={editRerankModel}
-                visionModel={editVisionModel}
-                onRerankModelChange={setEditRerankModel}
-                onVisionModelChange={setEditVisionModel}
-                isEmbeddingDisabled
-              />
-            </>
-          )}
+          <DocumentParserDisplay parserType={editKb?.documentParser?.type} />
+          <KnowledgeBaseModelSelectors
+            embeddingModelList={embeddingModelList}
+            rerankModelList={rerankModelList}
+            visionModelList={visionModelList}
+            embeddingModel={editKb ? `${editKb.embeddingModel}` : ''}
+            rerankModel={editRerankModel}
+            visionModel={editVisionModel}
+            onRerankModelChange={setEditRerankModel}
+            onVisionModelChange={setEditVisionModel}
+            isEmbeddingDisabled
+          />
           <KnowledgeBaseFormActions
             onCancel={() => setEditKb(null)}
             onConfirm={handleSaveEditKb}
@@ -539,25 +433,6 @@ const KnowledgeBasePage: React.FC = () => {
           </Group>
         </Stack>
       </Modal>
-      {!isUnsupportedPlatform && chatboxAIKbNeedsLogin && (
-        <Alert variant="light" color="orange" icon={<IconAlertTriangle size={16} />} title={t('Sign in to Chatbox AI')}>
-          <Text size="sm">
-            {t(
-              'Your Chatbox AI knowledge base requires an active login. Please sign in to Chatbox AI to use this knowledge base.'
-            )}
-          </Text>
-          <Group mt="sm">
-            <Button
-              size="xs"
-              variant="light"
-              leftSection={<IconLogin size={14} />}
-              onClick={() => navigateToSettings('chatbox-ai')}
-            >
-              {t('Log in to Chatbox AI')}
-            </Button>
-          </Group>
-        </Alert>
-      )}
       {!isUnsupportedPlatform && kbList.length === 0 && (
         <SettingsSection>
           <SettingsListItem className="!flex-col !items-center !py-8 text-center">
@@ -588,63 +463,40 @@ const KnowledgeBasePage: React.FC = () => {
             title={kb.name}
             description={
               <Group gap="xs" wrap="wrap" align="center" mt={4}>
-                {isChatboxAIKnowledgeBase(kb) ? (
-                  <>
-                    <Text span size="xs" c="chatbox-tertiary">
-                      {t('Models')}:
-                    </Text>
-                    <ModelPill
-                      modelValue={'Chatbox AI'}
-                      formatModelName={() => 'Chatbox AI'}
-                      isProviderAvailable={() => canUseChatboxAIProvider}
-                      type="embedding"
-                      t={t}
-                      unavailableTooltip={
-                        !isLoggedIn
-                          ? String(t('Sign in to Chatbox AI to use this knowledge base'))
-                          : String(t('Provider unavailable'))
-                      }
-                      onUnavailableClick={!isLoggedIn ? () => navigateToSettings('chatbox-ai') : undefined}
-                    />
-                  </>
-                ) : (
-                  <>
-                    <Text span size="xs" c="chatbox-tertiary">
-                      {t('Parser')}:
-                    </Text>
-                    <Pill>{formatParserType(kb.documentParser?.type)}</Pill>
-                    <Text span size="xs" c="chatbox-tertiary">
-                      {t('Embedding')}:
-                    </Text>
-                    <ModelPill
-                      modelValue={kb.embeddingModel}
-                      formatModelName={formatModelName}
-                      isProviderAvailable={isProviderAvailable}
-                      type="embedding"
-                      t={t}
-                    />
-                    <Text span size="xs" c="chatbox-tertiary">
-                      {t('Rerank')}:
-                    </Text>
-                    <ModelPill
-                      modelValue={kb.rerankModel}
-                      formatModelName={formatModelName}
-                      isProviderAvailable={isProviderAvailable}
-                      type="rerank"
-                      t={t}
-                    />
-                    <Text span size="xs" c="chatbox-tertiary">
-                      {t('Vision')}:
-                    </Text>
-                    <ModelPill
-                      modelValue={kb.visionModel}
-                      formatModelName={formatModelName}
-                      isProviderAvailable={isProviderAvailable}
-                      type="vision"
-                      t={t}
-                    />
-                  </>
-                )}
+                <Text span size="xs" c="chatbox-tertiary">
+                  {t('Parser')}:
+                </Text>
+                <Pill>{formatParserType(kb.documentParser?.type)}</Pill>
+                <Text span size="xs" c="chatbox-tertiary">
+                  {t('Embedding')}:
+                </Text>
+                <ModelPill
+                  modelValue={kb.embeddingModel}
+                  formatModelName={formatModelName}
+                  isProviderAvailable={isProviderAvailable}
+                  type="embedding"
+                  t={t}
+                />
+                <Text span size="xs" c="chatbox-tertiary">
+                  {t('Rerank')}:
+                </Text>
+                <ModelPill
+                  modelValue={kb.rerankModel}
+                  formatModelName={formatModelName}
+                  isProviderAvailable={isProviderAvailable}
+                  type="rerank"
+                  t={t}
+                />
+                <Text span size="xs" c="chatbox-tertiary">
+                  {t('Vision')}:
+                </Text>
+                <ModelPill
+                  modelValue={kb.visionModel}
+                  formatModelName={formatModelName}
+                  isProviderAvailable={isProviderAvailable}
+                  type="vision"
+                  t={t}
+                />
               </Group>
             }
             action={

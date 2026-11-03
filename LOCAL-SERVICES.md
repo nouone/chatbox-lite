@@ -49,6 +49,8 @@ Select this model under **Default Models → Knowledge search (Embedding)** and 
 
 ## Test
 
+CBL document ingestion now sends batches of at most 32 inputs, matching TEI's default maximum client batch size. This avoids the `batch size 50 > maximum allowed batch size 32` failure. You can remove the temporary compose.batch.yml override after updating CBL and recreating the embeddings service with only compose.local.yml.
+
 ```powershell
 powershell -NoProfile -ExecutionPolicy Bypass -File .\scripts\Test-LocalServices.ps1
 ```

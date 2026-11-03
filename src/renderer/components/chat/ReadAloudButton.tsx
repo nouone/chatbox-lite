@@ -16,7 +16,7 @@ import * as toast from '@/stores/toastActions'
 import { desktopDirectRequestFromWindow } from '@/utils/desktop-direct-request'
 
 /** Manual playback state only; automatic speech is driven by generation completion. */
-function useReplySpeech(message: Message, playbackId: string) {
+export function useReplySpeech(message: Message, playbackId: string) {
   const { t } = useTranslation()
   const settings = useSettingsStore((state) => state.textToSpeech)
   const state = useSyncExternalStore(player.subscribe, player.getSnapshot)

@@ -1,6 +1,6 @@
 # Local desktop chat API and browser access
 
-This is an optional local interface to the running Chatbox Lite desktop application. It is **disabled by default**, binds **127.0.0.1 only**, and uses a bearer token. It is not a separate Strata client or chat engine. Keep Desktop running and unlock/approve any normal desktop prompts there.
+This is an optional local interface to the running Chatbox Lite desktop application. It is **disabled by default**, binds **127.0.0.1 by default** (optional explicit LAN listener and Tailscale Serve access are configured in Settings), and uses a bearer token. It is not a separate Strata client or chat engine. Keep Desktop running and unlock/approve any normal desktop prompts there.
 
 ## Enable in Settings (recommended)
 
@@ -37,9 +37,9 @@ If `CBL_API_TOKEN` is omitted, enabling the API generates/reuses `local-api-toke
 
 ## Browser interface
 
-Open **http://127.0.0.1:8085/**. Enter the local API token, connect, select an existing conversation, and send a question. The page has no external scripts, keeps the token in memory only, and uses the same API and WebSocket as other clients. It currently shows the latest bounded history window; paginated older history is available via HTTP. Create new conversations and manage settings/files/approvals in Desktop.
+Open **http://127.0.0.1:8085/**. Enter the local API token, connect, select an existing conversation, and send a question. The page has no external scripts, keeps manually entered tokens in memory, or uses an HttpOnly browser cookie when you choose Remember this device, and uses the same API and WebSocket as other clients. It currently shows the latest bounded history window; paginated older history is available via HTTP. Create new conversations and manage settings/files/approvals in Desktop.
 
-Use the actual port shown in Settings: if your embedding server/llama-ui already uses 8085, choose **8087** for CBL and open **http://127.0.0.1:8087/**. These are separate services. The browser is a minimal CBL-styled continuation view: existing chats, live replies, and the Send arrow. There is no independent model picker or tool setup. It uses the selected desktop conversation's settings and renders message text safely as plain text; rich Markdown, attachments and management remain in Desktop. Streaming follows the bottom when you are already near it and leaves you in place when you scroll upward.
+Use the actual port shown in Settings: if your embedding server/llama-ui already uses 8085, choose **8087** for CBL and open **http://127.0.0.1:8087/**. These are separate services. The browser is a minimal CBL-styled continuation view: existing chats, live replies, and the Send arrow. There is no independent model picker or tool setup. It uses the selected desktop conversation's settings and uses the shared desktop Markdown parser for formatted replies; attachments, advanced previews and management remain in Desktop. Streaming follows the bottom when you are already near it and leaves you in place when you scroll upward.
 
 ## First proof using your existing Strata conversation
 
@@ -82,3 +82,7 @@ WebSocket snapshots read the existing renderer generation runtime's live text ov
 Local origins/Host headers and bearer credentials are checked; the server does not enable cross-origin access or LAN listening. Tokens are not a substitute for trusting local software. Do not expose this listener through a proxy/tunnel, or publish the token. Vendor network-blocking remains in force.
 
 Automated tests exercise HTTP handlers, authentication, WebSocket snapshot handling, renderer dispatch and the shared Send entry point. **The development environment denied live localhost client connections (`EACCES`), so these results do not claim a live Strata round trip or browser socket verification.** The proof script above is the required live acceptance check on your normal desktop session.
+
+## Phone access
+
+See [LOCAL-PHONE-ACCESS.md](LOCAL-PHONE-ACCESS.md) for the two QR codes, static LAN IP, Tailscale HTTPS link, remembered devices and token revocation. The API remains disabled by default and no LAN/Tailscale address is enabled automatically. Native clients still use bearer tokens. Browser reads add `?view=web` and WebSocket subscriptions add `view: "web"` to request safe shared Markdown presentation; plain API reads remain unchanged.

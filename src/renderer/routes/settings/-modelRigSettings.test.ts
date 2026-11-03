@@ -82,13 +82,13 @@ describe('model rig slot settings', () => {
 
   test('parser and search presets follow the Chatbox-built-in values', () => {
     expect(isSlotPresetOn('parser', settings())).toBe(false)
-    expect(isSlotPresetOn('parser', settings(), undefined, 'chatbox-ai')).toBe(true)
+    expect(isSlotPresetOn('parser', settings(), undefined, 'chatbox-ai')).toBe(false)
     expect(
       isSlotPresetOn(
         'parser',
         settings({ extension: { webSearch: { provider: 'bing' }, documentParser: { type: 'chatbox-ai' } } })
       )
-    ).toBe(true)
+    ).toBe(false)
     expect(
       isSlotPresetOn(
         'parser',
@@ -102,7 +102,7 @@ describe('model rig slot settings', () => {
   })
 
   test('unset parser type follows the platform default', () => {
-    expect(effectiveParserType(settings(), 'chatbox-ai')).toBe('chatbox-ai')
+    expect(effectiveParserType(settings(), 'chatbox-ai')).toBe('local')
     expect(effectiveParserType(settings(), 'local')).toBe('local')
     expect(customParserTypes({ isDesktopLike: false, isMobile: false })).toEqual([])
     expect(customParserTypes({ isDesktopLike: true, isMobile: false })).toEqual(['local', 'mineru'])

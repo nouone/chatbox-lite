@@ -135,7 +135,6 @@ const SLOT_ICONS = {
 } as const
 
 const PARSER_OPTION_LABELS: Record<string, string> = {
-  'chatbox-ai': 'Chatbox AI',
   local: 'Local parser',
   mineru: 'MinerU',
 }
@@ -572,7 +571,7 @@ function SlotSelector(
 
   if (props.slotId === 'parser') {
     const options = withCurrentOption(
-      ['chatbox-ai', ...customParserTypes(parserHost())].map((value) => ({
+      customParserTypes(parserHost()).map((value) => ({
         value,
         label: t(PARSER_OPTION_LABELS[value]),
       })),
