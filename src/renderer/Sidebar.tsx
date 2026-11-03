@@ -334,7 +334,7 @@ export default function Sidebar() {
                   aria-label={t('Help')}
                   color="chatbox-tertiary"
                   onClick={() => {
-                    navigate({ to: '/guide' })
+                    navigate({ to: '/about' })
                     closeOnSmallScreen()
                   }}
                 />

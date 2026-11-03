@@ -109,19 +109,21 @@ function Index() {
   const licenseKey = useSettingsStore((s) => s.licenseKey)
   const licenseDetail = useSettingsStore((s) => s.licenseDetail)
   const licensePlanName = useSettingsStore((s) => s.licensePlanName)
+  const showAccountFeatures = useSettingsStore((s) => s.showAccountFeatures)
   const hasExpiredLicense = useSettingsStore((s) => s.hasExpiredLicense)
   const isLoggedIn = useAuthInfoStore((s) => Boolean(s.accessToken && s.refreshToken))
   const { isExceeded, isExceededResolved } = useVersion()
   const welcomeCardMode = useMemo(
     () =>
       getHomeWelcomeCardMode({
+        showAccountFeatures,
         providerCount: providers.length,
         isLoggedIn,
         hasLicense,
         hasExpiredLicense,
         hideForStoreReview: isExceeded || !isExceededResolved,
       }),
-    [providers.length, isLoggedIn, hasLicense, hasExpiredLicense, isExceeded, isExceededResolved]
+    [providers.length, isLoggedIn, hasLicense, hasExpiredLicense, isExceeded, isExceededResolved, showAccountFeatures]
   )
 
   const selectedModel = useMemo(() => {

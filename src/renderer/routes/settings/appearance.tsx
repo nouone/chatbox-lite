@@ -1,4 +1,4 @@
-import { Box, Button, FileButton, Flex, SegmentedControl, Slider, Text } from '@mantine/core'
+import { Box, Button, FileButton, Flex, SegmentedControl, Slider, Switch, Text } from '@mantine/core'
 import { TestId } from '@shared/automation/testids'
 import { type Language, Theme } from '@shared/types'
 import { IconChevronRight } from '@tabler/icons-react'
@@ -92,6 +92,19 @@ export function RouteComponent() {
       title={t('Appearance')}
       description={t('Theme, text size, avatars and background. Changes apply immediately.')}
     >
+      <SettingRow
+        id="show-account-features"
+        label="Show account and upgrade features"
+        description="Restore account settings and welcome cards. Analytics remain disabled."
+        control={(fieldId) => (
+          <Switch
+            id={fieldId}
+            aria-label="Show account and upgrade features"
+            checked={settings.showAccountFeatures}
+            onChange={(event) => setSettings({ showAccountFeatures: event.currentTarget.checked })}
+          />
+        )}
+      />
       <fieldset className="m-0 flex min-w-0 flex-col gap-6 border-0 p-0">
         <SettingsSection>
           <SettingRow

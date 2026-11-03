@@ -34,26 +34,7 @@ Use `electron-builder.lite.yml` for the distinct Chatbox Lite application identi
 
 ## Restore the account, upgrade and welcome screens
 
-Lite hides these screens by default with `CHATBOX_LOCAL_UI=1`. To show them again during development:
-
-```powershell
-$env:CHATBOX_LOCAL_UI = '0'
-$env:DEV_PORT = '5173'
-pnpm run dev
-```
-
-This restores the Account/settings group, account/upgrade controls guarded by the local-interface flag, and account/login welcome cards. It changes visibility; it does not grant paid features or alter subscription checks. Provider configuration remains available in either mode.
-
-For an installed Lite app, set the flag before compiling and packaging, then reinstall:
-
-```powershell
-$env:CHATBOX_LOCAL_UI = '0'
-pnpm run build
-pnpm exec electron-builder --config electron-builder.lite.yml --win nsis --x64 --publish never
-```
-
-Setting an environment variable after an installer was built will not change that installed app: this flag is embedded into the renderer at build time. To return to the streamlined interface, set `$env:CHATBOX_LOCAL_UI = '1'` and restart development or rebuild/reinstall. The flag does not restore the removed analytics integrations.
-
+In Settings / Appearance, enable **Show account and upgrade features**. This persisted switch restores account settings and original welcome cards immediately, without rebuilding or environment variables. Existing welcome-card eligibility rules still apply. Subscription checks remain intact and removed analytics stay removed.
 
 ## Application icon
 

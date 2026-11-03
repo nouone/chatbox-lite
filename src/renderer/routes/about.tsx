@@ -28,7 +28,7 @@ import { buildChatboxUrl } from '@/packages/remote'
 import platform from '@/platform'
 import iconPNG from '@/static/icon.png'
 import IMG_WECHAT_QRCODE from '@/static/wechat_qrcode.png'
-import { useLanguage } from '@/stores/settingsStore'
+import { useSettingsStore, useLanguage } from '@/stores/settingsStore'
 import { installUpdate, useUpdateStore } from '@/stores/updateStore'
 
 export const Route = createFileRoute('/about')({
@@ -39,6 +39,7 @@ function RouteComponent() {
   const { t } = useTranslation()
   const version = useVersion()
   const language = useLanguage()
+  const showAccountFeatures = useSettingsStore((s) => s.showAccountFeatures)
   const isSmallScreen = useIsSmallScreen()
 
   return (
@@ -49,14 +50,14 @@ function RouteComponent() {
             <Image h={100} w={100} mah={'20vw'} maw={'20vw'} src={iconPNG} />
             <Stack flex={1} gap="xxs">
               <Flex justify="space-between" align="center" wrap="wrap" gap={isSmallScreen ? 'xs' : 'sm'} rowGap="xs">
-                <Title order={5} lh={1.5} lineClamp={1} title={`Chatbox v${version.version}`}>
-                  Chatbox {/\d/.test(version.version) ? `(v${version.version})` : ''}
+                <Title order={5} lh={1.5} lineClamp={1} title={`Chatbox Lite v${version.version}`}>
+                  Chatbox Lite {/\d/.test(version.version) ? `(v${version.version})` : ''}
                 </Title>
 
-                <UpdateSection language={language} needCheckUpdate={version.needCheckUpdate} />
+                {showAccountFeatures && <UpdateSection language={language} needCheckUpdate={version.needCheckUpdate} />}
               </Flex>
-              <Text>{t('about-slogan')}</Text>
-              <Text c="chatbox-tertiary">{t('about-introduction')}</Text>
+              <Text>Custom AI endpoints, local voice, and a streamlined interface.</Text>
+              <Text c="chatbox-tertiary">Independent community edition based on Chatbox.</Text>
 
               <Flex gap="sm">
                 <Anchor
@@ -66,7 +67,7 @@ function RouteComponent() {
                   underline="hover"
                   c="chatbox-tertiary"
                 >
-                  {t('Privacy Policy')}
+                  Upstream {t('Privacy Policy')}
                 </Anchor>
                 <Anchor
                   size="sm"
@@ -75,56 +76,112 @@ function RouteComponent() {
                   underline="hover"
                   c="chatbox-tertiary"
                 >
-                  {t('User Terms')}
+                  Upstream {t('User Terms')}
                 </Anchor>
               </Flex>
             </Stack>
           </Flex>
 
-          <List>
-            <ListItem
-              icon={<BrandGithub className="w-full h-full" />}
-              title={t('Github')}
-              link="https://github.com/chatboxai/chatbox"
-              value="chatbox"
-            />
-            {/* <ListItem
+          <Stack gap="sm">
+            <Title order={3}>Included in Chatbox Lite</Title>
+            <Text>Local Whisper microphone transcription, a recording meter, and a nearby Send button.</Text>
+            <Text>
+              Kokoro read-aloud with automatic reply reading, voice selection, adjustable speed, and speech-friendly
+              text.
+            </Text>
+            <Text>
+              Custom OpenAI-compatible endpoints, optional Strata thinking controls, provider-reported token speed, and
+              Tavily web search support.
+            </Text>
+            <Text>Independent sidebar text size, theme-aware icons, and improved reply scrolling.</Text>
+            <Text>
+              Sentry, Google Analytics, and Plausible reporting removed. Account and upgrade screens hidden by default.
+            </Text>
+            <Divider />
+            <Title order={3}>Help and setup</Title>
+            <Text>
+              Microphone: run scripts/setup-local-speech.ps1 from the source folder to install whisper.cpp and its
+              English model. Click the microphone to record, then Stop to transcribe into your draft. Review it and
+              press Send.
+            </Text>
+            <Text>
+              Read-aloud: start your Kokoro OpenAI-compatible speech server (default http://localhost:8880). Choose a
+              voice and speed in speech settings. Enable Auto-read replies beside the input to read completed replies
+              automatically.
+            </Text>
+            <Text>
+              Settings / Appearance includes sidebar text size and the Show account and upgrade features switch. This
+              restores original account settings and welcome cards without rebuilding. Analytics stay disabled and
+              subscription checks remain intact.
+            </Text>
+            <Text>
+              See README.md and LOCAL-CUSTOM-BUILD.md in the source for installation, testing, and Windows packaging.
+              Configured providers, speech services, updates, and remote configuration may still use the network.
+            </Text>
+            <Divider />
+            <Text>
+              Chatbox Lite is an independent derivative of Chatbox by its upstream contributors, distributed under
+              GPLv3.
+            </Text>
+            <Anchor href="https://github.com/chatboxai/chatbox" target="_blank">
+              Upstream Chatbox source and contributors
+            </Anchor>
+            <Anchor href="https://github.com/chatboxai/chatbox/blob/main/LICENSE" target="_blank">
+              GNU GPLv3 license
+            </Anchor>
+          </Stack>
+          {showAccountFeatures && (
+            <>
+              <List>
+                <ListItem
+                  icon={<BrandGithub className="w-full h-full" />}
+                  title={t('Github')}
+                  link="https://github.com/chatboxai/chatbox"
+                  value="chatbox"
+                />
+                {/* <ListItem
               icon={<BrandX className="w-full h-full" />}
               title={t('X(Twitter)')}
               link="https://x.com/ChatboxAI_HQ"
               value="@ChatboxAI_HQ"
             /> */}
-            <ListItem
-              icon={<BrandRedNote className="w-full h-full" />}
-              title={t('RedNote')}
-              link="https://www.xiaohongshu.com/user/profile/67b581b6000000000e01d11f"
-              value="@63844903136"
-            />
-            <ListItem icon={<BrandWechat className="w-full h-full" />} title={t('WeChat')} right={<WechatQRCode />} />
-          </List>
+                <ListItem
+                  icon={<BrandRedNote className="w-full h-full" />}
+                  title={t('RedNote')}
+                  link="https://www.xiaohongshu.com/user/profile/67b581b6000000000e01d11f"
+                  value="@63844903136"
+                />
+                <ListItem
+                  icon={<BrandWechat className="w-full h-full" />}
+                  title={t('WeChat')}
+                  right={<WechatQRCode />}
+                />
+              </List>
 
-          <List>
-            <ListItem
-              icon={<IconHome className="w-full h-full" />}
-              title={t('Official Site')}
-              link={buildChatboxUrl(`/redirect_app/homepage/${language}`)}
-            />
-            <ListItem
-              icon={<IconPencil className="w-full h-full" />}
-              title={t('Feedback')}
-              link={buildChatboxUrl(`/redirect_app/feedback/${language}`)}
-            />
-            <ListItem
-              icon={<IconFileText className="w-full h-full" />}
-              title={t('Changelog')}
-              link={`https://chatboxai.app/${language.split('-')[0] || 'en'}/help-center/changelog`}
-            />
-            <ListItem
-              icon={<IconMessage2 className="w-full h-full" />}
-              title={t('FAQs')}
-              link={`https://chatboxai.app/${language.split('-')[0] || 'en'}/help-center/chatbox-ai-service-faqs`}
-            />
-          </List>
+              <List>
+                <ListItem
+                  icon={<IconHome className="w-full h-full" />}
+                  title={t('Official Site')}
+                  link={buildChatboxUrl(`/redirect_app/homepage/${language}`)}
+                />
+                <ListItem
+                  icon={<IconPencil className="w-full h-full" />}
+                  title={t('Feedback')}
+                  link={buildChatboxUrl(`/redirect_app/feedback/${language}`)}
+                />
+                <ListItem
+                  icon={<IconFileText className="w-full h-full" />}
+                  title={t('Changelog')}
+                  link={`https://chatboxai.app/${language.split('-')[0] || 'en'}/help-center/changelog`}
+                />
+                <ListItem
+                  icon={<IconMessage2 className="w-full h-full" />}
+                  title={t('FAQs')}
+                  link={`https://chatboxai.app/${language.split('-')[0] || 'en'}/help-center/chatbox-ai-service-faqs`}
+                />
+              </List>
+            </>
+          )}
         </Stack>
       </Container>
     </Page>

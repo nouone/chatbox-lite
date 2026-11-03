@@ -583,6 +583,7 @@ export const SettingsSchema = GlobalSessionSettingsSchema.extend({
   ]),
   languageInited: z.boolean().optional(),
   fontSize: z.number().catch(14),
+  showAccountFeatures: z.boolean().catch(false),
   sidebarFontSize: z.number().min(10).max(22).catch(14),
   spellCheck: z.boolean().optional(),
 

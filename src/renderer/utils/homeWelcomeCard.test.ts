@@ -1,12 +1,15 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
+import { describe, expect, it } from 'vitest'
 
 import { getHomeWelcomeCardMode } from './homeWelcomeCard'
 
 describe('getHomeWelcomeCardMode', () => {
-  beforeEach(() => vi.stubEnv('CHATBOX_LOCAL_UI', '0'))
-  afterEach(() => vi.unstubAllEnvs())
+  it('restores and hides welcome cards as the runtime preference changes', () => {
+    const params = { providerCount: 0, isLoggedIn: false, hasLicense: false, hasExpiredLicense: false }
+    expect(getHomeWelcomeCardMode({ ...params, showAccountFeatures: false })).toBe('none')
+    expect(getHomeWelcomeCardMode({ ...params, showAccountFeatures: true })).toBe('login')
+    expect(getHomeWelcomeCardMode({ ...params, showAccountFeatures: false })).toBe('none')
+  })
   it('hides login and account welcome prompts in the local interface', () => {
-    vi.stubEnv('CHATBOX_LOCAL_UI', '1')
     expect(
       getHomeWelcomeCardMode({ providerCount: 0, isLoggedIn: false, hasLicense: false, hasExpiredLicense: false })
     ).toBe('none')
@@ -17,6 +20,7 @@ describe('getHomeWelcomeCardMode', () => {
   it('returns "none" when providerCount > 0', () => {
     expect(
       getHomeWelcomeCardMode({
+        showAccountFeatures: true,
         providerCount: 1,
         isLoggedIn: false,
         hasLicense: false,
@@ -28,6 +32,7 @@ describe('getHomeWelcomeCardMode', () => {
   it('returns "none" when hasLicense is true (even if not logged in)', () => {
     expect(
       getHomeWelcomeCardMode({
+        showAccountFeatures: true,
         providerCount: 0,
         isLoggedIn: false,
         hasLicense: true,
@@ -39,6 +44,7 @@ describe('getHomeWelcomeCardMode', () => {
   it('returns "no-license" when logged in but no license and no providers', () => {
     expect(
       getHomeWelcomeCardMode({
+        showAccountFeatures: true,
         providerCount: 0,
         isLoggedIn: true,
         hasLicense: false,
@@ -50,6 +56,7 @@ describe('getHomeWelcomeCardMode', () => {
   it('returns "expired-license" when logged in, no license, and hasExpiredLicense is true', () => {
     expect(
       getHomeWelcomeCardMode({
+        showAccountFeatures: true,
         providerCount: 0,
         isLoggedIn: true,
         hasLicense: false,
@@ -61,6 +68,7 @@ describe('getHomeWelcomeCardMode', () => {
   it('returns "login" when not logged in, no license, no providers', () => {
     expect(
       getHomeWelcomeCardMode({
+        showAccountFeatures: true,
         providerCount: 0,
         isLoggedIn: false,
         hasLicense: false,
@@ -72,6 +80,7 @@ describe('getHomeWelcomeCardMode', () => {
   it('returns "none" during store review even when login card would otherwise show', () => {
     expect(
       getHomeWelcomeCardMode({
+        showAccountFeatures: true,
         providerCount: 0,
         isLoggedIn: false,
         hasLicense: false,

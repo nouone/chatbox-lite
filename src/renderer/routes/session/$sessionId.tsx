@@ -88,6 +88,7 @@ function RouteComponent() {
   const hasLicense = Boolean(licenseKey)
   const licenseDetail = useSettingsStore((s) => s.licenseDetail)
   const licensePlanName = useSettingsStore((s) => s.licensePlanName)
+  const showAccountFeatures = useSettingsStore((s) => s.showAccountFeatures)
   const hasExpiredLicense = useSettingsStore((s) => s.hasExpiredLicense)
   const autoScrollNewMessagesToTop = useSettingsStore((s) => s.autoScrollNewMessagesToTop)
   const isLoggedIn = useAuthInfoStore((s) => Boolean(s.accessToken && s.refreshToken))
@@ -110,13 +111,14 @@ function RouteComponent() {
   const welcomeCardMode = useMemo(
     () =>
       getHomeWelcomeCardMode({
+        showAccountFeatures,
         providerCount: providers.length,
         isLoggedIn,
         hasLicense,
         hasExpiredLicense,
         hideForStoreReview: isExceeded || !isExceededResolved,
       }),
-    [providers.length, isLoggedIn, hasLicense, hasExpiredLicense, isExceeded, isExceededResolved]
+    [providers.length, isLoggedIn, hasLicense, hasExpiredLicense, isExceeded, isExceededResolved, showAccountFeatures]
   )
 
   const shouldShowTemplateWelcomeCard = useMemo(

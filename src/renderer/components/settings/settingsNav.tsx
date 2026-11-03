@@ -64,7 +64,7 @@ export interface SettingsNavGroup {
 }
 
 /** Settings navigation shared by the desktop sidebar, the small-screen index and settings search. */
-export function getSettingsNavGroups(): SettingsNavGroup[] {
+export function getSettingsNavGroups(showAccountFeatures = false): SettingsNavGroup[] {
   const capabilities: SettingsNavItem[] = [
     { key: 'web-search', label: 'Web Search', icon: IconWorldWww },
     ...(featureFlags.mcp
@@ -85,7 +85,7 @@ export function getSettingsNavGroups(): SettingsNavGroup[] {
   ]
 
   return [
-    ...(!isLocalInterface()
+    ...(!isLocalInterface(showAccountFeatures)
       ? [
           {
             title: 'Account',
@@ -153,6 +153,7 @@ export interface SettingsSearchEntry {
  * search for a page name lands on the page.
  */
 export const SETTINGS_SEARCH_ENTRIES: SettingsSearchEntry[] = [
+  { page: 'appearance', id: 'show-account-features', label: 'Show account and upgrade features' },
   { page: 'chat', id: 'system-prompt', label: 'System prompt' },
   { page: 'chat', id: 'max-context', label: 'Context message limit' },
   { page: 'chat', id: 'temperature', label: 'Temperature' },

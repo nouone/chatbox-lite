@@ -50,13 +50,14 @@ export function RouteComponent() {
   const router = useRouter()
   const canGoBack = useCanGoBack()
   const isSmallScreen = useIsSmallScreen()
+  const showAccountFeatures = useSettingsStore((s) => s.showAccountFeatures)
   const section = useSettingsSection()
   const navItem = useMemo(
     () =>
-      getSettingsNavGroups()
+      getSettingsNavGroups(showAccountFeatures)
         .flatMap((group) => group.items)
         .find((item) => item.key === section),
-    [section]
+    [section, showAccountFeatures]
   )
   const pageTitle =
     !isSmallScreen || !section
@@ -104,10 +105,11 @@ interface SettingsSearchResult {
 
 function useSettingsSearch(query: string): SettingsSearchResult[] {
   const { t } = useTranslation()
+  const showAccountFeatures = useSettingsStore((s) => s.showAccountFeatures)
   return useMemo(() => {
     const normalized = query.trim().toLocaleLowerCase()
     if (!normalized) return []
-    const navItems = getSettingsNavGroups().flatMap((group) => group.items)
+    const navItems = getSettingsNavGroups(showAccountFeatures).flatMap((group) => group.items)
     const pageLabel = (item: SettingsNavItem | undefined) =>
       item ? (item.noTranslate ? item.label : String(t(item.label))) : ''
     const pages: SettingsSearchResult[] = navItems.map((item) => ({
@@ -131,7 +133,7 @@ function useSettingsSearch(query: string): SettingsSearchResult[] {
     return [...pages, ...rows].filter(
       (result) => matchesQuery(result.label, normalized) || matchesQuery(result.entry.label, normalized)
     )
-  }, [query, t])
+  }, [query, t, showAccountFeatures])
 }
 
 function SettingsSearchInput({
@@ -219,13 +221,14 @@ export function SettingsRoot() {
   const { t } = useTranslation()
   const navigate = useNavigate()
   const pathname = useRouterState({ select: (s) => s.location.pathname })
+  const showAccountFeatures = useSettingsStore((s) => s.showAccountFeatures)
   const section = useSettingsSection()
   const activeKey = settingsNavKeyForSection(section)
   const isSmallScreen = useIsSmallScreen()
   const { providers: availableProviders } = useProviders()
   const isChatboxAIActivated = availableProviders.some((p) => p.id === 'chatbox-ai')
   const licensePlanName = useSettingsStore((s) => s.licensePlanName)
-  const groups = useMemo(() => getSettingsNavGroups(), [])
+  const groups = useMemo(() => getSettingsNavGroups(showAccountFeatures), [showAccountFeatures])
   const meta = useSettingsNavMeta()
   const [query, setQuery] = useState('')
   const results = useSettingsSearch(query)
@@ -273,7 +276,7 @@ export function SettingsRoot() {
             </div>
           ) : (
             <>
-              {!isLocalInterface() && (
+              {!isLocalInterface(showAccountFeatures) && (
                 <Link to="/settings/chatbox-ai" className="block no-underline">
                   <Flex
                     align="center"

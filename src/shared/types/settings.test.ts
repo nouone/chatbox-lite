@@ -7,6 +7,16 @@ import {
 } from './agent-persona'
 import { ProviderModelInfoSchema, SessionSettingsSchema, SettingsSchema } from './settings'
 
+test('account features default off for existing settings and survive a settings round trip', () => {
+  const previous = { ...defaultSettings() } as Partial<ReturnType<typeof defaultSettings>>
+  delete previous.showAccountFeatures
+  expect(SettingsSchema.parse(previous).showAccountFeatures).toBe(false)
+  for (const showAccountFeatures of [true, false]) {
+    const saved = JSON.parse(JSON.stringify({ ...defaultSettings(), showAccountFeatures }))
+    expect(SettingsSchema.parse(saved).showAccountFeatures).toBe(showAccountFeatures)
+  }
+})
+
 test('persists the Strata protocol opt-in and ignores unknown protocols', () => {
   const model = { modelId: 'strata-local', reasoningControl: 'strata' }
   expect(ProviderModelInfoSchema.parse(JSON.parse(JSON.stringify(model))).reasoningControl).toBe('strata')
