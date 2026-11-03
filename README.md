@@ -1,4 +1,4 @@
-# Chatbox Lite
+# <img src="assets/icon.svg" alt="" width="40" height="40"> Chatbox Lite
 
 **Bring your own AI endpoint. Use local voice and documents. Continue desktop chats on your phone.**
 
