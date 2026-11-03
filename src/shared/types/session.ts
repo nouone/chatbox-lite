@@ -363,6 +363,9 @@ export type MessageUsage = z.infer<typeof MessageUsageSchema>
 const MessageUsageSchema = z.object({
   engineOutputTokensPerSecond: z.number().positive().finite().optional().catch(undefined),
   engineDecodeMs: z.number().positive().finite().optional().catch(undefined),
+  engineInputTokensPerSecond: z.number().positive().finite().optional().catch(undefined),
+  enginePromptMs: z.number().positive().finite().optional().catch(undefined),
+  engineProcessedTokens: z.number().nonnegative().finite().optional().catch(undefined),
   inputTokens: z.number().optional().catch(undefined),
   /**
   The number of output (completion) tokens used.

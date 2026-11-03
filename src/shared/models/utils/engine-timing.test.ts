@@ -4,6 +4,28 @@ import { createInitialState, processStreamChunk } from '@chatbox/core/generation
 import { streamText } from 'ai'
 import { expect, it, vi } from 'vitest'
 import { engineTimingExtractor, mergeEngineTiming } from './engine-timing'
+it('retains Strata prompt-processing timing separately from generation speed and saves it', async () => {
+  const metadata = await engineTimingExtractor.extractMetadata({
+    parsedBody: {
+      timings: {
+        prompt_n: 308,
+        prompt_ms: 1212,
+        prompt_per_second: 254.1,
+        predicted_per_second: 65.9,
+        predicted_ms: 1108,
+      },
+    },
+  })
+  const usage = mergeEngineTiming(undefined, metadata)
+  expect(usage).toMatchObject({
+    engineInputTokensPerSecond: 254.1,
+    enginePromptMs: 1212,
+    engineProcessedTokens: 308,
+    engineOutputTokensPerSecond: 65.9,
+  })
+  const saved = MessageSchema.parse({ id: 'reply', role: 'assistant', contentParts: [], usage })
+  expect(saved.usage?.engineInputTokensPerSecond).toBe(254.1)
+})
 
 it('keeps the reported rate exactly and weights multiple steps by decode duration', () => {
   const first = mergeEngineTiming(undefined, { chatboxEngineTiming: { tokensPerSecond: 68.1, decodeMs: 1000 } })

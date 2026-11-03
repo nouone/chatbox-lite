@@ -30,7 +30,9 @@ export function createLocalApiManager(options: {
     ...preferences,
     running: Boolean(server),
     hasToken: token.length >= 32,
-    url: `http://127.0.0.1:${preferences.port}`,
+    url: preferences.lanAddress
+      ? `http://${preferences.lanAddress}:${preferences.port}`
+      : preferences.publicOrigin || `http://127.0.0.1:${preferences.port}`,
     ...(error ? { error } : {}),
   })
   const rotate = () => {
@@ -90,6 +92,14 @@ export function createLocalApiManager(options: {
         return status()
       }),
     getToken: () => token,
+    browserUrl: () =>
+      enqueue(async () => {
+        if (!server) throw new Error('Enable the API first.')
+        const origin = status().url
+        if (!server.createPairing) return origin
+        const pair = server.createPairing('browser')
+        return `${origin}/#pair=${pair.code}`
+      }),
     pairPhone: () =>
       enqueue(async () => {
         if (!server?.createPairing || (!preferences.publicOrigin && !preferences.lanAddress))

@@ -78,6 +78,7 @@ export function LocalChatApiSettings() {
       })
       setState(result)
       setPairing(undefined)
+      setPairEpoch((value) => value + 1)
     })
   return (
     <SettingsSection
@@ -123,6 +124,14 @@ export function LocalChatApiSettings() {
           onChange={(event) => setPublicOrigin(event.currentTarget.value)}
           disabled={busy || !state}
         />
+        <TextInput
+          label="Static LAN IP (optional)"
+          placeholder="192.168.1.100"
+          value={lanAddress}
+          description="To enable local-network access, enter an IPv4 address assigned to this PC and click Apply address. Leave empty to keep LAN access off."
+          onChange={(event) => setLanAddress(event.currentTarget.value)}
+          disabled={busy || !state}
+        />
         <Group>
           <Button
             variant="default"
@@ -145,14 +154,6 @@ export function LocalChatApiSettings() {
             Refresh phone QR codes
           </Button>
         </Group>
-        <TextInput
-          label="Static LAN IP (optional)"
-          placeholder="192.168.1.100"
-          value={lanAddress}
-          description="To enable local-network access, enter an IPv4 address assigned to this PC and click Apply address. Leave empty to keep LAN access off."
-          onChange={(event) => setLanAddress(event.currentTarget.value)}
-          disabled={busy || !state}
-        />
         {state?.publicOrigin && (
           <Text size="sm">
             Tailscale:{' '}

@@ -2,6 +2,12 @@ import { afterEach, expect, it, vi } from 'vitest'
 import { browserCookie, createBrowserPairing } from './browser-pairing'
 import { normalizeLanAddress, normalizeTailnetOrigin } from '../../shared/local-chat-api'
 afterEach(() => vi.useRealTimers())
+it('keeps the displayed LAN QR usable when separate desktop browser links are redeemed', () => {
+  const pairs = createBrowserPairing(() => 'root'.repeat(16))
+  const lan = pairs.create('lan')
+  for (let i = 0; i < 6; i++) expect(pairs.redeem(pairs.create('browser').code, true)).toBeTruthy()
+  expect(pairs.redeem(lan.code, true)).toBeTruthy()
+})
 it('pairs two independently usable QR codes without exposing the API key, and rejects replay, tampering and rotation', () => {
   let root = 'private-root-token'.repeat(4)
   const pairs = createBrowserPairing(() => root)

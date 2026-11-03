@@ -1,6 +1,7 @@
 import { beforeEach, expect, it, vi } from 'vitest'
 const mocks = vi.hoisted(() => ({
   list: vi.fn(),
+  create: vi.fn(),
   header: vi.fn(),
   history: vi.fn(),
   send: vi.fn(),
@@ -17,6 +18,7 @@ vi.mock('@/app/renderer-application', () => ({
     },
   },
 }))
+vi.mock('@/stores/session/crud', () => ({ createEmpty: mocks.create }))
 vi.mock('@/stores/session/messages', () => ({ submitNewUserMessage: mocks.send }))
 vi.mock('@/stores/sessionActivityStore', () => ({ isSessionGenerating: mocks.busy }))
 vi.mock('@/stores/session/action-guard', () => ({
@@ -28,6 +30,13 @@ vi.mock('@/stores/session/action-guard', () => ({
   }),
 }))
 import { handleLocalChatCall } from './local-chat-api'
+it('creates a new chat through the same desktop New Chat controller', async () => {
+  mocks.create.mockResolvedValueOnce({ id: 'new-desktop-chat', name: 'New chat' })
+  const result = await handleLocalChatCall({ action: 'create' })
+  expect(result).toEqual({ status: 201, body: { id: 'new-desktop-chat', name: 'New chat' } })
+  expect(mocks.create).toHaveBeenCalledWith('chat')
+  expect(mocks.send).not.toHaveBeenCalled()
+})
 beforeEach(() => {
   vi.clearAllMocks()
   mocks.busy.mockReturnValue(false)

@@ -35,6 +35,9 @@ it('creates separate LAN and Tailscale pairing links without embedding the API t
   expect(links.lan?.url).toBe('http://192.168.1.10:8088/#pair=one-use-lan')
   expect(JSON.stringify(links)).not.toContain(root)
   expect(options.start).toHaveBeenCalledWith(8088, root, 'https://pc.example.ts.net:8443', '192.168.1.10')
+  expect(manager.status().url).toBe('http://192.168.1.10:8088')
+  expect(await manager.browserUrl()).toBe('http://192.168.1.10:8088/#pair=one-use-browser')
+  expect(createPairing.mock.calls.map((call) => call[0])).toEqual(['tailnet', 'lan', 'browser'])
 })
 
 it('stays off by default, generates and saves a strong token on enable, and stops on disable', async () => {

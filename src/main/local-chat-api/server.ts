@@ -114,9 +114,7 @@ export async function startLocalChatApi(options: {
         const body = await readJson(req, 2048)
         const remembered = body?.remember === true
         const credential =
-          (publicOrigin || lanAddress) && typeof body?.code === 'string' && body.code.length <= 100
-            ? pairing.redeem(body.code, remembered)
-            : undefined
+          typeof body?.code === 'string' && body.code.length <= 100 ? pairing.redeem(body.code, remembered) : undefined
         if (!credential) {
           reply(res, 401, { error: 'Pairing code expired or already used. Create a new code in Desktop.' })
           return
@@ -146,7 +144,11 @@ export async function startLocalChatApi(options: {
       }
       let call: LocalChatCall
       const match = /^\/api\/chats\/([^/]+)(\/messages)?$/.exec(url.pathname)
-      if (req.method === 'GET' && url.pathname === '/api/chats') call = { action: 'list' }
+      if (req.method === 'POST' && url.pathname === '/api/chats') {
+        if (Number(req.headers['content-length'] || 0) > 0 || req.headers['transfer-encoding'])
+          await readJson(req, 1024)
+        call = { action: 'create' }
+      } else if (req.method === 'GET' && url.pathname === '/api/chats') call = { action: 'list' }
       else if (req.method === 'GET' && match && !match[2])
         call = { action: 'read', chatId: decodeURIComponent(match[1]) }
       else if (req.method === 'POST' && match?.[2]) {
@@ -267,7 +269,6 @@ export async function startLocalChatApi(options: {
     port,
     httpServer: server,
     createPairing: (scope?: string) => {
-      if (!publicOrigin && !lanAddress) throw new Error('Configure a LAN or Tailscale address first.')
       return pairing.create(scope)
     },
     events: sockets,

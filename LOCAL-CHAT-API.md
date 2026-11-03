@@ -86,3 +86,11 @@ Automated tests exercise HTTP handlers, authentication, WebSocket snapshot handl
 ## Phone access
 
 See [LOCAL-PHONE-ACCESS.md](LOCAL-PHONE-ACCESS.md) for the two QR codes, static LAN IP, Tailscale HTTPS link, remembered devices and token revocation. The API remains disabled by default and no LAN/Tailscale address is enabled automatically. Native clients still use bearer tokens. Browser reads add `?view=web` and WebSocket subscriptions add `view: "web"` to request safe shared Markdown presentation; plain API reads remain unchanged.
+
+### Browser/address follow-up (r2)
+
+Apply address is below both the Tailscale and LAN fields and saves both together. Typing alone does not enable a listener. The running address and Open browser prefer the applied LAN address, then Tailscale, then localhost. Open browser creates a separate one-use browser pairing link, so it does not require API-key entry or invalidate QR codes displayed for phones. Reapplying the same address refreshes its QR codes.
+
+## New chats and browser progress
+
+`POST /api/chats` creates a conversation through the desktop New Chat controller. The browser New chat button uses this route. Ordinary connection loss retries with remembered pairing; expired pairing needs a fresh QR. Provider-reported processing and generation speeds appear when supplied, with active reply status.

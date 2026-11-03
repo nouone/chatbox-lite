@@ -6,6 +6,37 @@ import { LOCAL_API_CHANNELS } from '@shared/local-chat-api'
 vi.mock('@/platform', () => ({ default: { type: 'desktop' } }))
 vi.mock('react-i18next', () => ({ useTranslation: () => ({ t: (key: string) => key }) }))
 import { LocalChatApiSettings } from './LocalChatApiSettings'
+it('applies a typed LAN address and regenerates the QR even when the same address is applied twice', async () => {
+  let state = { enabled: true, running: true, port: 8088, url: 'http://127.0.0.1:8088', hasToken: true, lanAddress: '' }
+  const invoke = vi.fn(
+    async (channel: string, preferences?: { enabled: boolean; port: number; lanAddress: string }) => {
+      if (channel === LOCAL_API_CHANNELS.configure) state = { ...state, ...preferences }
+      if (channel === LOCAL_API_CHANNELS.pairPhone)
+        return { lan: { url: 'http://10.0.0.25:8088/#pair=temporary', expiresAt: Date.now() + 300000 } }
+      return state
+    }
+  )
+  Object.defineProperty(window, 'electronAPI', { configurable: true, value: { invoke } })
+  window.matchMedia = vi
+    .fn()
+    .mockReturnValue({ matches: false, addEventListener: vi.fn(), removeEventListener: vi.fn() })
+  const view = render(
+    <MantineProvider>
+      <LocalChatApiSettings />
+    </MantineProvider>
+  )
+  await waitFor(() =>
+    expect((screen.getByLabelText('Static LAN IP (optional)') as HTMLInputElement).disabled).toBe(false)
+  )
+  fireEvent.change(screen.getByLabelText('Static LAN IP (optional)'), { target: { value: '10.0.0.25' } })
+  fireEvent.click(screen.getByRole('button', { name: 'Apply address' }))
+  await waitFor(() => expect(view.container.querySelector('svg[aria-label="lan pairing QR code"]')).not.toBeNull())
+  const count = () => invoke.mock.calls.filter((call) => call[0] === LOCAL_API_CHANNELS.pairPhone).length
+  const first = count()
+  fireEvent.click(screen.getByRole('button', { name: 'Apply address' }))
+  await waitFor(() => expect(count()).toBeGreaterThan(first))
+  expect(view.container.querySelector('svg[aria-label="lan pairing QR code"]')).not.toBeNull()
+})
 
 it('automatically shows both labelled QR codes and the Tailscale link when addresses and a token are ready', async () => {
   const state = {

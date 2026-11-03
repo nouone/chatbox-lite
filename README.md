@@ -1,5 +1,29 @@
 # Chatbox Lite
 
+**Bring your own AI endpoint. Use local voice and documents. Continue desktop chats on your phone.**
+
+**Need help? Click Help in the sidebar.** It opens a normal chat with the bundled setup guides attached, using your selected model. Ask about setup, dictation, documents, phone pairing or builds. Nothing is sent automatically. No keys, settings, logs or other chats are attached. The model cannot inspect your computer automatically. Create a new Help chat after updating to attach the latest guides.
+
+## Start here
+
+- **Source bundle:** extract it and follow `START-HERE.md`. A Git bundle is not an installer.
+- **Installed app:** configure your own provider and Chat model under Settings → Model Providers, then select it in the conversation.
+- **Windows source build:** open PowerShell in the restored folder containing `package.json`. Use Node 22 (`>=22.13`, below 23), then follow [build and test instructions](LOCAL-CUSTOM-BUILD.md). Building source does not update an installed app.
+
+## Setup guides
+
+| What you want | Where to start |
+| --- | --- |
+| Kokoro read aloud and document embeddings | [Local services and Docker](LOCAL-SERVICES.md) |
+| Whisper dictation and Windows packaging | [Build and installation](LOCAL-CUSTOM-BUILD.md) |
+| Phone chat over LAN or Tailscale | [Phone pairing](LOCAL-PHONE-ACCESS.md) |
+| HTTP/WebSocket access using the desktop engine | [Local API](LOCAL-CHAT-API.md) |
+| Removed reporting and vendor connections | [Privacy audit](PRIVACY-AUDIT.md) |
+
+For phone setup, apply LAN/Tailscale addresses using **Apply address below both fields**, scan the corresponding QR and approve pairing on Desktop. Desktop must stay open. Remembered pairing avoids retyping a token; ordinary connection loss retries automatically. If pairing expires, scan a fresh QR. Generating a new API token signs out paired devices.
+
+Before publishing, test an existing chat and a new chat, voice playback, dictation, document retrieval, and a phone message saved back to Desktop. Keep upstream GPL credits and the license. GitHub builds require a configured Actions workflow; they are not automatic.
+
 An independent, streamlined derivative of [Chatbox](https://github.com/chatboxai/chatbox), focused on custom AI endpoints and local voice. Distributed under GPLv3; upstream authors and license are retained.
 
 ## What this version adds
@@ -93,7 +117,7 @@ Embedding models now use an actual embedding request in Test Model, rather than 
 
 Removed the remaining Wolters Kluwer China and Eastmoney MCP suggestion rows; custom servers and manual/JSON setup remain available. Removed Chatbox AI from the document parser picker and its points/activation copy; Local and the explicitly configured MinerU service remain. Added Delete chat to the chat sidebar context menu, using the existing deletion controller and confirmation flow.
 
-Settings → Advanced now includes local API enable/port controls, secure token generation/rotation, Copy token and Open browser. Token rotation disconnects old browser clients. Fixed API readiness being invalidated by subframe loading, and added a public identity check plus clearer errors to the PowerShell proof script. The browser is a small CBL-styled continuation view for existing chats; it uses the desktop conversation's model and tools. It is separate from llama-ui or any other service running on another port. If embeddings/llama-ui already uses 8085, choose 8087 for CBL.
+Settings → Advanced now includes local API enable/port controls, secure token generation/rotation, Copy token and Open browser. Token rotation disconnects old browser clients. Fixed API readiness being invalidated by subframe loading, and added a public identity check plus clearer errors to the PowerShell proof script. The browser is a small CBL-styled continuation view for existing and new chats; it uses the desktop conversation's model and tools. It is separate from llama-ui or any other service running on another port. If embeddings/llama-ui already uses 8085, choose 8087 for CBL.
 
 Commit your changes, create your own GitHub repository, and add it as `origin`. Keep the original Chatbox repository as `upstream`. Before importing upstream changes, back up app data, create an update branch, merge and resolve conflicts, then repeat the tests above. Do not apply the old incremental patches over this consolidated version. No fork or release is published automatically.
 

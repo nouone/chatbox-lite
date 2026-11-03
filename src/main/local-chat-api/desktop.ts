@@ -104,11 +104,9 @@ export function registerLocalChatApi(getWindow: () => BrowserWindow | null) {
     if (value.length < 32) throw new Error('Generate a token first.')
     clipboard.writeText(value)
   })
-  ipcMain.handle(LOCAL_API_CHANNELS.openBrowser, (event) => {
+  ipcMain.handle(LOCAL_API_CHANNELS.openBrowser, async (event) => {
     assertMainFrame(event)
-    const state = manager.status()
-    if (!state.running) throw new Error('Enable the API first.')
-    return shell.openExternal(state.url)
+    return shell.openExternal(await manager.browserUrl())
   })
   ipcMain.handle(LOCAL_API_CHANNELS.pairPhone, (event) => {
     assertMainFrame(event)

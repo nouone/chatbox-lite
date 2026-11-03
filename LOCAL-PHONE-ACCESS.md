@@ -1,6 +1,6 @@
 # Continue a desktop chat on your phone
 
-CBL must remain open on your desktop. Your phone only reads and continues existing conversations. Model configuration, files, knowledge, tools and approvals stay on Desktop. The browser uses the same Send controller and saved chats.
+CBL must remain open on your desktop. Your phone can continue existing conversations or start one with New chat. Model configuration, files, knowledge, tools and approvals stay on Desktop. The browser uses the same Send controller and saved chats.
 
 ## Desktop setup
 
@@ -45,3 +45,7 @@ Browser credentials are signed, expire server-side and are stored in HttpOnly, S
 Automated tests exercise pairing expiry/replay, cookie authentication, origin checks, rotation/revocation, browser message rendering and shared desktop message dispatch. Real phone/Tailscale routing and Windows Firewall configuration require testing on your devices; they were not configured or live-tested by this source build.
 
 References: [Tailscale Serve](https://tailscale.com/docs/features/tailscale-serve), [CLI and flags](https://tailscale.com/docs/reference/tailscale-cli/serve), [reverse-proxy source](https://github.com/tailscale/tailscale/blob/main/ipn/ipnlocal/serve.go).
+
+## Reconnecting
+
+The browser retries ordinary connection loss using remembered pairing. If pairing expires, scan a fresh Desktop QR. Rotating the API token signs out all devices. Provider-reported processing and generation speeds appear when available; missing speeds are not estimated.

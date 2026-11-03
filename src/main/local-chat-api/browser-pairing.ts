@@ -34,8 +34,8 @@ export function createBrowserPairing(getRootToken: () => string) {
           pendingCodes.delete(scope)
           return cookieToken(remember)
         }
-        if (--pending.attempts <= 0) pendingCodes.delete(scope)
       }
+      for (const [scope, pending] of pendingCodes) if (--pending.attempts <= 0) pendingCodes.delete(scope)
       return undefined
     },
     issue: cookieToken,

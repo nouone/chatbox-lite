@@ -13,6 +13,11 @@ const errors = new Map<string, string>()
 export async function handleLocalChatCall(call: LocalChatCall): Promise<LocalChatResult> {
   const sessions = rendererApplication.sessions
   try {
+    if (call.action === 'create') {
+      const { createEmpty } = await import('@/stores/session/crud')
+      const session = await createEmpty('chat')
+      return { status: 201, body: { id: session.id, name: session.name } }
+    }
     if (call.action === 'list') {
       const offset = Number(call.cursor || 0)
       if (!Number.isInteger(offset) || offset < 0) return { status: 400, body: { error: 'Invalid chat list cursor' } }
@@ -55,7 +60,8 @@ export async function handleLocalChatCall(call: LocalChatCall): Promise<LocalCha
           name: source.header.name,
           revision: source.revision,
           generating: pendingChats.has(call.chatId) || isSessionGenerating(call.chatId),
-          waitingForApproval: locks?.awaitingPauseDecision || false, compacting: locks?.compactionRunning || false,
+          waitingForApproval: locks?.awaitingPauseDecision || false,
+          compacting: locks?.compactionRunning || false,
           error: errors.get(call.chatId),
           messages: (page?.messages || [])
             .map((row) => ({
@@ -72,6 +78,18 @@ export async function handleLocalChatCall(call: LocalChatCall): Promise<LocalCha
               generating: message.generating,
               error: message.error,
               timestamp: message.timestamp,
+              model: message.model,
+              thinking: message.generating && message.contentParts?.some((part) => part.type === 'reasoning'),
+              performance: {
+                inputTokens: message.usage?.inputTokens,
+                outputTokens: message.usage?.outputTokens,
+                totalTokens: message.usage?.totalTokens,
+                cachedTokens: message.usage?.cachedInputTokens,
+                generationTokensPerSecond: message.usage?.engineOutputTokensPerSecond,
+                processingTokensPerSecond: message.usage?.engineInputTokensPerSecond,
+                processedTokens: message.usage?.engineProcessedTokens,
+                durationMs: message.generationDuration,
+              },
               files: message.files?.map((f) => ({ name: f.name })),
             })),
           nextCursor: page?.older ? JSON.stringify(page.older) : null,
