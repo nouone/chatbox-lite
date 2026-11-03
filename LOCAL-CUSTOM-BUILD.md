@@ -57,4 +57,17 @@ Setting an environment variable after an installer was built will not change tha
 
 ## Application icon
 
-The selected Chatbox Lite icon is the user-supplied Glossy Neon Chatbox Lite Icon.png: dark navy tile, neon yellow/coral/teal perimeter, overlapping chat bubbles, sparkle and LITE badge. All shipped full-color app icon sizes derive from this artwork. The earlier generated frosted-glass designs are not included. assets/icon-raw.png is the raster master; assets/icon.svg remains the historical upstream vector and must not regenerate these assets. The macOS ICNS is structurally validated but was not tested on macOS.
+The current app icon is the supplied gray chatbox-smiley.svg, with the eyes and mouth shifted upward by two SVG units and a tight canvas. It replaces the earlier neon concepts. The plain, empty chat-list bubble follows the live theme accent; custom avatars are retained. SVG, PNG and ICO exports use the same current smiley artwork. macOS ICNS is structurally validated but has not been tested on macOS.
+
+## Packaging registry
+
+The tracked root `.npmrc` includes `registry=https://registry.npmjs.org/`. The beforePack hook requires an explicit default registry to install production dependencies in `release/app`; a user/global npm setting alone does not satisfy that hook. Keep this line in the repository. If you intentionally use another package registry, replace the value with that approved registry URL.
+
+Do not bypass the Node engine check: use Node 22.13+ below 23. For fnm in PowerShell, initialize and switch the shell before installing dependencies:
+
+```powershell
+fnm env --shell powershell | Out-String | Invoke-Expression
+fnm install 22.21.1
+fnm use 22.21.1
+node --version
+```
