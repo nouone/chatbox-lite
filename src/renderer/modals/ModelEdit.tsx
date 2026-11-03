@@ -57,6 +57,7 @@ const ModelEdit = NiceModal.create((props: { model?: ProviderModelInfo; provider
     await testModelCapabilities({
       providerId: props.providerId,
       modelId,
+      modelType: type,
       settings: settingsStore.getState(),
       configs,
       dependencies,

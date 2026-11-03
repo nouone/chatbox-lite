@@ -1,8 +1,8 @@
 import { getModel } from '@shared/models'
 import type { CallChatCompletionOptions, ModelInterface } from '@shared/models/types'
-import type { Config, Settings } from '@shared/types'
+import type { Config, ProviderModelInfo, Settings } from '@shared/types'
 import type { ModelDependencies } from '@shared/types/adapters'
-import { jsonSchema, type ToolSet } from 'ai'
+import { embed, type EmbeddingModel, jsonSchema, type ToolSet } from 'ai'
 
 export type TestResult = {
   status: 'success' | 'error' | 'pending'
@@ -19,6 +19,7 @@ export type ModelTestState = {
 export type TestModelOptions = {
   providerId: string
   modelId: string
+  modelType?: ProviderModelInfo['type']
   settings: Settings
   configs: Config
   dependencies: ModelDependencies
@@ -88,11 +89,32 @@ export async function testModelCapabilities(options: TestModelOptions): Promise<
     visionTest: { status: 'pending' },
     toolTest: { status: 'pending' },
   }
+  if (options.modelType === 'embedding') state = { testing: true, basicTest: { status: 'pending' } }
 
   onStateChange?.(state)
 
   try {
     const modelInstance = getModel({ ...settings, provider: providerId, modelId }, settings, configs, dependencies)
+
+    if (options.modelType === 'embedding') {
+      // Use the same model adapter as document knowledge, without probing chat/vision/tool endpoints.
+      const embeddingAdapter = modelInstance as unknown as {
+        getTextEmbeddingModel?: (options: CallChatCompletionOptions) => EmbeddingModel | null
+      }
+      const model = embeddingAdapter.getTextEmbeddingModel?.call(modelInstance, {})
+      if (!model) throw new Error('This provider does not support embedding models.')
+      const result = await embed({
+        model,
+        value: 'Embedding connection test.',
+        maxRetries: 0,
+        abortSignal: AbortSignal.timeout(15000),
+      })
+      if (!result.embedding.length || !result.embedding.every(Number.isFinite))
+        throw new Error('The embedding endpoint did not return a valid vector.')
+      state = { testing: false, basicTest: { status: 'success' } }
+      onStateChange?.(state)
+      return state
+    }
 
     // Test 1: Basic text request
     state = await testBasicRequest(modelInstance, state)
