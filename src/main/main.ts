@@ -149,6 +149,17 @@ function reportMainProcessError(
     priority: 'critical' | 'high' | 'normal'
   }
 ) {
+  // Keep local diagnostics when remote reporting is disabled. Write synchronously
+  // because the fatal handler exits immediately after this function returns.
+  try {
+    const detail = error instanceof Error ? error.stack || error.message : String(error)
+    fs.appendFileSync(
+      path.join(app.getPath('userData'), 'lite-crash.log'),
+      `${new Date().toISOString()} ${context.domain}/${context.operation} ${JSON.stringify(context.extras ?? {})}\n${detail}\n\n`
+    )
+  } catch {
+    // A logging failure must not cause a second fatal exception.
+  }
   sentry.withScope((scope) => {
     scope.setTag('component', context.domain)
     scope.setTag('operation', context.operation)
