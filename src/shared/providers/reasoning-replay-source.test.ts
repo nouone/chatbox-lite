@@ -77,7 +77,7 @@ describe('encrypted reasoning source isolation', () => {
     expect(accountlessOAuth('token')).not.toBe(accountlessOAuth('refreshed-token'))
   })
 
-  it('binds ChatboxAI ciphertext to the license identity', () => {
+  it('rejects inherited vendor models before constructing a licensed provider', () => {
     const create = (licenseKey: string) =>
       getModel(
         { provider: ModelProviderEnum.ChatboxAI, modelId: 'responses-model' },
@@ -91,8 +91,8 @@ describe('encrypted reasoning source isolation', () => {
         newConfigs(),
         dependencies
       )
-    expect(create('license-a').reasoningReplaySource).toBeTruthy()
-    expect(create('license-a').reasoningReplaySource).not.toBe(create('license-b').reasoningReplaySource)
+    expect(() => create('license-a')).toThrow('Select a chat model')
+    expect(() => create('license-b')).toThrow('Select a chat model')
   })
 
   it('only emits ciphertext for matching provenance and never sends the local marker', async () => {

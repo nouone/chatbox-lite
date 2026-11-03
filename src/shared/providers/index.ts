@@ -1,3 +1,4 @@
+import { requireLiteModelSelection } from '../lite-model-selection'
 import { enrichModelFromRegistry } from '../model-registry/enrich'
 import { ModelProviderNotFoundError } from '../models/errors'
 import type { ModelInterface } from '../models/types'
@@ -134,6 +135,7 @@ export function getModel(
   config: Config,
   dependencies: ModelDependencies
 ): ModelInterface {
+  requireLiteModelSelection(settings)
   console.debug('getModel (registry)', settings.provider, settings.modelId)
 
   const provider = settings.provider

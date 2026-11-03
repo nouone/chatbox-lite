@@ -1,3 +1,4 @@
+import { requireLiteModelSelection } from '@shared/lite-model-selection'
 import { finishAbortedGeneration } from '@chatbox/core/generation'
 import { SessionActionBlockedError } from '@chatbox/core/session/action-gates'
 import { t } from 'i18next'
@@ -341,6 +342,9 @@ export async function submitNewUserMessageUnlocked(
       await capacitorWorkspace.preflight(sessionId, attachments(), currentBlobStorage)
     }
   }
+
+  // Reject before compaction, draft clearing or persistence can start a request.
+  if (params.needGenerating) requireLiteModelSelection(settings)
 
   // Run compaction check before sending message (blocking)
   // Only for chat sessions with auto-compaction enabled

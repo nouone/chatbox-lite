@@ -35,7 +35,7 @@ import * as defaults from '../../shared/defaults'
 import { SESSION_ATTACHMENT_RAG_LOG_PREFIX } from '../../shared/session-attachment-rag/logging'
 import { createMessage, type Message, SessionSettingsSchema, TOKEN_CACHE_KEYS } from '../../shared/types'
 import type { AttachmentPreparationResult, PreprocessedFile } from '../types/input-box'
-import { resolveChatboxLicenseDefaultModel } from './defaultChatModel'
+import { selectNewLiteChatModel } from '@shared/lite-model-selection'
 import { lastUsedModelStore } from './lastUsedModelStore'
 import { getSessionAgentModeEntry } from './session/agent-mode'
 import { SESSION_ATTACHMENT_RAG_LARGE_ATTACHMENT_WARNING } from './sessionAttachmentRagErrors'
@@ -983,12 +983,12 @@ export function mergeSettings(
 export function initEmptyChatSession(): Omit<SessionHeader, 'id'> & { messages: Message[] } {
   const settings = settingsStore.getState().getSettings()
   const { chat: lastUsedChatModel } = lastUsedModelStore.getState()
-  const defaultChatModel = settings.defaultChatModel
-    ? {
-        provider: settings.defaultChatModel.provider,
-        modelId: settings.defaultChatModel.model,
-      }
-    : lastUsedChatModel || resolveChatboxLicenseDefaultModel(settings)
+  const defaultChatModel = selectNewLiteChatModel(
+    settings.defaultChatModel
+      ? { provider: settings.defaultChatModel.provider, modelId: settings.defaultChatModel.model }
+      : undefined,
+    lastUsedChatModel
+  )
   const newSession: Omit<SessionHeader, 'id'> & { messages: Message[] } = {
     name: 'Untitled',
     type: 'chat',

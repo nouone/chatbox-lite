@@ -97,3 +97,20 @@ it('runs an API turn through the real desktop send controller and reads the same
     operationType: 'send_message',
   })
 })
+
+it('preserves the draft and skips compaction and persistence when an inherited vendor model is selected', async () => {
+  const { submitNewUserMessageUnlocked } = await import('./messages')
+  const { getSessionSettings } = await import('./session-settings')
+  const { ModelProviderEnum } = await import('@shared/types')
+  mocks.getSession.mockResolvedValue({id:'unselected-chat',type:'chat',settings:{}})
+  vi.mocked(getSessionSettings).mockResolvedValueOnce({provider:ModelProviderEnum.ChatboxAI,modelId:'chatboxai-4'})
+  mocks.compaction.mockClear()
+  mocks.insertMessage.mockClear()
+  const clearDraft = vi.fn()
+  await expect(submitNewUserMessageUnlocked('unselected-chat', {
+    newUserMsg:createMessage('user','ping'),needGenerating:true,onUserMessageReady:clearDraft,
+  })).rejects.toThrow('Select a chat model')
+  expect(mocks.compaction).not.toHaveBeenCalled()
+  expect(mocks.insertMessage).not.toHaveBeenCalled()
+  expect(clearDraft).not.toHaveBeenCalled()
+})

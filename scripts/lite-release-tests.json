@@ -71,5 +71,6 @@
   "src/shared/services/native-web-search.test.ts",
   "src/shared/types/settings.test.ts",
   "src/shared/utils/reasoning-control.test.ts",
-  "src/main/websocket-build.test.ts"
+  "src/main/websocket-build.test.ts",
+  "src/shared/lite-model-selection.test.ts"
 ]

@@ -1,7 +1,7 @@
+import { hasLiteModelSelection } from '@shared/lite-model-selection'
 import { getProviderDefinition, getSystemProviders } from '@shared/providers'
 import {
   type ModelProvider,
-  ModelProviderEnum,
   type ModelProviderType,
   type SessionSettings,
   type SessionType,
@@ -22,7 +22,8 @@ export function getModelSettingUtil(
 }
 
 export function getModelDisplayName(settings: SessionSettings, globalSettings: Settings, sessionType: SessionType) {
-  const provider = settings.provider ?? ModelProviderEnum.ChatboxAI
+  if (!hasLiteModelSelection(settings)) return 'Select a chat model'
+  const provider = settings.provider!
   const model = settings.modelId ?? ''
 
   const registryProviders = getSystemProviders()
