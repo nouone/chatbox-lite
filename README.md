@@ -5,8 +5,13 @@
 **Need help? Click Help in the sidebar.** It opens a normal chat with the bundled setup guides attached, using your selected model. Ask about setup, dictation, documents, phone pairing or builds. Nothing is sent automatically. No keys, settings, logs or other chats are attached. The model cannot inspect your computer automatically. Create a new Help chat after updating to attach the latest guides.
 
 Phone users can dictate with the iPhone keyboard and use **Read aloud** on completed replies. Audio plays on the phone using Desktop's configured speech service; web-originated replies do not trigger Desktop auto-read. See [phone voice setup](LOCAL-PHONE-ACCESS.md#iphone-dictation-and-playback).
-
 ## Windows downloads
+[![Windows Lite installer](https://img.shields.io/github/v/release/nouone/chatbox-lite?label=latest%20release)](https://github.com/nouone/chatbox-lite/releases/latest)
+
+**Download:** [Chatbox Lite for Windows x64](https://github.com/nouone/chatbox-lite/releases/latest) ·
+[Direct installer link](https://github.com/nouone/chatbox-lite/releases/latest/download/Chatbox-Lite-0.1.5-Setup.exe)
+
+No spyware, no ads, just clean chat. Local LLMs first (Strada, Ollama, llama.cpp), local Whisper dictation included, phone/desktop chat sync over LAN or Tailscale.
 
 [Published installers](https://github.com/nouone/chatbox-lite/releases) · [Windows test builds](https://github.com/nouone/chatbox-lite/actions/workflows/windows-lite.yml)
 
@@ -14,11 +19,11 @@ For a test build, open a successful Windows Lite installer run and download **Ch
 
 ## Install on Windows
 
-1. Open **Releases** in this fork's GitHub page and download `Chatbox-Lite-<version>-x64-Setup.exe` from the latest published release. Do not choose GitHub's source ZIP unless you intend to build.
+1. Open **Releases** in this fork's GitHub page and download `Chatbox-Lite-<version>-Setup.exe` from the latest published release. Do not choose GitHub's source ZIP unless you intend to build.
 2. Run the installer, open Chatbox Lite, and add your endpoint and Chat model under **Settings → Model Providers**.
 3. Select that model and start chatting. Click **Help** for the bundled setup guides.
 
-The installer includes local English Whisper dictation. You do not need Node, Python or a compiler to use it. Kokoro read aloud and document embeddings are optional separate services; follow the guides below if you want them. Installers from this workflow are unsigned; SHA256SUMS.txt accompanies each build. Before the first release is published, there is no public installer download yet.
+The installer includes local English Whisper dictation. You do not need Node, Python or a compiler to use it. Kokoro read aloud and document embeddings are optional separate services; follow the guides below if you want them. Installers from this workflow are unsigned; SHA256SUMS.txt accompanies each build.
 
 ## For contributors: source setup
 
