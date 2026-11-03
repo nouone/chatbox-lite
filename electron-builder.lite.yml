@@ -10,3 +10,6 @@ extraMetadata:
 nsis:
   shortcutName: Chatbox Lite
   uninstallDisplayName: Chatbox Lite
+
+win:
+  artifactName: Chatbox-Lite-${version}-${arch}-Setup.${ext}

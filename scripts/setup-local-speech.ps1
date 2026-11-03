@@ -23,6 +23,7 @@ Get-ChildItem -LiteralPath $speechExtract -Filter '*.dll' -File -Recurse | ForEa
 }
 & hf download ggerganov/whisper.cpp ggml-base.en.bin --local-dir $speechAssets
 if ($LASTEXITCODE -ne 0) { throw 'The English speech model download failed.' }
+if ((Get-FileHash -LiteralPath (Join-Path $speechAssets 'ggml-base.en.bin') -Algorithm SHA256).Hash -ne 'a03779c86df3323075f5e796cb2ce5029f00ec8869eee3fdfb897afe36c6d002') { throw 'The Whisper model failed SHA256 verification.' }
 Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/ggml-org/whisper.cpp/v1.7.6/LICENSE' -OutFile (Join-Path $speechAssets 'LICENSE-whisper.cpp.txt')
 Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/openai/whisper/main/LICENSE' -OutFile (Join-Path $speechAssets 'LICENSE-Whisper-model.txt')
 Write-Output 'Local dictation resources are ready. Restart Chatbox, or rebuild the installer to bundle them.'

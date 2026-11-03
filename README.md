@@ -4,7 +4,15 @@
 
 **Need help? Click Help in the sidebar.** It opens a normal chat with the bundled setup guides attached, using your selected model. Ask about setup, dictation, documents, phone pairing or builds. Nothing is sent automatically. No keys, settings, logs or other chats are attached. The model cannot inspect your computer automatically. Create a new Help chat after updating to attach the latest guides.
 
-## Start here
+## Install on Windows
+
+1. Open **Releases** in this fork's GitHub page and download `Chatbox-Lite-<version>-x64-Setup.exe` from the latest published release. Do not choose GitHub's source ZIP unless you intend to build.
+2. Run the installer, open Chatbox Lite, and add your endpoint and Chat model under **Settings → Model Providers**.
+3. Select that model and start chatting. Click **Help** for the bundled setup guides.
+
+The installer includes local English Whisper dictation. You do not need Node, Python or a compiler to use it. Kokoro read aloud and document embeddings are optional separate services; follow the guides below if you want them. Installers from this workflow are unsigned; SHA256SUMS.txt accompanies each build. Before the first release is published, there is no public installer download yet.
+
+## For contributors: source setup
 
 - **Source bundle:** extract it and follow `START-HERE.md`. A Git bundle is not an installer.
 - **Installed app:** configure your own provider and Chat model under Settings → Model Providers, then select it in the conversation.
@@ -22,7 +30,7 @@
 
 For phone setup, apply LAN/Tailscale addresses using **Apply address below both fields**, scan the corresponding QR and approve pairing on Desktop. Desktop must stay open. Remembered pairing avoids retyping a token; ordinary connection loss retries automatically. If pairing expires, scan a fresh QR. Generating a new API token signs out paired devices.
 
-Before publishing, test an existing chat and a new chat, voice playback, dictation, document retrieval, and a phone message saved back to Desktop. Keep upstream GPL credits and the license. GitHub builds require a configured Actions workflow; they are not automatic.
+Before publishing, test an existing chat and a new chat, voice playback, dictation, document retrieval, and a phone message saved back to Desktop. Keep upstream GPL credits and the license. The included Windows Lite installer workflow builds an EXE on demand or for `lite-v*` tags. Tagged builds create a draft GitHub Release for testing before publication. See [release instructions](WINDOWS-RELEASE.md).
 
 An independent, streamlined derivative of [Chatbox](https://github.com/chatboxai/chatbox), focused on custom AI endpoints and local voice. Distributed under GPLv3; upstream authors and license are retained.
 
