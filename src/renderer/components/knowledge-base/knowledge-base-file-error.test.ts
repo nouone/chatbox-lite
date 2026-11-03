@@ -1,20 +1,20 @@
 import { describe, expect, test, vi } from 'vitest'
 import {
-  canRetryKnowledgeBaseFileWithServer,
+  canRetryKnowledgeBaseFile,
   getKnowledgeBaseFileErrorLabel,
   isChatboxAIParserLicenseRequired,
 } from './knowledge-base-file-error'
 
 describe('knowledge base file error policy', () => {
-  test('keeps server retry available when the previous attempt stopped before license validation', () => {
+  test('allows a configured-parser retry for a legacy license error', () => {
     const error = 'chatbox_ai_parser_license_key_required'
 
     expect(isChatboxAIParserLicenseRequired(error)).toBe(true)
-    expect(canRetryKnowledgeBaseFileWithServer({ error, parsed_remotely: 1 })).toBe(true)
+    expect(canRetryKnowledgeBaseFile({ error, parsed_remotely: 1 })).toBe(true)
   })
 
-  test('does not offer another server retry after a real remote parse failure', () => {
-    expect(canRetryKnowledgeBaseFileWithServer({ error: 'chatbox_ai_parser_failed', parsed_remotely: 1 })).toBe(false)
+  test('allows retrying a remote failure with the configured parser', () => {
+    expect(canRetryKnowledgeBaseFile({ error: 'chatbox_ai_parser_failed', parsed_remotely: 1 })).toBe(true)
   })
 
   test('formats parsed-content limits instead of exposing the internal error code', () => {

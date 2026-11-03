@@ -9,12 +9,7 @@ import { Modal } from '@/components/layout/Overlay'
 import { AppTooltip as Tooltip } from '@/components/ui/tooltip'
 import { toastError } from '@/packages/toast'
 import platform from '@/platform'
-import { KnowledgeBaseFileErrorButton } from './KnowledgeBaseFileErrorButton'
-import {
-  canRetryKnowledgeBaseFileWithServer,
-  getKnowledgeBaseFileErrorLabel,
-  isChatboxAIParserLicenseRequired,
-} from './knowledge-base-file-error'
+import { canRetryKnowledgeBaseFile, getKnowledgeBaseFileErrorLabel } from './knowledge-base-file-error'
 
 interface RemoteRetryModalProps {
   opened: boolean
@@ -28,14 +23,14 @@ export function RemoteRetryModal({ opened, onClose, failedFiles, onSuccess }: Re
   const [retryingIds, setRetryingIds] = useState<number[]>([])
   const [retryingAll, setRetryingAll] = useState(false)
 
-  const remoteRetryableFiles = useMemo(() => failedFiles.filter(canRetryKnowledgeBaseFileWithServer), [failedFiles])
+  const remoteRetryableFiles = useMemo(() => failedFiles.filter(canRetryKnowledgeBaseFile), [failedFiles])
 
   const handleRetry = async (fileId: number, filename: string) => {
     setRetryingIds((prev) => [...prev, fileId])
     try {
       const controller = platform.getKnowledgeBaseController()
-      await controller.retryFile(fileId, true) // useRemoteParsing = true
-      toast.success(t('File {{filename}} queued for server parsing', { filename }))
+      await controller.retryFile(fileId, false)
+      toast.success(t('File {{filename}} queued for parsing', { filename }))
       onSuccess()
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error)
@@ -49,13 +44,13 @@ export function RemoteRetryModal({ opened, onClose, failedFiles, onSuccess }: Re
     setRetryingAll(true)
     try {
       const controller = platform.getKnowledgeBaseController()
-      const results = await Promise.allSettled(remoteRetryableFiles.map((f) => controller.retryFile(f.id, true)))
+      const results = await Promise.allSettled(remoteRetryableFiles.map((f) => controller.retryFile(f.id, false)))
 
       const successCount = results.filter((r) => r.status === 'fulfilled').length
       const failCount = results.filter((r) => r.status === 'rejected').length
 
       if (successCount > 0) {
-        toast.success(t('{{count}} file(s) queued for server parsing', { count: successCount }))
+        toast.success(t('{{count}} file(s) queued for parsing', { count: successCount }))
       }
       if (failCount > 0) {
         toastError(t('{{count}} file(s) failed to queue', { count: failCount }))
@@ -69,11 +64,13 @@ export function RemoteRetryModal({ opened, onClose, failedFiles, onSuccess }: Re
   }
 
   return (
-    <Modal opened={opened} onClose={onClose} title={t('Retry with Server Parsing')} size="lg" centered>
+    <Modal opened={opened} onClose={onClose} title={t('Retry failed files')} size="lg" centered>
       <Stack gap="md">
         {/* Warning alert */}
         <Alert color="yellow" icon={<IconAlertTriangle size={16} />}>
-          {t('Server parsing will consume compute credits. Please be cautious with large files.')}
+          {t(
+            'Retries use the configured parser for this knowledge base. Local parsing stays on your device; an external service is used only when you explicitly configured one.'
+          )}
         </Alert>
 
         {/* Action bar */}
@@ -92,8 +89,7 @@ export function RemoteRetryModal({ opened, onClose, failedFiles, onSuccess }: Re
         <ScrollArea h={300}>
           <Stack gap="xs">
             {failedFiles.map((file) => {
-              const isRetryable = canRetryKnowledgeBaseFileWithServer(file)
-              const isLicenseError = isChatboxAIParserLicenseRequired(file.error)
+              const isRetryable = canRetryKnowledgeBaseFile(file)
               return (
                 <Flex
                   key={file.id}
@@ -114,33 +110,19 @@ export function RemoteRetryModal({ opened, onClose, failedFiles, onSuccess }: Re
                     {/* Error info tooltip */}
                     {file.error && (
                       <Tooltip
-                        label={
-                          isLicenseError
-                            ? t('Sign in needed')
-                            : getKnowledgeBaseFileErrorLabel(file.error, (key, options) =>
-                                String(options ? t(key, { limit: options.limit }) : t(key))
-                              )
-                        }
+                        label={getKnowledgeBaseFileErrorLabel(file.error, (key, options) =>
+                          String(options ? t(key, { limit: options.limit }) : t(key))
+                        )}
                         multiline
                         w={300}
                         withArrow
                         position="top"
                       >
-                        {isLicenseError ? (
-                          <KnowledgeBaseFileErrorButton
-                            errorCode={file.error}
-                            fileName={file.filename}
-                            label={t('Sign in needed')}
-                          >
-                            <IconInfoCircle size={14} color="var(--mantine-color-red-6)" />
-                          </KnowledgeBaseFileErrorButton>
-                        ) : (
-                          <IconInfoCircle
-                            size={14}
-                            color="var(--mantine-color-red-6)"
-                            className="flex-shrink-0 cursor-help"
-                          />
-                        )}
+                        <IconInfoCircle
+                          size={14}
+                          color="var(--mantine-color-red-6)"
+                          className="flex-shrink-0 cursor-help"
+                        />
                       </Tooltip>
                     )}
                   </Flex>

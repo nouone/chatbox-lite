@@ -14,11 +14,8 @@ export function isChatboxAIParserLicenseRequired(error: string | undefined): boo
   return error === CHATBOX_AI_PARSER_LICENSE_KEY_REQUIRED_ERROR
 }
 
-export function canRetryKnowledgeBaseFileWithServer(file: KnowledgeBaseFileRetryState): boolean {
-  return (
-    file.error !== KNOWLEDGE_BASE_PARSED_CONTENT_TOO_LARGE_ERROR &&
-    (!file.parsed_remotely || isChatboxAIParserLicenseRequired(file.error))
-  )
+export function canRetryKnowledgeBaseFile(file: KnowledgeBaseFileRetryState): boolean {
+  return file.error !== KNOWLEDGE_BASE_PARSED_CONTENT_TOO_LARGE_ERROR
 }
 
 export function getKnowledgeBaseFileErrorLabel(errorMessage: string, t: ErrorTranslator): string {
@@ -27,6 +24,9 @@ export function getKnowledgeBaseFileErrorLabel(errorMessage: string, t: ErrorTra
       limit: KNOWLEDGE_BASE_MAX_PARSED_CONTENT_SIZE_LABEL,
     })
   }
+
+  if (errorMessage.startsWith('chatbox_ai_'))
+    return t('The previous parser is unavailable. Retry using the configured document parser.')
 
   if (ChatboxAIAPIError.codeNameMap[errorMessage]) {
     return t(ChatboxAIAPIError.codeNameMap[errorMessage].i18nKey)

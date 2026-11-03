@@ -1,5 +1,7 @@
 # Chatbox Lite: found and removed
 
+November 3 parser follow-up: removed the compute-credit retry dialog, the forced hosted-parser override in the knowledge-base queue and account/upgrade links in file-error guidance. Retries respect the configured knowledge-base parser; legacy hosted-parser values are coerced to Local by the main-process parser router. User-configured MinerU remains opt-in. The separate embedding-model tester now calls the embedding endpoint through the existing adapter, without chat or capability probes.
+
 Audit of the inherited Chatbox source and this Lite branch, November 2, 2026. These are code findings, not claims about motives or historical traffic from a user's machine.
 
 ## Removed behavior and source locations

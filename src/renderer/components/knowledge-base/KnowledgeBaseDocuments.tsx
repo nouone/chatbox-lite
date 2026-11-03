@@ -54,7 +54,7 @@ import { useSettingsStore } from '@/stores/settingsStore'
 import { trackEvent } from '@/utils/track'
 import ChunksPreviewModal from './ChunksPreviewModal'
 import { KnowledgeBaseFileErrorButton } from './KnowledgeBaseFileErrorButton'
-import { isChatboxAIParserLicenseRequired } from './knowledge-base-file-error'
+import { canRetryKnowledgeBaseFile, isChatboxAIParserLicenseRequired } from './knowledge-base-file-error'
 import { RemoteRetryModal } from './RemoteRetryModal'
 
 interface KnowledgeBaseDocumentsProps {
@@ -121,20 +121,7 @@ const KnowledgeBaseDocuments: React.FC<KnowledgeBaseDocumentsProps> = ({ knowled
   // Failed files for remote retry feature
   const failedFiles = useMemo(() => allFiles.filter((file) => file.status === 'failed'), [allFiles])
 
-  // Parser types that should NOT show the "use Chatbox AI" suggestion when they fail
-  const PARSER_NO_SUGGESTION_LIST: string[] = ['mineru', 'chatbox-ai']
-
-  // Check if we should show the Chatbox AI suggestion for failed files
-  // Show suggestion only if there are failed files that are NOT in the exception list
-  const shouldShowChatboxAISuggestion = useMemo(() => {
-    if (failedFiles.length === 0) return false
-    // Check if any failed file used a parser that should show the suggestion
-    return failedFiles.some(
-      (file) =>
-        file.error !== KNOWLEDGE_BASE_PARSED_CONTENT_TOO_LARGE_ERROR &&
-        !PARSER_NO_SUGGESTION_LIST.includes(file.parser_type || 'local')
-    )
-  }, [failedFiles])
+  const showFailedFilesRetry = failedFiles.some(canRetryKnowledgeBaseFile)
 
   // MIME type correction for Windows compatibility
   const correctMimeType = useCallback((file: File): FileMeta => {
@@ -614,7 +601,7 @@ const KnowledgeBaseDocuments: React.FC<KnowledgeBaseDocumentsProps> = ({ knowled
             case 'mineru':
               return t('MinerU parse failed')
             case 'chatbox-ai':
-              return t('Chatbox AI parse failed')
+              return t('Previous parser failed')
             default:
               return t('Local parse failed')
           }
@@ -624,19 +611,19 @@ const KnowledgeBaseDocuments: React.FC<KnowledgeBaseDocumentsProps> = ({ knowled
               limit: KNOWLEDGE_BASE_MAX_PARSED_CONTENT_SIZE_LABEL,
             })
           : isLicenseError
-            ? t('Sign in needed')
+            ? t('Parser unavailable')
             : error || t('Processing failed')
         const isRemoteParser = parserType === 'mineru' || parserType === 'chatbox-ai'
         const statusPill = (
           <Pill size="xs" c={isRemoteParser ? 'orange' : 'gray'} className="cursor-help">
-            {isLicenseError ? t('Sign in needed') : getParserLabel()}
+            {isLicenseError ? t('Parser unavailable') : getParserLabel()}
           </Pill>
         )
         return (
           <Flex gap={4} align="center">
             <Tooltip label={errorLabel} multiline w={300} withArrow position="top">
               {isLicenseError && error && fileName ? (
-                <KnowledgeBaseFileErrorButton errorCode={error} fileName={fileName} label={t('Sign in needed')}>
+                <KnowledgeBaseFileErrorButton errorCode={error} fileName={fileName} label={t('Parser unavailable')}>
                   {statusPill}
                 </KnowledgeBaseFileErrorButton>
               ) : (
@@ -853,8 +840,8 @@ const KnowledgeBaseDocuments: React.FC<KnowledgeBaseDocumentsProps> = ({ knowled
               </Box>
             )}
 
-            {/* Failed files banner - show Chatbox AI suggestion only for local parser failures */}
-            {shouldShowChatboxAISuggestion && (
+            {/* Retry failures with the configured parser */}
+            {showFailedFilesRetry && (
               <Alert variant="light" color="yellow" p="sm">
                 <Flex gap="xs" align="center" justify="space-between">
                   <Flex gap="xs" align="center" style={{ flex: 1 }}>
@@ -862,7 +849,7 @@ const KnowledgeBaseDocuments: React.FC<KnowledgeBaseDocumentsProps> = ({ knowled
                   </Flex>
                   <Stack gap={4} align="flex-end" className="flex-shrink-0">
                     <Button size="xs" variant="light" onClick={() => setShowRemoteRetryModal(true)}>
-                      {t('Use server parsing')}
+                      {t('Retry failed files')}
                     </Button>
                   </Stack>
                 </Flex>
@@ -971,12 +958,8 @@ const KnowledgeBaseDocuments: React.FC<KnowledgeBaseDocumentsProps> = ({ knowled
                                 variant="subtle"
                                 color="blue"
                                 size="sm"
-                                onClick={() => handleRetryFile(doc.id, isChatboxAIParserLicenseRequired(doc.error))}
-                                title={
-                                  isChatboxAIParserLicenseRequired(doc.error)
-                                    ? t('Retry with server parsing')
-                                    : t('Retry locally')
-                                }
+                                onClick={() => handleRetryFile(doc.id)}
+                                title={t('Retry with configured parser')}
                               >
                                 <IconRefresh size={14} />
                               </ActionIcon>

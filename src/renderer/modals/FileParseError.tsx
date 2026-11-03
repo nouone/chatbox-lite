@@ -6,14 +6,10 @@ import {
   LOCAL_PARSER_PDF_PASSWORD_PROTECTED_ERROR,
 } from '@shared/file-parse-errors'
 import { IconAlertCircle } from '@tabler/icons-react'
-import { Trans, useTranslation } from 'react-i18next'
+import { useTranslation } from 'react-i18next'
 import { AdaptiveModal } from '@/components/common/AdaptiveModal'
-import LinkTargetBlank from '@/components/common/Link'
 import { ScalableIcon } from '@/components/common/ScalableIcon'
 import { navigateToSettings } from '@/modals/settings-navigation'
-import { trackingEvent } from '@/packages/event'
-import { buildChatboxUrl } from '@/packages/remote'
-import platform from '@/platform'
 import {
   isSessionAttachmentRagAuthError,
   isSessionAttachmentRagIndexingError,
@@ -21,8 +17,6 @@ import {
   SESSION_ATTACHMENT_RAG_REQUIRES_KNOWLEDGE_BASE_ERROR,
   SESSION_ATTACHMENT_RAG_REQUIRES_TOOL_USE_MODEL_ERROR,
 } from '@/stores/sessionAttachmentRagErrors'
-import * as settingActions from '@/stores/settingActions'
-import { getFileParseErrorI18nKey } from '@/utils/file-parse-error'
 
 interface FileParseErrorProps {
   errorCode: string
@@ -39,7 +33,6 @@ const FileParseError = NiceModal.create(({ errorCode, fileName }: FileParseError
   }
 
   // 根据错误码和平台能力获取错误文案
-  const errorI18nKey = getFileParseErrorI18nKey(errorCode, platform.isDesktopLike)
 
   // 错误提示内容
   const renderErrorTips = () => {
@@ -63,7 +56,7 @@ const FileParseError = NiceModal.create(({ errorCode, fileName }: FileParseError
       return (
         <Text>
           {t(
-            'This large file needs Chatbox AI to finish indexing. Sign in to Chatbox AI, then retry this file. If you do not want to use Chatbox AI, remove the file and upload a smaller attachment instead.'
+            'The document indexing service is unavailable. Check your configured models or upload a smaller searchable document.'
           )}
         </Text>
       )
@@ -97,71 +90,24 @@ const FileParseError = NiceModal.create(({ errorCode, fileName }: FileParseError
       )
     }
 
-    if (!errorI18nKey) {
-      // 未知错误
-      return <Text>{t('Failed to parse file. Please try again or use a different file format.')}</Text>
-    }
-
     return (
-      <Trans
-        i18nKey={errorI18nKey}
-        values={{
-          model: t('current model'),
-        }}
-        components={{
-          OpenSettingButton: (
-            <button
-              type="button"
-              className="cursor-pointer border-0 bg-transparent p-0 underline font-semibold text-blue-600 hover:text-blue-700"
-              onClick={() => {
-                onClose()
-                navigateToSettings('/chatbox-ai')
-              }}
-            />
-          ),
-          OpenExtensionSettingButton: <span />,
-          OpenMorePlanButton: (
-            <a
-              className="cursor-pointer underline font-semibold text-blue-600 hover:text-blue-700"
-              onClick={() => {
-                platform.openLink(
-                  buildChatboxUrl(
-                    `/redirect_app/view_more_plans/${settingActions.getLanguage()}?utm_source=app&utm_content=file_parse_error`
-                  )
-                )
-                trackingEvent('click_view_more_plans_button_from_file_parse_error', {
-                  event_category: 'user',
-                })
-              }}
-            />
-          ),
-          OpenDocumentParserSettingButton: (
-            <button
-              type="button"
-              className="cursor-pointer border-0 bg-transparent p-0 underline font-semibold text-blue-600 hover:text-blue-700"
-              onClick={() => {
-                onClose()
-                navigateToSettings('/document-parser')
-              }}
-            />
-          ),
-          LinkToHomePage: <LinkTargetBlank href="https://chatboxai.app" />,
-          LinkToAdvancedFileProcessing: (
-            <LinkTargetBlank
-              href={buildChatboxUrl(
-                `/redirect_app/advanced_file_processing/${settingActions.getLanguage()}?utm_source=app&utm_content=file_parse_error`
-              )}
-            />
-          ),
-          LinkToAdvancedUrlProcessing: (
-            <LinkTargetBlank
-              href={buildChatboxUrl(
-                `/redirect_app/advanced_url_processing/${settingActions.getLanguage()}?utm_source=app&utm_content=file_parse_error`
-              )}
-            />
-          ),
-        }}
-      />
+      <Stack gap="sm">
+        <Text>
+          {t(
+            'Could not extract text from this file. Try a text file or searchable PDF, or check your configured document parser.'
+          )}
+        </Text>
+        <button
+          type="button"
+          className="cursor-pointer border-0 bg-transparent p-0 underline"
+          onClick={() => {
+            onClose()
+            navigateToSettings('/document-parser')
+          }}
+        >
+          {t('Document Parser settings')}
+        </button>
+      </Stack>
     )
   }
 

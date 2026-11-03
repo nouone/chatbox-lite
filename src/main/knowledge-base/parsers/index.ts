@@ -1,7 +1,6 @@
 import { isTextFilePath } from '../../../shared/file-extensions'
 import type { DocumentParserConfig, DocumentParserType } from '../../../shared/types/settings'
 import { getLogger } from '../../util'
-import { ChatboxParser } from './chatbox-parser'
 import { LocalParser } from './local-parser'
 import { MineruParser } from './mineru-parser'
 import type { DocumentParser, ParserFileMeta, ParserResult } from './types'
@@ -19,9 +18,8 @@ export * from './types'
 export function createParser(config: DocumentParserConfig, kbId?: number): DocumentParser {
   switch (config.type) {
     case 'local':
+    case 'chatbox-ai': // Legacy profile values must not restore the removed hosted parser.
       return new LocalParser(kbId)
-    case 'chatbox-ai':
-      return new ChatboxParser()
     case 'mineru':
       if (!config.mineru?.apiToken) {
         throw new Error('MinerU API token is required')
@@ -41,13 +39,8 @@ export function getEffectiveParserConfig(
   kbConfig?: DocumentParserConfig | null,
   globalConfig?: DocumentParserConfig | null
 ): DocumentParserConfig {
-  if (kbConfig) {
-    return kbConfig
-  }
-  if (globalConfig) {
-    return globalConfig
-  }
-  return { type: 'local' }
+  const configured = kbConfig || globalConfig
+  return !configured || configured.type === 'chatbox-ai' || configured.type === 'none' ? { type: 'local' } : configured
 }
 
 /**
@@ -74,11 +67,11 @@ export async function parseFileWithRouter(
     return { content, parserUsed: 'local' }
   }
 
-  // 非文本文件使用配置的解析器
-  log.debug(`[ROUTER] Using ${config.type} parser for: ${meta.filename}`)
-  const parser = createParser(config, kbId)
+  const effective = getEffectiveParserConfig(config)
+  log.debug(`[ROUTER] Using ${effective.type} parser for: ${meta.filename}`)
+  const parser = createParser(effective, kbId)
   const content = await parser.parse(filePath, meta)
-  return { content, parserUsed: config.type }
+  return { content, parserUsed: effective.type }
 }
 
 /**

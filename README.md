@@ -85,6 +85,8 @@ Keep the tracked `.npmrc` registry setting. Building does not update an already 
 
 ### November 3 follow-up
 
+Embedding models now use an actual embedding request in Test Model, rather than chat/vision/tool probes. Failed document retries use the configured knowledge-base parser; the old compute-credit dialog and forced hosted-parser retry are removed. Existing hosted-parser references fall back to Local, while an explicitly configured MinerU service is retained. File-error guidance links to Document Parser settings instead of account or upgrade pages.
+
 Removed the remaining Wolters Kluwer China and Eastmoney MCP suggestion rows; custom servers and manual/JSON setup remain available. Removed Chatbox AI from the document parser picker and its points/activation copy; Local and the explicitly configured MinerU service remain. Added Delete chat to the chat sidebar context menu, using the existing deletion controller and confirmation flow.
 
 Settings → Advanced now includes local API enable/port controls, secure token generation/rotation, Copy token and Open browser. Token rotation disconnects old browser clients. Fixed API readiness being invalidated by subframe loading, and added a public identity check plus clearer errors to the PowerShell proof script. The browser is a small CBL-styled continuation view for existing chats; it uses the desktop conversation's model and tools. It is separate from llama-ui or any other service running on another port. If embeddings/llama-ui already uses 8085, choose 8087 for CBL.
