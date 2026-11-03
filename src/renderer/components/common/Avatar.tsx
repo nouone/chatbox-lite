@@ -1,11 +1,12 @@
 import { Avatar, type AvatarProps, type PolymorphicComponentProps } from '@mantine/core'
-import { IconMessageCircle, IconPhoto, IconSettingsFilled, IconUser } from '@tabler/icons-react'
+import { IconPhoto, IconSettingsFilled, IconUser } from '@tabler/icons-react'
 import clsx from 'clsx'
 import type { FC } from 'react'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { ImageInStorage } from '../Image'
 import Robot from '../icons/Robot'
 import { ScalableIcon } from './ScalableIcon'
+import { ChatBubbleIcon } from './ChatBubbleIcon'
 
 export type SystemAvatarProps = {
   size?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | number
@@ -118,7 +119,7 @@ export const AssistantAvatar: FC<AssistantAvatarProps> = ({
             <ScalableIcon icon={IconPhoto} size={iconSize} className="!text-white" strokeWidth={1.5} />
           )
         ) : type === 'chat' ? (
-          <ScalableIcon icon={IconMessageCircle} size={realSize} className="!text-inherit" strokeWidth={1.5} />
+          <ScalableIcon icon={ChatBubbleIcon} size={realSize} color="var(--chatbox-brand)" strokeWidth={1.5} />
         ) : (
           <ScalableIcon icon={Robot} size={iconSize} className="!text-white" strokeWidth={1.5} />
         )
