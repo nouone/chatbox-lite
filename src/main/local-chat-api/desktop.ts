@@ -43,7 +43,7 @@ export function registerLocalChatApi(getWindow: () => BrowserWindow | null) {
           status: 504,
           body: { error: 'Desktop request timed out; check conversation before retrying a send' },
         })
-      }, 15000)
+      }, call.action === 'speech' ? 120000 : 15000)
       pending.set(id, { resolve, timer })
       window.webContents.send('lite-api:request', { id, call })
     })

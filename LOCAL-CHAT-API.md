@@ -94,3 +94,9 @@ Apply address is below both the Tailscale and LAN fields and saves both together
 ## New chats and browser progress
 
 `POST /api/chats` creates a conversation through the desktop New Chat controller. The browser New chat button uses this route. Ordinary connection loss retries with remembered pairing; expired pairing needs a fresh QR. Provider-reported processing and generation speeds appear when supplied, with active reply status.
+
+## Reply audio on the browser device
+
+`POST /api/chats/:id/messages/:messageId/speech` with JSON `{}` and normal API/browser authentication returns `audio/mpeg`. The ID must identify a completed saved assistant reply in that chat. Desktop uses its existing configured speech synthesis and normalization; no provider credentials or speech URLs are returned. Read aloud must be enabled on Desktop. Browser playback uses native audio controls if automatic playback after loading is blocked. Phone dictation uses the iPhone keyboard.
+
+Web-originated user messages and their assistant reply carry a local `suppressDesktopAutoRead` flag. Desktop completion playback skips those replies without changing the global auto-read setting or normal Desktop sends. The speech request itself never plays audio on Desktop. Requests are bounded to 20,000 spoken characters, 8 MiB audio and one synthesis in flight; the Desktop IPC deadline for speech is 120 seconds. Browser cancellation may leave already-started synthesis finishing silently on Desktop.

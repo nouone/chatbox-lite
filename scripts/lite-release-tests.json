@@ -72,5 +72,6 @@
   "src/shared/types/settings.test.ts",
   "src/shared/utils/reasoning-control.test.ts",
   "src/main/websocket-build.test.ts",
-  "src/shared/lite-model-selection.test.ts"
+  "src/shared/lite-model-selection.test.ts",
+  "src/renderer/packages/local-chat-speech.test.ts"
 ]

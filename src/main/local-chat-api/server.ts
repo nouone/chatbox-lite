@@ -105,7 +105,7 @@ export async function startLocalChatApi(options: {
           'Content-Type': 'text/html; charset=utf-8',
           'Cache-Control': 'no-store',
           'Content-Security-Policy':
-            "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; base-uri 'none'; frame-ancestors 'none'; form-action 'none'",
+            "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; media-src 'self' blob:; base-uri 'none'; frame-ancestors 'none'; form-action 'none'",
         })
         res.end(LOCAL_CHAT_WEB_UI)
         return
@@ -144,7 +144,11 @@ export async function startLocalChatApi(options: {
       }
       let call: LocalChatCall
       const match = /^\/api\/chats\/([^/]+)(\/messages)?$/.exec(url.pathname)
-      if (req.method === 'POST' && url.pathname === '/api/chats') {
+      const speechMatch = /^\/api\/chats\/([^/]+)\/messages\/([^/]+)\/speech$/.exec(url.pathname)
+      if (req.method === 'POST' && speechMatch) {
+        await readJson(req, 2048)
+        call = {action:'speech',chatId:decodeURIComponent(speechMatch[1]),messageId:decodeURIComponent(speechMatch[2])}
+      } else if (req.method === 'POST' && url.pathname === '/api/chats') {
         if (Number(req.headers['content-length'] || 0) > 0 || req.headers['transfer-encoding'])
           await readJson(req, 1024)
         call = { action: 'create' }
@@ -171,6 +175,18 @@ export async function startLocalChatApi(options: {
       }
       call.limit = limit
       const result = await options.dispatch(call)
+      if (call.action === 'speech' && result.status === 200) {
+        const audio = result.body as {audioBase64?: unknown;contentType?: unknown}
+        if (typeof audio?.audioBase64 !== 'string' || !audio.audioBase64.length || audio.audioBase64.length > 12 * 1024 * 1024 || !/^[A-Za-z0-9+/]+={0,2}$/.test(audio.audioBase64)) {
+          reply(res, 502, {error:'Desktop returned invalid speech audio'})
+          return
+        }
+        const buffer = Buffer.from(audio.audioBase64, 'base64')
+        if (buffer.length > 8 * 1024 * 1024) {reply(res,502,{error:'Speech audio is too large'});return}
+        res.writeHead(200, {'Content-Type':'audio/mpeg','Content-Length':buffer.length,'Cache-Control':'no-store','X-Content-Type-Options':'nosniff'})
+        res.end(buffer)
+        return
+      }
       const output = call.action === 'read' && url.searchParams.get('view') === 'web' ? present(result) : result
       reply(res, output.status, output.body)
     } catch (error) {

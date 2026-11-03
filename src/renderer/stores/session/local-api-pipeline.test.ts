@@ -92,6 +92,7 @@ it('runs an API turn through the real desktop send controller and reads the same
       ],
     })
   })
+  expect(records.find(m=>m.role==='assistant')?.suppressDesktopAutoRead).toBe(true)
   expect(mocks.insertMessage).toHaveBeenCalledTimes(2)
   expect(mocks.generate).toHaveBeenCalledWith(session.id, expect.objectContaining({ role: 'assistant' }), {
     operationType: 'send_message',

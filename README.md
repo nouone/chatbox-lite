@@ -4,6 +4,8 @@
 
 **Need help? Click Help in the sidebar.** It opens a normal chat with the bundled setup guides attached, using your selected model. Ask about setup, dictation, documents, phone pairing or builds. Nothing is sent automatically. No keys, settings, logs or other chats are attached. The model cannot inspect your computer automatically. Create a new Help chat after updating to attach the latest guides.
 
+Phone users can dictate with the iPhone keyboard and use **Read aloud** on completed replies. Audio plays on the phone using Desktop's configured speech service; web-originated replies do not trigger Desktop auto-read. See [phone voice setup](LOCAL-PHONE-ACCESS.md#iphone-dictation-and-playback).
+
 ## Windows downloads
 
 [Published installers](https://github.com/nouone/chatbox-lite/releases) · [Windows test builds](https://github.com/nouone/chatbox-lite/actions/workflows/windows-lite.yml)

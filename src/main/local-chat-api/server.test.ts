@@ -189,3 +189,17 @@ it('publishes snapshots from the renderer repository on authenticated subscripti
   })
   socket.emit('close')
 })
+
+it('authenticates reply speech and returns only audio bytes with no-store headers', async () => {
+  const {request,dispatch} = await setup()
+  const options = {method:'POST',headers:{'content-type':'application/json'},body:'{}'}
+  expect((await request('/api/chats/chat/messages/reply/speech',{...options,auth:false})).status).toBe(401)
+  expect(dispatch).not.toHaveBeenCalled()
+  dispatch.mockResolvedValue({status:200,body:{audioBase64:Buffer.from('audio').toString('base64'),contentType:'audio/mpeg'}})
+  const response = await request('/api/chats/chat/messages/reply/speech',options)
+  expect(response.status).toBe(200)
+  expect(Buffer.from(response.body).toString()).toBe('audio')
+  expect(response.headers['Content-Type']).toBe('audio/mpeg')
+  expect(response.headers['Cache-Control']).toBe('no-store')
+  expect(dispatch).toHaveBeenCalledWith(expect.objectContaining({action:'speech',chatId:'chat',messageId:'reply'}))
+})

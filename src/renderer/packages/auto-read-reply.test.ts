@@ -89,3 +89,10 @@ describe('generation-completion auto-read', () => {
     expect(h.onError).toHaveBeenCalledWith(expect.objectContaining({ message: 'Speech server returned HTTP 503.' }))
   })
 })
+
+it('never auto-reads a web-originated reply on Desktop even if the chat is on screen', async () => {
+  const h = harness()
+  await h.completed('current', {...message,suppressDesktopAutoRead:true})
+  expect(h.play).not.toHaveBeenCalled()
+  expect(h.request).not.toHaveBeenCalled()
+})

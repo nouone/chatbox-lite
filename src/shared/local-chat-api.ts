@@ -1,5 +1,6 @@
 export type LocalChatCall = {
-  action: 'list' | 'read' | 'send' | 'create'
+  action: 'list' | 'read' | 'send' | 'create' | 'speech'
+  messageId?: string
   chatId?: string
   content?: string
   cursor?: string

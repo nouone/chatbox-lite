@@ -49,3 +49,13 @@ References: [Tailscale Serve](https://tailscale.com/docs/features/tailscale-serv
 ## Reconnecting
 
 The browser retries ordinary connection loss using remembered pairing. If pairing expires, scan a fresh Desktop QR. Rotating the API token signs out all devices. Provider-reported processing and generation speeds appear when available; missing speeds are not estimated.
+
+## iPhone dictation and playback
+
+Use the microphone on the iPhone keyboard to dictate into the message box, then review and Send. Lite does not add a second recorder or upload keyboard dictation audio itself; keyboard dictation follows your iPhone settings.
+
+Completed assistant replies have a Read aloud button. Enable Read aloud in Desktop Default Models and start your configured Kokoro/OpenAI-compatible speech service. The phone requests audio through the authenticated Lite server; the speech URL, model, voice, speed and API key stay on Desktop. The same Desktop speech text normalization is used. No separate chat client or speech-provider configuration is required on the phone.
+
+If Safari does not start playback after preparation, tap Play on the audio controls. Stop reading cancels/release playback, and changing chats or forgetting the device releases its audio. Web-originated replies suppress Desktop auto-read even when that chat is visible and Desktop's auto-read toggle is On. Normal Desktop sends retain their auto-read behavior. This does not stop speech that was already playing from a separate Desktop action.
+
+Speech requires an authenticated paired browser or API token and uses POST /api/chats/:id/messages/:messageId/speech. It reads only a completed saved assistant reply. Requests are limited to 20,000 spoken characters and 8 MiB audio, with one synthesis in flight on Desktop. Use your Tailscale HTTPS page on iPhone; Desktop and the speech service must remain running. Closing/cancelling the phone request stops phone playback; synthesis already started on Desktop may finish silently.

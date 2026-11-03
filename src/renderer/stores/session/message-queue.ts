@@ -288,7 +288,7 @@ function deliverQueuedMessage(sessionId: string, item: QueuedUserMessage): Promi
           if (orphanPlaceholder) {
             assistantMessage = { ...orphanPlaceholder, generating: true }
           } else {
-            assistantMessage = { ...createMessage('assistant', ''), generating: true }
+            assistantMessage = { ...createMessage('assistant', ''), generating: true, ...(preparedMessage.suppressDesktopAutoRead ? {suppressDesktopAutoRead:true} : {}) }
             await insertMessage(sessionId, assistantMessage)
           }
           await _generateWithoutSessionLock(sessionId, assistantMessage, { operationType: 'send_message' })

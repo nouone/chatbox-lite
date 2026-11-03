@@ -38,6 +38,15 @@ export async function handleLocalChatCall(call: LocalChatCall): Promise<LocalCha
     if (!source) return { status: 404, body: { error: 'Conversation not found' } }
     if (source.header.type && source.header.type !== 'chat')
       return { status: 400, body: { error: 'Only chat conversations are supported' } }
+    if (call.action === 'speech') {
+      if (!call.messageId || call.messageId.length > 200) return {status:400,body:{error:'messageId required'}}
+      const result = await sessions.readSessionMessages({sessionId:call.chatId,messageIds:[call.messageId]})
+      const message = result?.messages.find((item) => item.id === call.messageId)
+      if (!message || message.role !== 'assistant') return {status:404,body:{error:'Assistant reply not found'}}
+      if (message.generating || message.error) return {status:409,body:{error:'Wait for the reply to finish before reading'}}
+      const { synthesizeWebReply } = await import('./local-chat-speech')
+      return {status:200,body:await synthesizeWebReply(message)}
+    }
     if (call.action === 'read') {
       const locks = await getSessionLockStateNow(call.chatId)
       let cursor
@@ -112,6 +121,7 @@ export async function handleLocalChatCall(call: LocalChatCall): Promise<LocalCha
     if (pendingChats.has(call.chatId))
       return { status: 409, body: { error: 'Conversation is already processing a message' } }
     const message = createMessage('user', call.content)
+    message.suppressDesktopAutoRead = true
     const chatId = call.chatId
     pendingChats.add(chatId)
     errors.delete(chatId)

@@ -7,17 +7,21 @@ const mocks = vi.hoisted(() => ({
   send: vi.fn(),
   busy: vi.fn(),
   live: vi.fn(),
+  messages: vi.fn(),
+  speech: vi.fn(),
 }))
 vi.mock('@/app/renderer-application', () => ({
   rendererApplication: {
     generationRuntime: { getLiveMessage: mocks.live },
     sessions: {
+      readSessionMessages:mocks.messages,
       listSessionsMetaPage: mocks.list,
       getSessionHeader: mocks.header,
       readSessionTranscriptWindow: mocks.history,
     },
   },
 }))
+vi.mock('./local-chat-speech', () => ({synthesizeWebReply:mocks.speech}))
 vi.mock('@/stores/session/crud', () => ({ createEmpty: mocks.create }))
 vi.mock('@/stores/session/messages', () => ({ submitNewUserMessage: mocks.send }))
 vi.mock('@/stores/sessionActivityStore', () => ({ isSessionGenerating: mocks.busy }))
@@ -107,4 +111,20 @@ it('overlays live engine text so streaming does not wait for the persistence che
   })
   const result = await handleLocalChatCall({ action: 'read', chatId: 'chat' })
   expect(result.body).toMatchObject({ messages: [{ text: 'live token stream' }] })
+})
+
+it('synthesizes only a saved completed assistant reply without exposing speech configuration', async () => {
+  const message = {id:'reply',role:'assistant',contentParts:[{type:'text',text:'Hello'}]}
+  mocks.messages.mockResolvedValue({messages:[message]})
+  mocks.speech.mockResolvedValue({audioBase64:'YXVkaW8=',contentType:'audio/mpeg'})
+  const result = await handleLocalChatCall({action:'speech',chatId:'chat',messageId:'reply'})
+  expect(result).toEqual({status:200,body:{audioBase64:'YXVkaW8=',contentType:'audio/mpeg'}})
+  expect(mocks.messages).toHaveBeenCalledWith({sessionId:'chat',messageIds:['reply']})
+  expect(mocks.speech).toHaveBeenCalledWith(message)
+  mocks.messages.mockResolvedValue({messages:[{...message,generating:true}]})
+  expect((await handleLocalChatCall({action:'speech',chatId:'chat',messageId:'reply'})).status).toBe(409)
+})
+it('marks web sends so Desktop auto-read stays silent', async () => {
+  await handleLocalChatCall({action:'send',chatId:'chat',content:'Hello from phone'})
+  expect(mocks.send).toHaveBeenCalledWith('chat',expect.objectContaining({newUserMsg:expect.objectContaining({suppressDesktopAutoRead:true})}))
 })

@@ -14,6 +14,7 @@ async function setup() {
   const chats = [{ id: 'existing-chat', name: 'Desktop chat' }]
   const fetch = vi.fn(
     async (url: string, options?: { method?: string; body?: string; headers?: Record<string, string> }) => {
+      if (url.endsWith('/speech') && options?.method === 'POST') return {ok:true,blob:async()=>new Blob(['audio'],{type:'audio/mpeg'})}
       if (url === '/api/chats' && options?.method === 'POST') {
         const chat = { id: 'new-chat', name: 'New chat' }
         chats.unshift(chat)
@@ -154,4 +155,43 @@ it('updates a streamed message in place and follows only when already near the b
   area.scrollTop = 600
   update('A longer partial reply')
   expect(frame).toHaveBeenCalledOnce()
+})
+
+it('shows reply dots while waiting and streaming, then clears them on completion, failure and disconnect', async () => {
+  const { sockets } = await setup()
+  const update = (chat: Record<string, unknown>) => sockets[0].onmessage!({data:JSON.stringify({type:'chat.snapshot',status:200,chat:{id:'existing-chat',...chat}})})
+  const activeDots = () => Array.from(document.querySelectorAll<HTMLElement>('.reply-dots')).filter(d => !d.hidden && !d.closest('[hidden]'))
+  update({generating:true,messages:[{id:'user',role:'user',text:'ping'}]})
+  expect(activeDots()).toHaveLength(1)
+  expect(activeDots()[0].children).toHaveLength(3)
+  update({generating:true,messages:[{id:'reply',role:'assistant',text:'Partial',generating:true}]})
+  expect(activeDots()).toHaveLength(1)
+  expect(document.querySelector('.message-content')!.textContent).toBe('Partial')
+  update({generating:false,messages:[{id:'reply',role:'assistant',text:'Done',generating:false}]})
+  expect(activeDots()).toHaveLength(0)
+  update({generating:true,error:'Provider failed',messages:[]})
+  expect(activeDots()).toHaveLength(0)
+  update({generating:true,waitingForApproval:true,messages:[]})
+  expect(activeDots()).toHaveLength(0)
+  update({generating:true,messages:[]})
+  expect(activeDots()).toHaveLength(1)
+  sockets[0].onclose!()
+  expect(activeDots()).toHaveLength(0)
+})
+
+it('offers phone audio controls when Safari requires a second playback tap, and releases audio on chat changes',async()=>{
+  Object.defineProperty(URL,'createObjectURL',{configurable:true,value:vi.fn(()=> 'blob:phone-speech')})
+  Object.defineProperty(URL,'revokeObjectURL',{configurable:true,value:vi.fn()})
+  const play=vi.spyOn(HTMLMediaElement.prototype,'play').mockRejectedValue(new Error('NotAllowedError'))
+  const pause=vi.spyOn(HTMLMediaElement.prototype,'pause').mockImplementation(()=>{})
+  const {fetch}=await setup()
+  fireEvent.click(document.querySelector('.message-actions button')!)
+  await waitFor(()=>expect(fetch).toHaveBeenCalledWith('/api/chats/existing-chat/messages/a/speech',expect.objectContaining({method:'POST',credentials:'same-origin',body:'{}'})))
+  await waitFor(()=>expect(document.querySelector<HTMLAudioElement>('audio')!.hidden).toBe(false))
+  expect(document.querySelector<HTMLAudioElement>('audio')!.controls).toBe(true)
+  expect(document.getElementById('status')!.textContent).toContain('Tap Play')
+  fireEvent.click(document.getElementById('refresh')!)
+  await waitFor(()=>expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:phone-speech'))
+  expect(pause).toHaveBeenCalled()
+  play.mockRestore();pause.mockRestore()
 })

@@ -19,6 +19,7 @@ export function createAutoReadCompletionHandler(dependencies: AutoReadDependenci
     seen.add(message)
     const settings = dependencies.getSettings()
     if (
+      message.suppressDesktopAutoRead ||
       !settings?.enabled ||
       !settings.autoRead ||
       !dependencies.isOnScreen(sessionId) ||

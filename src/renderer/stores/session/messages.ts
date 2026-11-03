@@ -377,6 +377,7 @@ export async function submitNewUserMessageUnlocked(
 
   // 根据需要，插入空白的回复消息
   let newAssistantMsg = createMessage('assistant', '')
+  if (newUserMsg.suppressDesktopAutoRead) newAssistantMsg.suppressDesktopAutoRead = true
   if (newUserMsg.files && newUserMsg.files.length > 0) {
     if (!newAssistantMsg.status) {
       newAssistantMsg.status = []

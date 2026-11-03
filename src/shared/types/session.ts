@@ -392,6 +392,8 @@ export const MessageSchema = z.object({
   role: z.nativeEnum(MessageRoleEnum),
   name: z.string().optional(),
   generating: z.boolean().optional(),
+  /** Remote turns play only on the requesting device, never via Desktop auto-read. */
+  suppressDesktopAutoRead: z.boolean().optional(),
   aiProvider: z.union([ModelProviderSchema, z.string()]).optional(),
   /** Display name of the generating model (e.g. "Claude API (claude-sonnet-4-6)"), for the UI only. */
   model: z.string().optional(),
