@@ -53,3 +53,8 @@ pnpm exec electron-builder --config electron-builder.lite.yml --win nsis --x64 -
 ```
 
 Setting an environment variable after an installer was built will not change that installed app: this flag is embedded into the renderer at build time. To return to the streamlined interface, set `$env:CHATBOX_LOCAL_UI = '1'` and restart development or rebuild/reinstall. The flag does not restore the removed analytics integrations.
+
+
+## Application icon
+
+The selected Chatbox Lite icon is the user-supplied Glossy Neon Chatbox Lite Icon.png: dark navy tile, neon yellow/coral/teal perimeter, overlapping chat bubbles, sparkle and LITE badge. All shipped full-color app icon sizes derive from this artwork. The earlier generated frosted-glass designs are not included. assets/icon-raw.png is the raster master; assets/icon.svg remains the historical upstream vector and must not regenerate these assets. The macOS ICNS is structurally validated but was not tested on macOS.
