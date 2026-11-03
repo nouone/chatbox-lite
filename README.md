@@ -4,6 +4,12 @@
 
 **Need help? Click Help in the sidebar.** It opens a normal chat with the bundled setup guides attached, using your selected model. Ask about setup, dictation, documents, phone pairing or builds. Nothing is sent automatically. No keys, settings, logs or other chats are attached. The model cannot inspect your computer automatically. Create a new Help chat after updating to attach the latest guides.
 
+## Windows downloads
+
+[Published installers](https://github.com/nouone/chatbox-lite/releases) · [Windows test builds](https://github.com/nouone/chatbox-lite/actions/workflows/windows-lite.yml)
+
+For a test build, open a successful Windows Lite installer run and download **Chatbox-Lite-Windows-x64** under Artifacts. Extract it and run its Setup EXE. Published Releases offer direct installer downloads without using Actions.
+
 ## Install on Windows
 
 1. Open **Releases** in this fork's GitHub page and download `Chatbox-Lite-<version>-x64-Setup.exe` from the latest published release. Do not choose GitHub's source ZIP unless you intend to build.

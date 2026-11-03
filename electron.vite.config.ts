@@ -1,3 +1,4 @@
+import { MAIN_WEBSOCKET_DEFINES } from './src/main/websocket-build'
 import { createRequire } from 'node:module'
 import path, { resolve } from 'node:path'
 import { TanStackRouterVite } from '@tanstack/router-plugin/vite'
@@ -194,6 +195,7 @@ export default defineConfig(({ mode }) => {
         },
       },
       define: {
+        ...MAIN_WEBSOCKET_DEFINES,
         'process.type': '"browser"',
         'process.env.NODE_ENV': JSON.stringify(process.env.NODE_ENV || 'development'),
         'process.env.CHATBOX_BUILD_TARGET': JSON.stringify(process.env.CHATBOX_BUILD_TARGET || 'unknown'),
