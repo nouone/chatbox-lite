@@ -21,6 +21,8 @@ type Props = {
   pendingContextMessages?: number
   totalContextMessages?: number
   contextWindow?: number
+  /** The total is anchored to the engine's exact last-request measurement. */
+  engineCalibrated?: boolean
   currentMessageCount?: number
   maxContextMessageCount?: number
   children?: React.ReactNode
@@ -45,6 +47,7 @@ const TokenCountMenu: FC<Props> = ({
   pendingContextMessages,
   totalContextMessages,
   contextWindow,
+  engineCalibrated = false,
   currentMessageCount,
   maxContextMessageCount,
   children,
@@ -180,6 +183,11 @@ const TokenCountMenu: FC<Props> = ({
               </Text>
             </Flex>
           </Flex>
+          {engineCalibrated && (
+            <Text size="xs" c="dimmed" pt="2">
+              {t('Measured by the engine, plus an estimate for the newest turns.')}
+            </Text>
+          )}
         </Menu.Item>
 
         {contextWindow && (

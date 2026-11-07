@@ -9,6 +9,7 @@ import {
 } from '@chatbox/core/application/context'
 import { hasPendingSessionGeneration, withSessionGenerationLock } from '@chatbox/core/generation'
 import type { SessionLockState } from '@chatbox/core/session/action-gates'
+import type { Message } from '@shared/types'
 import { v4 as uuidv4 } from 'uuid'
 import { rendererApplication } from '@/app/renderer-application'
 import { getLogger } from '@/lib/utils'
@@ -22,9 +23,45 @@ import { rendererTokenEstimation } from '../token-estimation/row-history-service
 import { resolveTokenEstimationPolicy } from '../token-estimation/policy'
 import { getCompactionContext } from './compaction-context'
 import { resolveCompactionBudget } from './compaction-detector'
+import { calibrateContextTokens, findEngineContextAnchor } from './engine-context-anchor'
 import { getConfiguredContextWindow, getEffectiveMaxOutputTokens } from './context-pressure'
 import { generateSummaryWithStream } from './summary-generator'
 const log = getLogger('compaction')
+
+// Engine-anchored context size for the compaction decision; falls back to the
+// raw estimate whenever the conversation has no completed engine-measured
+// reply for this model yet (fresh chat, switched model, deleted history).
+async function calibrateCompactionTokens(params: {
+  sessionId: string
+  modelId: string
+  model?: { provider: string; modelId: string }
+  estimated: number
+  draftTokens: number
+}): Promise<number> {
+  try {
+    const page = await rendererApplication.sessions.readSessionTranscriptWindow({
+      sessionId: params.sessionId,
+      limit: 40,
+      maxBytes: 2 * 1024 * 1024,
+      origin: 'tail' as const,
+    })
+    const messages = (page?.messages || []).map((row: { message: Message }) => row.message)
+    const anchor = findEngineContextAnchor(messages, params.modelId)
+    if (!anchor) return params.estimated
+    const { tokens } = calibrateContextTokens({
+      messages,
+      model: params.model as never,
+      anchor,
+      estimatedTokens: params.estimated,
+      // The draft is not in the transcript; add its already-estimated size.
+      pendingTokens: params.draftTokens,
+    })
+    return tokens
+  } catch (error) {
+    log.warn('Engine-anchored compaction estimate failed, using raw estimate', { sessionId: params.sessionId, error })
+    return params.estimated
+  }
+}
 
 const compactionService = new CompactionService({
   sessions: {
@@ -63,7 +100,18 @@ const compactionService = new CompactionService({
           getEffectiveMaxOutputTokens(globalSettings, providerId, modelId, sessionSettings.maxTokens)
         )
         // The estimate counts the history only; tools and every extra instruction sit outside it.
-        return budget ? { tokens: estimate.totalTokens + getRequestOverheadBeyond(requestOverhead), budget } : null
+        const estimated = estimate.totalTokens + getRequestOverheadBeyond(requestOverhead)
+        // The cl100k estimate overshoots a Qwen-class engine's real prompt by
+        // 15-20% on long contexts, which fires compaction early. When the
+        // engine has measured this conversation, anchor to its exact number.
+        const tokens = await calibrateCompactionTokens({
+          sessionId,
+          modelId,
+          model,
+          estimated,
+          draftTokens: estimate.currentInputTokens,
+        })
+        return budget ? { tokens, budget } : null
       } catch (error) {
         log.warn('Failed to estimate automatic compaction input', { sessionId, error })
         return null

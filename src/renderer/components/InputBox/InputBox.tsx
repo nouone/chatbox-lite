@@ -65,6 +65,7 @@ import { useSessionControls } from '@/hooks/useSessionLockState'
 import { useSessionPresentation } from '@/hooks/useSessionPresentation'
 import { cn } from '@/lib/utils'
 import { isAutoCompactionEnabled, isCompactionInProgress, useContextTokens } from '@/packages/context-management'
+import { useEngineCalibratedContextTokens } from '@/packages/context-management/engine-context-anchor'
 import { trackingEvent } from '@/packages/event'
 import {
   isLocalWorkAttachment,
@@ -772,6 +773,19 @@ const InputBox = forwardRef<InputBoxRef, InputBoxProps>(
       contextPending || policyPending || isModelToolCapabilityError || sandboxQuery.isError || tokensTotalApproximate
     const isContextCalculating = contextPending || tokensContextCalculating
 
+    // Engine-anchored context size: once this conversation has an
+    // engine-measured reply, its exact prompt size replaces the cl100k
+    // estimate for the badge, the percentage and (in compaction's measure)
+    // the auto-compaction decision, so a Qwen-class engine's tighter BPE no
+    // longer reads as 102% when it is really ~85%.
+    const engineCalibratedTokens = useEngineCalibratedContextTokens({
+      sessionId: currentSessionId || null,
+      revision: headerRead?.revision,
+      model,
+      estimatedTokens: totalTokens,
+      draftTokens: currentInputTokens,
+    })
+
     const globalAutoCompaction = useSettingsStore((state) => state.autoCompaction)
     const [isCompacting, setIsCompacting] = useState(false)
 
@@ -850,8 +864,8 @@ const InputBox = forwardRef<InputBoxRef, InputBoxProps>(
     // Calculate token usage percentage
     const tokenPercentage = useMemo(() => {
       if (contextPending || !effectiveContextWindow || effectiveContextWindow <= 0) return null
-      return Math.round((totalTokens / effectiveContextWindow) * 100)
-    }, [totalTokens, effectiveContextWindow, contextPending])
+      return Math.round((engineCalibratedTokens.totalTokens / effectiveContextWindow) * 100)
+    }, [engineCalibratedTokens.totalTokens, effectiveContextWindow, contextPending])
 
     useEffect(() => {
       if (!currentSessionId || isNewSession) {
@@ -2117,7 +2131,8 @@ const InputBox = forwardRef<InputBoxRef, InputBoxProps>(
                 <TokenCountMenu
                   currentInputTokens={currentInputTokens}
                   contextTokens={contextTokens}
-                  totalTokens={totalTokens}
+                  totalTokens={engineCalibratedTokens.totalTokens}
+                  engineCalibrated={engineCalibratedTokens.calibrated}
                   isCalculating={isCalculating}
                   isCurrentInputApproximate={isCurrentInputApproximate}
                   isTotalApproximate={isTotalApproximate}
@@ -2153,7 +2168,7 @@ const InputBox = forwardRef<InputBoxRef, InputBoxProps>(
                     {isCalculating && <Loader size={10} />}
                     <Text span size="xs" className="whitespace-nowrap" c="inherit">
                       {isTotalApproximate ? '~' : ''}
-                      {formatNumber(totalTokens)}
+                      {formatNumber(engineCalibratedTokens.totalTokens)}
                       {contextPending && ` · ${t('Partial estimate')}`}
                       {tokenPercentage !== null && tokenPercentage > 10 && ` (${tokenPercentage}%)`}
                     </Text>
