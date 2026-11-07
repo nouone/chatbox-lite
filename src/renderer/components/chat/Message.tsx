@@ -81,6 +81,7 @@ import { MessageAttachmentGrid } from './MessageAttachmentGrid'
 import MessageErrTips from './MessageErrTips'
 import MessageStatuses, { PreparingToolCallStatus } from './MessageLoading'
 import { getMessageActionVisibilityClass, type MessageButtonGroup } from './message-action-state'
+import { useReplySpeechActive } from '@/packages/text-to-speech'
 import { isErrorOnlyMessage, shouldRightAlignMessage } from './message-layout'
 import { getMessagePreviewText } from './message-navigation-utils'
 import { getMessageRoleClass } from './message-role-class'
@@ -200,6 +201,10 @@ const _Message: FC<Props> = (props) => {
   const showAvatar = useSettingsStore((state) => state.showAvatar)
   const messageLayout = useSettingsStore((state) => state.messageLayout)
   const generationRuntimeActive = useIsGenerationRuntimeActive(sessionId, msg.id)
+  // Read aloud keeps the action bar pinned visible while its audio is being
+  // prepared or playing; otherwise the row (and its stop button) disappears
+  // as soon as the pointer leaves, mid-processing.
+  const replySpeechActive = useReplySpeechActive(`${sessionId}:${msg.id}`)
 
   const isBubbleLayout = messageLayout === 'bubble'
 
@@ -1201,7 +1206,7 @@ const _Message: FC<Props> = (props) => {
       m={actionRowMargin}
       className={clsx(
         'transition-opacity',
-        getMessageActionVisibilityClass(actionMenuOpened || buttonGroup === 'always')
+        getMessageActionVisibilityClass(actionMenuOpened || buttonGroup === 'always' || replySpeechActive)
       )}
       align="center"
     >

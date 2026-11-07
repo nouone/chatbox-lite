@@ -1,3 +1,4 @@
+import { useSyncExternalStore } from 'react'
 import type { Message, Settings } from '@shared/types'
 import { visibleContentParts } from '@shared/utils/message'
 
@@ -420,6 +421,16 @@ export class ResponseSpeechPlayer {
 }
 
 export const responseSpeechPlayer = new ResponseSpeechPlayer()
+
+// Whether this reply's audio is loading or playing. The message action bar
+// uses it to stay visible while speech is still processing, so the stop
+// control and its spinner don't vanish the moment the pointer leaves.
+export function useReplySpeechActive(playbackId: string): boolean {
+  return useSyncExternalStore(
+    responseSpeechPlayer.subscribe,
+    () => responseSpeechPlayer.getSnapshot().id === playbackId
+  )
+}
 const speechInputs = new Set<symbol>()
 export function beginSpeechInput() {
   const token = Symbol('microphone')
