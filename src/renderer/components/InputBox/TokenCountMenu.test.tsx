@@ -33,13 +33,7 @@ Object.defineProperty(window, 'matchMedia', {
 function renderMenu(props: Partial<React.ComponentProps<typeof TokenCountMenu>> = {}) {
   return render(
     <MantineProvider>
-      <TokenCountMenu
-        currentInputTokens={100}
-        contextTokens={1000}
-        totalTokens={1100}
-        totalContextMessages={3}
-        {...props}
-      >
+      <TokenCountMenu contextTokens={1000} totalTokens={1100} {...props}>
         <button type="button">Tokens</button>
       </TokenCountMenu>
     </MantineProvider>
@@ -70,39 +64,27 @@ describe('TokenCountMenu', () => {
     expect(screen.queryByText('Measured by the engine, plus an estimate for the newest turns.')).toBeNull()
   })
 
-  it('never shows the removed cl100k Context estimate row', () => {
-    // The Context row was deleted (field: "Context ~548K" beside
-    // "Total ~434K measured" confused benchmarking; the estimate is a second,
-    // worse ruler and Total already falls back to it).
-    renderMenu({ isCalculating: true, isContextCalculating: true, pendingContextMessages: 1 })
+  it('shows only the benchmarking-relevant rows', () => {
+    // Field: "what is context messages? and input? why does that even
+    // matter?" then "useless for this, strip them". The menu is Total
+    // (+footnote) and Model limit; the removed estimate/counter rows must
+    // not come back.
+    renderMenu({ contextWindow: 262144, onCompressClick: vi.fn() })
+    expect(getMenuRow('Total')).toBeTruthy()
+    expect(getMenuRow('Model limit').textContent).toContain('262K')
     expect(screen.queryByText('Context:')).toBeNull()
-    expect(getMenuRow('Total').querySelector('.mantine-Loader-root')).not.toBeNull()
+    expect(screen.queryByText('Current input:')).toBeNull()
+    expect(screen.queryByText('Context messages:')).toBeNull()
   })
 
-  it('labels a loading context and hides message counts and compression', () => {
-    renderMenu({
-      isCalculating: true,
-      isContextCalculating: true,
-      isContextLoading: true,
-      pendingContextMessages: 1,
-      currentMessageCount: 3,
-      maxContextMessageCount: 100,
-      onCompressClick: vi.fn(),
-    })
+  it('labels a loading context and hides compression until it finishes', () => {
+    renderMenu({ isCalculating: true, isContextLoading: true, onCompressClick: vi.fn() })
     expect(screen.getByRole('status', { hidden: true }).textContent).toContain('Loading context...')
-    expect(screen.queryByText('Context messages:')).toBeNull()
     expect(screen.queryByText('Compress Conversation')).toBeNull()
   })
 
-  it('keeps failed draft estimates marked approximate without showing a loader', () => {
-    renderMenu({
-      isCalculating: false,
-      isCurrentInputApproximate: true,
-      isTotalApproximate: true,
-      isContextCalculating: false,
-      pendingContextMessages: 0,
-    })
-    expect(getMenuRow('Current input').textContent).toContain('Current input:~100')
+  it('marks an approximate total without showing a loader', () => {
+    renderMenu({ isCalculating: false, isTotalApproximate: true })
     expect(getMenuRow('Total').textContent).toContain('Total:~1K')
     expect(getMenuRow('Total').querySelector('.mantine-Loader-root')).toBeNull()
   })

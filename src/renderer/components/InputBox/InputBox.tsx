@@ -2131,21 +2131,13 @@ const InputBox = forwardRef<InputBoxRef, InputBoxProps>(
               {/* Right Group: Token Count + Model Selector */}
               <Flex align="center" gap={0} className="min-w-0 ml-auto">
                 <TokenCountMenu
-                  currentInputTokens={currentInputTokens}
                   contextTokens={contextTokens}
                   totalTokens={engineCalibratedTokens.totalTokens}
                   engineCalibrated={engineCalibratedTokens.calibrated}
                   isCalculating={isCalculating}
-                  isCurrentInputApproximate={isCurrentInputApproximate}
                   isTotalApproximate={isTotalApproximate}
-                  isContextApproximate={isContextApproximate}
-                  isContextCalculating={isContextCalculating}
                   isContextLoading={contextPending}
-                  pendingContextMessages={pendingContextMessages}
-                  totalContextMessages={messageCount}
                   contextWindow={effectiveContextWindow ?? undefined}
-                  currentMessageCount={messageCount}
-                  maxContextMessageCount={currentSessionMergedSettings?.maxContextMessageCount}
                   onCompressClick={
                     sessionId && !isNewSession
                       ? () => {

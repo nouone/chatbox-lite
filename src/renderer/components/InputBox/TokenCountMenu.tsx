@@ -9,22 +9,14 @@ import { useIsSmallScreen } from '@/hooks/useScreenChange'
 import { ScalableIcon } from '../common/ScalableIcon'
 
 type Props = {
-  currentInputTokens: number
   contextTokens: number
   totalTokens: number
   isCalculating?: boolean
-  isCurrentInputApproximate?: boolean
   isTotalApproximate?: boolean
-  isContextApproximate?: boolean
-  isContextCalculating?: boolean
   isContextLoading?: boolean
-  pendingContextMessages?: number
-  totalContextMessages?: number
   contextWindow?: number
   /** The total is anchored to the engine's exact last-request measurement. */
   engineCalibrated?: boolean
-  currentMessageCount?: number
-  maxContextMessageCount?: number
   children?: React.ReactNode
   onCompressClick?: () => void
   // Auto-compaction props
@@ -35,21 +27,13 @@ type Props = {
 }
 
 const TokenCountMenu: FC<Props> = ({
-  currentInputTokens,
   contextTokens,
   totalTokens,
   isCalculating = false,
-  isCurrentInputApproximate = false,
   isTotalApproximate = isCalculating,
-  isContextApproximate = false,
-  isContextCalculating = false,
   isContextLoading = false,
-  pendingContextMessages,
-  totalContextMessages,
   contextWindow,
   engineCalibrated = false,
-  currentMessageCount,
-  maxContextMessageCount,
   children,
   onCompressClick,
   autoCompactionEnabled,
@@ -124,34 +108,11 @@ const TokenCountMenu: FC<Props> = ({
           </Text>
         )}
 
-        <Menu.Item disabled style={{ cursor: 'default' }}>
-          <Flex justify="space-between" align="center" gap="xs">
-            <Text size="sm">{t('Current input')}:</Text>
-            <Text size="sm" fw={500}>
-              {isCurrentInputApproximate ? '~' : ''}
-              {formatNumber(currentInputTokens)}
-            </Text>
-          </Flex>
-        </Menu.Item>
-
-        {/* The cl100k "Context" estimate row was removed: with the engine-
-            anchored Total present it is a second, worse ruler measuring the
-            same stick (field: "Context ~548K" beside "Total ~434K measured"
-            confused benchmarking). Total already falls back to this estimate
-            whenever no engine measurement exists, so nothing is lost. */}
-
-        {!isContextLoading && maxContextMessageCount !== undefined && currentMessageCount !== undefined && (
-          <Menu.Item disabled style={{ cursor: 'default' }}>
-            <Flex justify="space-between" align="center" gap="xs">
-              <Text size="sm">{t('Context messages')}:</Text>
-              <Text size="sm" fw={500}>
-                {maxContextMessageCount === Number.MAX_SAFE_INTEGER
-                  ? currentMessageCount
-                  : `${currentMessageCount} / ${maxContextMessageCount}`}
-              </Text>
-            </Flex>
-          </Menu.Item>
-        )}
+        {/* "Current input" (draft size) and "Context messages" (message
+            count) rows were removed alongside the cl100k "Context" estimate
+            (field: "useless for this, strip them" - benchmarking reads one
+            number: the engine-measured Total vs the model limit). The
+            compress action still keys off contextTokens internally. */}
 
         <Menu.Divider />
 
