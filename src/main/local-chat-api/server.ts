@@ -145,7 +145,33 @@ export async function startLocalChatApi(options: {
       let call: LocalChatCall
       const match = /^\/api\/chats\/([^/]+)(\/messages)?$/.exec(url.pathname)
       const speechMatch = /^\/api\/chats\/([^/]+)\/messages\/([^/]+)\/speech$/.exec(url.pathname)
-      if (req.method === 'POST' && speechMatch) {
+      if (req.method === 'POST' && url.pathname === '/api/voice/asr') {
+        // Raw capture from a browser voice frontend: WAV bytes as base64
+        // (~4.3MB per 10s at 16kHz mono; capped at 12MB decoded).
+        const input: unknown = await readJson(req, 17 * 1024 * 1024)
+        const audio = (input as { audio?: unknown } | null)?.audio
+        if (typeof audio !== 'string' || !audio.length) {
+          reply(res, 400, { error: 'audio must be base64 WAV bytes' })
+          return
+        }
+        call = { action: 'asr', content: audio }
+      } else if (req.method === 'POST' && url.pathname === '/api/voice/speak') {
+        const input: unknown = await readJson(req, 16 * 1024)
+        const text = (input as { text?: unknown } | null)?.text
+        if (typeof text !== 'string' || !text.trim() || text.length > 4000) {
+          reply(res, 400, { error: 'text must be non-empty (max 4000 characters)' })
+          return
+        }
+        call = { action: 'speak', content: text }
+      } else if (req.method === 'POST' && url.pathname === '/api/voice/note') {
+        const input: unknown = await readJson(req, 1024)
+        const msg = (input as { msg?: unknown } | null)?.msg
+        if (typeof msg !== 'string' || !msg.trim()) {
+          reply(res, 400, { error: 'msg required' })
+          return
+        }
+        call = { action: 'voice-note', content: msg }
+      } else if (req.method === 'POST' && speechMatch) {
         await readJson(req, 2048)
         call = {action:'speech',chatId:decodeURIComponent(speechMatch[1]),messageId:decodeURIComponent(speechMatch[2])}
       } else if (req.method === 'POST' && url.pathname === '/api/chats') {

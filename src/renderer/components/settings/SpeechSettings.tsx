@@ -90,6 +90,22 @@ export function SpeechSettings() {
                 })
               }
             />
+            <TextInput
+              label={t('Voice mode transcription server (optional)')}
+              description={t('OpenAI-compatible speech-to-text server (e.g. Parakeet) used by the browser voice mode microphone. Leave empty to disable voice capture on web and phone.')}
+              placeholder="http://localhost:8816"
+              value={settings.textToSpeech.asrUrl ?? ''}
+              onChange={(event) =>
+                setSettings({ textToSpeech: { ...settings.textToSpeech, asrUrl: event.currentTarget.value } })
+              }
+            />
+            <PasswordInput
+              label={t('Transcription API key (optional)')}
+              value={settings.textToSpeech.asrKey ?? ''}
+              onChange={(event) =>
+                setSettings({ textToSpeech: { ...settings.textToSpeech, asrKey: event.currentTarget.value } })
+              }
+            />
             <SettingSwitchRow
               id={rewriteId}
               label={t('Rewrite with the chat model first')}

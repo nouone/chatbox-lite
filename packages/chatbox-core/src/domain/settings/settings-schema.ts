@@ -486,6 +486,11 @@ export const SettingsSchema = GlobalSessionSettingsSchema.extend({
       voice: z.string().optional(),
       speed: z.number().min(0.25).max(4).optional().catch(undefined),
       autoRead: z.boolean().optional(),
+      // Speech-server URL for the browser voice frontend's microphone (an
+      // OpenAI-compatible /v1/audio/transcriptions/raw server such as
+      // Parakeet). Absent = voice mode says "set a transcription server".
+      asrUrl: z.string().optional(),
+      asrKey: z.string().optional(),
       // Chat-model rewrite before synthesis (speech-rewrite.ts). Absent means
       // on; only an explicit false disables it.
       rewrite: z.boolean().optional(),

@@ -4,6 +4,8 @@ import type { LocalChatCall, LocalChatResult } from '@shared/local-chat-api'
 import { createMessage } from '@shared/types'
 import { getMessageText } from '@shared/utils/message'
 import { rendererApplication } from '@/app/renderer-application'
+import { getLogger } from '@/lib/utils'
+import { settingsStore } from '@/stores/settingsStore'
 import { submitNewUserMessage } from '@/stores/session/messages'
 import { isSessionGenerating } from '@/stores/sessionActivityStore'
 
@@ -32,6 +34,58 @@ export async function handleLocalChatCall(call: LocalChatCall): Promise<LocalCha
           total: page.total,
         },
       }
+    }
+    if (call.action === 'asr') {
+      // Voice frontend audio (WAV bytes as base64) -> configured ASR server.
+      // desktopDirectRequest bypass CORS like read-aloud does for Kokoro.
+      const asrUrl = settingsStore.getState().getSettings().textToSpeech?.asrUrl?.trim()
+      if (!asrUrl) return { status: 409, body: { error: 'Set a transcription server URL in Desktop Settings > Default Models first.' } }
+      if (!call.content || call.content.length > 12 * 1024 * 1024) return { status: 400, body: { error: 'Invalid audio payload' } }
+      const { desktopDirectRequestFromWindow } = await import('@/utils/desktop-direct-request')
+      try {
+        const binary = atob(call.content)
+        const audio = new Uint8Array(binary.length)
+        for (let i = 0; i < binary.length; i++) audio[i] = binary.charCodeAt(i)
+        const asrKey = settingsStore.getState().getSettings().textToSpeech?.asrKey?.trim()
+        const response = await desktopDirectRequestFromWindow(
+          asrUrl.replace(/\/+$/, '') + '/v1/audio/transcriptions/raw',
+          'POST',
+          new Headers({ 'Content-Type': 'audio/wav', ...(asrKey ? { Authorization: `Bearer ${asrKey}` } : {}) }),
+          audio,
+          AbortSignal.timeout(30000)
+        )
+        if (!response.ok) return { status: 502, body: { error: `Transcription server returned HTTP ${response.status}.` } }
+        const parsed = (await response.json()) as { text?: unknown }
+        if (typeof parsed.text !== 'string') return { status: 502, body: { error: 'Transcription server returned no text.' } }
+        return { status: 200, body: { text: parsed.text.trim() } }
+      } catch (error) {
+        return { status: 502, body: { error: error instanceof Error ? error.message : 'Transcription failed.' } }
+      }
+    }
+    if (call.action === 'speak') {
+      // Voice frontend sentence pipelining: synthesize free text with the
+      // configured read-aloud voice (same rewrite + normalization as replies).
+      const text = typeof call.content === 'string' ? call.content.trim() : ''
+      if (!text) return { status: 400, body: { error: 'content required' } }
+      if (text.length > 4000) return { status: 400, body: { error: 'Sentence too long to speak in one request.' } }
+      try {
+        const { synthesizeSpeechText } = await import('./local-chat-speech')
+        const blob = await synthesizeSpeechText(text, AbortSignal.timeout(60000))
+        if (blob.size > 8 * 1024 * 1024) return { status: 502, body: { error: 'Speech audio exceeds the playback limit.' } }
+        const bytes = new Uint8Array(await blob.arrayBuffer())
+        let encoded = ''
+        for (let i = 0; i < bytes.length; i += 32768) encoded += String.fromCharCode(...bytes.subarray(i, i + 32768))
+        return { status: 200, body: { audioBase64: btoa(encoded), contentType: blob.type || 'audio/mpeg' } }
+      } catch (error) {
+        return { status: 502, body: { error: error instanceof Error ? error.message : 'Speech synthesis failed.' } }
+      }
+    }
+    if (call.action === 'voice-note') {
+      // Decision-mirror log lines from the voice frontend: one line per call,
+      // prefixed voice: so field logs stay greppable from the desktop app.
+      const msg = typeof call.content === 'string' ? call.content.slice(0, 200) : ''
+      if (msg) getLogger('voice').info(`page: ${msg}`)
+      return { status: 200, body: { ok: true } }
     }
     if (!call.chatId) return { status: 400, body: { error: 'chatId required' } }
     const source = await sessions.getSessionHeader(call.chatId)

@@ -4,6 +4,18 @@ import { desktopDirectRequestFromWindow } from '@/utils/desktop-direct-request'
 import { responseSpeechText, synthesizeSpeech } from './text-to-speech'
 import { rewriteForSpeech } from './speech-rewrite'
 
+// Free-text synthesis for the browser voice frontend (web-ui voice mode):
+// same server, voice and normalization as reply read-aloud; the reply-bound
+// synthesizeWebReply below stays untouched for phone/browser chat speech.
+export async function synthesizeSpeechText(text: string, signal: AbortSignal): Promise<Blob> {
+  const settings = settingsStore.getState().getSettings().textToSpeech
+  if (!settings?.enabled) throw new Error('Enable Read aloud in Desktop Settings > Default Models first.')
+  const spoken = await rewriteForSpeech(text, settings, undefined, signal)
+  const request: typeof fetch = (url, init) =>
+    desktopDirectRequestFromWindow(String(url), 'POST', new Headers(init?.headers), init?.body, init?.signal ?? undefined)
+  return synthesizeSpeech(spoken, settings, request, signal)
+}
+
 let busy = false
 /** Same synthesis and normalization as Desktop; audio is returned, never played here. */
 export async function synthesizeWebReply(message: Message, sessionId?: string) {

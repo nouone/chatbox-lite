@@ -150,6 +150,39 @@ it('carries a valid thinkingEffort and rejects an unknown one', async () => {
   expect(bad.status).toBe(400)
   expect(dispatch).toHaveBeenCalledTimes(1)
 })
+it('routes voice frontend calls (asr audio, speak text, note mirror) and validates payloads', async () => {
+  const { request, dispatch } = await setup()
+  dispatch.mockResolvedValue({ status: 200, body: { text: 'hello' } })
+  const asr = await request('/api/voice/asr', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ audio: 'AAAA' }),
+  })
+  expect(asr.status).toBe(200)
+  expect(dispatch).toHaveBeenLastCalledWith({ action: 'asr', content: 'AAAA', limit: 50 })
+  const badAudio = await request('/api/voice/asr', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ audio: 42 }),
+  })
+  expect(badAudio.status).toBe(400)
+  dispatch.mockResolvedValue({ status: 200, body: { audioBase64: 'eA==', contentType: 'audio/mpeg' } })
+  const speak = await request('/api/voice/speak', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ text: 'One sentence.' }),
+  })
+  expect(speak.status).toBe(200)
+  expect(dispatch).toHaveBeenLastCalledWith({ action: 'speak', content: 'One sentence.', limit: 50 })
+  dispatch.mockResolvedValue({ status: 200, body: { ok: true } })
+  const note = await request('/api/voice/note', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ msg: 'voice on, floor 0.0120' }),
+  })
+  expect(note.status).toBe(200)
+  expect(dispatch).toHaveBeenLastCalledWith({ action: 'voice-note', content: 'voice on, floor 0.0120', limit: 50 })
+})
 it('validates JSON, text, body size and pagination before invoking desktop', async () => {
   const { request, dispatch } = await setup()
   for (const body of ['{broken', '{}', '{"content":" "}', JSON.stringify({ content: 'x'.repeat(60001) })])
