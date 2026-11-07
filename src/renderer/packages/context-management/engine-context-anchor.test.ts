@@ -37,6 +37,17 @@ describe('findEngineContextAnchor', () => {
     expect(anchor?.inputTokens).toBe(3000)
   })
 
+  it('prefers the last-step prompt over the multi-step loop total', () => {
+    // Work Mode replies store inputTokens as the sum across steps (field:
+    // 4.13M stored where the monitor showed 377K); the anchor must use the
+    // final step's size when the reply carries one.
+    const messages = [
+      msg('assistant', 'worky', { usage: { inputTokens: 4132732, lastStepInputTokens: 377021 } }),
+    ]
+    const anchor = findEngineContextAnchor(messages, 'm1')
+    expect(anchor?.inputTokens).toBe(377021)
+  })
+
   it('returns null when nothing is measured', () => {
     expect(findEngineContextAnchor([msg('user', 'q'), msg('assistant', 'a')], 'm1')).toBeNull()
   })

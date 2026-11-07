@@ -410,6 +410,16 @@ export async function processStreamChunk(
     }
     case 'finish-step': {
       usage = mergeEngineTiming(usage, chunk.providerMetadata)
+      // Keep each step's own prompt size; the LAST one survives. The AI SDK
+      // sums usage across agent-loop steps, so a multi-step (Work Mode)
+      // reply would otherwise store only the loop total (field: 10x the real
+      // prompt) where the engine-context anchor needs the context the final
+      // request actually carried (chats without tools keep one step, where
+      // both numbers are equal).
+      const stepInputTokens = chunk.usage?.inputTokens
+      if (typeof stepInputTokens === 'number' && Number.isFinite(stepInputTokens) && stepInputTokens >= 0) {
+        usage = { ...usage, lastStepInputTokens: stepInputTokens }
+      }
       finalizeReasoningDuration(currentReasoningPart)
       currentTextPart = undefined
       currentReasoningPart = undefined

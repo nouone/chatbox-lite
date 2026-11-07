@@ -368,6 +368,13 @@ const MessageUsageSchema = z.object({
   engineProcessedTokens: z.number().nonnegative().finite().optional().catch(undefined),
   inputTokens: z.number().optional().catch(undefined),
   /**
+  The prompt size of the LAST generation step: the exact context the engine
+  saw when producing this reply. An agent/Work Mode reply spans many steps
+  and `inputTokens` sums the whole loop (billing truth, up to 10x a single
+  prompt); the engine-context anchor needs the final step's window instead.
+     */
+  lastStepInputTokens: z.number().optional().catch(undefined),
+  /**
   The number of output (completion) tokens used.
      */
   outputTokens: z.number().optional().catch(undefined),

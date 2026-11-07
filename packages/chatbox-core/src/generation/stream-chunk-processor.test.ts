@@ -815,6 +815,33 @@ describe('processStreamChunk', () => {
     expect(secondPart.stepIndex).toBe(0)
   })
 
+  it('keeps the last step prompt size for the engine-context anchor while finish keeps the loop total', async () => {
+    // Work Mode shape: each step re-sends the growing conversation, the SDK
+    // sums usage across steps, and the finish chunk carries the loop total.
+    // The anchor needs the FINAL step's prompt - the context the engine
+    // actually saw - persisted alongside the billing total.
+    const state = createInitialState()
+    const step1 = await processStreamChunk(
+      chunk('finish-step', { usage: { inputTokens: 1000, outputTokens: 50, totalTokens: 1050 } }),
+      state,
+      callbacks
+    )
+    const step2 = await processStreamChunk(
+      chunk('finish-step', { usage: { inputTokens: 1200, outputTokens: 20, totalTokens: 1220 } }),
+      step1.state,
+      callbacks
+    )
+    expect(step2.state.usage?.lastStepInputTokens).toBe(1200)
+    const done = await processStreamChunk(
+      chunk('finish', { totalUsage: { inputTokens: 2200, outputTokens: 70, totalTokens: 2270 } }),
+      step2.state,
+      callbacks
+    )
+    // Billing total wins for inputTokens; the per-step measurement survives.
+    expect(done.state.usage?.inputTokens).toBe(2200)
+    expect(done.state.usage?.lastStepInputTokens).toBe(1200)
+  })
+
   it('increments step index after finish-step and resumes after persisted step indices', async () => {
     const first = await processStreamChunk(
       chunk('tool-call', { toolCallId: 'tc1', toolName: 'search', args: { q: 'one' } }),
