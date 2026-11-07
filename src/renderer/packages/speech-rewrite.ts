@@ -1,5 +1,4 @@
 import type { ModelMessage } from 'ai'
-import { settingsStore } from '@/stores/settingsStore'
 
 // Model pass before the TTS server: the chat model rewrites a reply for the
 // ear (expand symbols and abbreviations, narrate lists and tables, drop
@@ -29,9 +28,37 @@ export function speechRewriteActive(settings: SpeechRewriteEligibility | undefin
   return !!settings?.enabled && settings.rewrite !== false && text.length >= MIN_CHARS
 }
 
+// The rewrite model, resolved the way the rest of Lite resolves "the model
+// for utility work": a chat's own selection wins (its messages are the text
+// being rewritten), then the Default Models chat model, then the last model
+// used for chatting. Profiles that only ever pick per-chat models have no
+// defaultChatModel at all - requiring it meant the rewrite never ran there.
+async function resolveRewriteModel(sessionId?: string): Promise<{ provider: string; model: string } | undefined> {
+  const { settingsStore } = await import('@/stores/settingsStore')
+  const defaults = settingsStore.getState().getSettings()
+  if (sessionId && !sessionId.startsWith('voice-test')) {
+    try {
+      const { rendererApplication } = await import('@/app/renderer-application')
+      const header = (await rendererApplication.sessions.getSessionHeader(sessionId))?.header
+      const provider = header?.settings?.provider
+      const modelId = header?.settings?.modelId
+      if (provider && modelId) return { provider, model: modelId }
+    } catch {
+      // Deleted or unreadable chat: fall through to the global choices.
+    }
+  }
+  const chatModel = defaults.defaultChatModel
+  if (chatModel?.provider && chatModel?.model) return { provider: chatModel.provider, model: chatModel.model }
+  const { lastUsedModelStore } = await import('@/stores/lastUsedModelStore')
+  const last = lastUsedModelStore.getState().chat
+  if (last?.provider && last?.modelId) return { provider: last.provider, model: last.modelId }
+  return undefined
+}
+
 export async function rewriteForSpeech(
   text: string,
   settings: SpeechRewriteEligibility | undefined,
+  sessionId?: string,
   signal?: AbortSignal,
 ): Promise<string> {
   if (!speechRewriteActive(settings, text)) return text
@@ -40,9 +67,10 @@ export async function rewriteForSpeech(
   if (cached !== undefined) return cached
   try {
     const { createModel } = await import('@/adapters')
+    const { settingsStore } = await import('@/stores/settingsStore')
     const globalSettings = settingsStore.getState().getSettings()
-    const chatModel = globalSettings.defaultChatModel
-    if (!chatModel?.provider || !chatModel?.model) return text
+    const chatModel = await resolveRewriteModel(sessionId)
+    if (!chatModel) return text
     const model = await createModel({
       ...globalSettings,
       provider: chatModel.provider as never,

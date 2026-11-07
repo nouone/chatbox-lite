@@ -33,8 +33,10 @@ export function createAutoReadCompletionHandler(dependencies: AutoReadDependenci
     try {
       await dependencies.player.play(
         `${sessionId}:${message.id}`,
-        async (signal) =>
-          synthesizeSpeech(await rewriteForSpeech(text, settings, signal), settings, dependencies.request, signal),
+        async (signal) => {
+          const spoken = await rewriteForSpeech(text, settings, sessionId, signal)
+          return synthesizeSpeech(spoken, settings, dependencies.request, signal)
+        },
         dependencies.onError
       )
     } catch (error) {

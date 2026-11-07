@@ -41,8 +41,10 @@ export function useReplySpeech(message: Message, playbackId: string) {
         : fetch
     void player.play(
       playbackId,
-      async (signal) =>
-        synthesizeSpeech(await rewriteForSpeech(text, settings, signal), settings, request, signal),
+      async (signal) => {
+        const spoken = await rewriteForSpeech(text, settings, playbackId.split(':')[0], signal)
+        return synthesizeSpeech(spoken, settings, request, signal)
+      },
       (error) => {
         toast.add(`${t('Read aloud')}: ${error.message}`)
       }

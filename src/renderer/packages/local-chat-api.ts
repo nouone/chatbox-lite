@@ -45,7 +45,7 @@ export async function handleLocalChatCall(call: LocalChatCall): Promise<LocalCha
       if (!message || message.role !== 'assistant') return {status:404,body:{error:'Assistant reply not found'}}
       if (message.generating || message.error) return {status:409,body:{error:'Wait for the reply to finish before reading'}}
       const { synthesizeWebReply } = await import('./local-chat-speech')
-      return {status:200,body:await synthesizeWebReply(message)}
+      return {status:200,body:await synthesizeWebReply(message, call.chatId)}
     }
     if (call.action === 'read') {
       const locks = await getSessionLockStateNow(call.chatId)

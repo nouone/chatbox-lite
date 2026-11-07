@@ -23,7 +23,7 @@ vi.mock('@/app/renderer-application', () => ({
     },
   },
 }))
-vi.mock('./local-chat-speech', () => ({synthesizeWebReply:mocks.speech}))
+vi.mock('./local-chat-speech', () => ({ synthesizeWebReply: (...args: unknown[]) => mocks.speech(...args) }))
 vi.mock('@/stores/session/crud', () => ({ createEmpty: mocks.create }))
 vi.mock('@/stores/session/messages', () => ({ submitNewUserMessage: mocks.send }))
 vi.mock('@/stores/settingsStore', () => ({
@@ -135,7 +135,7 @@ it('synthesizes only a saved completed assistant reply without exposing speech c
   const result = await handleLocalChatCall({action:'speech',chatId:'chat',messageId:'reply'})
   expect(result).toEqual({status:200,body:{audioBase64:'YXVkaW8=',contentType:'audio/mpeg'}})
   expect(mocks.messages).toHaveBeenCalledWith({sessionId:'chat',messageIds:['reply']})
-  expect(mocks.speech).toHaveBeenCalledWith(message)
+  expect(mocks.speech).toHaveBeenCalledWith(message, 'chat')
   mocks.messages.mockResolvedValue({messages:[{...message,generating:true}]})
   expect((await handleLocalChatCall({action:'speech',chatId:'chat',messageId:'reply'})).status).toBe(409)
 })

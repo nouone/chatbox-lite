@@ -1,8 +1,11 @@
 import { beforeEach, expect, it, vi } from 'vitest'
 
-const mocks = vi.hoisted(() => ({ chat: vi.fn(), createModel: vi.fn() }))
+const mocks = vi.hoisted(() => ({ chat: vi.fn(), createModel: vi.fn(), header: vi.fn() }))
 vi.mock('@/adapters', () => ({
-  createModel: async () => ({ chat: mocks.chat }),
+  createModel: (...args: unknown[]) => mocks.createModel(...args),
+}))
+vi.mock('@/app/renderer-application', () => ({
+  rendererApplication: { sessions: { getSessionHeader: mocks.header } },
 }))
 vi.mock('@/stores/settingsStore', () => ({
   settingsStore: {
@@ -11,6 +14,9 @@ vi.mock('@/stores/settingsStore', () => ({
     }),
   },
 }))
+vi.mock('@/stores/lastUsedModelStore', () => ({
+  lastUsedModelStore: { getState: () => ({ chat: { provider: 'last-provider', modelId: 'last-model' } }) },
+}))
 import { rewriteForSpeech, speechRewriteActive } from './speech-rewrite'
 
 const LONG = `Dr. Chen scheduled the 9 a.m. standup for Mon. Jan 5th and noted the forecast: 33 F with winds NNE at 12 mph. ` +
@@ -18,6 +24,9 @@ const LONG = `Dr. Chen scheduled the 9 a.m. standup for Mon. Jan 5th and noted t
 
 beforeEach(() => {
   vi.clearAllMocks()
+  // clearAllMocks also drops implementations, so re-arm createModel every test.
+  mocks.createModel.mockImplementation(async () => ({ chat: mocks.chat }))
+  mocks.header.mockResolvedValue(undefined)
   mocks.chat.mockResolvedValue({ contentParts: [{ type: 'text', text: 'the spoken version' }] })
 })
 
@@ -26,6 +35,25 @@ it('skips short texts and explicit opt-out without calling the model', async () 
   expect(await rewriteForSpeech('yes', { enabled: true })).toBe('yes')
   expect(await rewriteForSpeech(LONG, { enabled: true, rewrite: false })).toBe(LONG)
   expect(mocks.chat).not.toHaveBeenCalled()
+})
+
+it('prefers the chat model over the default when reading that chat', async () => {
+  mocks.header.mockResolvedValue({ header: { id: 'c1', settings: { provider: 'custom-chat', modelId: 'chat-model' } } })
+  await rewriteForSpeech(LONG + ' sess', { enabled: true }, 'c1')
+  expect(mocks.header).toHaveBeenCalledWith('c1')
+  expect(mocks.createModel).toHaveBeenCalledWith(expect.objectContaining({ provider: 'custom-chat', modelId: 'chat-model' }))
+})
+
+it('falls back to the last used chat model when no default is set', async () => {
+  const { settingsStore } = await import('@/stores/settingsStore')
+  const original = settingsStore.getState
+  try {
+    settingsStore.getState = () => ({ getSettings: () => ({}) }) as never
+    await rewriteForSpeech(LONG + ' nou', { enabled: true })
+    expect(mocks.createModel).toHaveBeenCalledWith(expect.objectContaining({ provider: 'last-provider', modelId: 'last-model' }))
+  } finally {
+    settingsStore.getState = original
+  }
 })
 
 it('rewrites long text with thinking pinned to none and caches per text', async () => {

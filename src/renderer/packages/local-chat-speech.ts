@@ -6,7 +6,7 @@ import { rewriteForSpeech } from './speech-rewrite'
 
 let busy = false
 /** Same synthesis and normalization as Desktop; audio is returned, never played here. */
-export async function synthesizeWebReply(message: Message) {
+export async function synthesizeWebReply(message: Message, sessionId?: string) {
   const settings = settingsStore.getState().getSettings().textToSpeech
   if (!settings?.enabled) throw new Error('Enable Read aloud in Desktop Settings > Default Models first.')
   const text = responseSpeechText(message)
@@ -20,7 +20,7 @@ export async function synthesizeWebReply(message: Message) {
     const request: typeof fetch = (url, init) => desktopDirectRequestFromWindow(
       String(url), 'POST', new Headers(init?.headers), init?.body, init?.signal ?? undefined
     )
-    const spoken = await rewriteForSpeech(text, settings, controller.signal)
+    const spoken = await rewriteForSpeech(text, settings, sessionId, controller.signal)
     const blob = await synthesizeSpeech(spoken, settings, request, controller.signal)
     if (blob.size > 8 * 1024 * 1024) throw new Error('Speech audio exceeds the browser playback limit.')
     const bytes = new Uint8Array(await blob.arrayBuffer())
