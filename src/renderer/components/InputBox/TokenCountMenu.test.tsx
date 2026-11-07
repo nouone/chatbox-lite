@@ -59,31 +59,27 @@ describe('TokenCountMenu', () => {
     vi.clearAllMocks()
   })
 
-  it('keeps cached context exact while only the draft is calculating', () => {
-    renderMenu({
-      isCalculating: true,
-      isContextCalculating: false,
-      pendingContextMessages: 0,
-    })
+  it('shows engine-anchored totals and the measurement footnote', () => {
+    renderMenu({ engineCalibrated: true })
+    expect(getMenuRow('Total').textContent).toContain('Total:1K')
+    expect(screen.getByText('Measured by the engine, plus an estimate for the newest turns.')).toBeTruthy()
+  })
 
-    expect(getMenuRow('Context').textContent).toContain('Context:1K')
-    expect(getMenuRow('Context').textContent).not.toContain('~')
-    expect(getMenuRow('Context').textContent).not.toContain('(3/3)')
-    expect(getMenuRow('Total').textContent).toContain('Total:~1K')
+  it('hides the measurement footnote for raw estimates', () => {
+    renderMenu()
+    expect(screen.queryByText('Measured by the engine, plus an estimate for the newest turns.')).toBeNull()
+  })
+
+  it('never shows the removed cl100k Context estimate row', () => {
+    // The Context row was deleted (field: "Context ~548K" beside
+    // "Total ~434K measured" confused benchmarking; the estimate is a second,
+    // worse ruler and Total already falls back to it).
+    renderMenu({ isCalculating: true, isContextCalculating: true, pendingContextMessages: 1 })
+    expect(screen.queryByText('Context:')).toBeNull()
     expect(getMenuRow('Total').querySelector('.mantine-Loader-root')).not.toBeNull()
   })
 
-  it('shows context progress from distinct pending context messages', () => {
-    renderMenu({
-      isCalculating: true,
-      isContextCalculating: true,
-      pendingContextMessages: 1,
-    })
-
-    expect(getMenuRow('Context').textContent).toContain('Context:~1K(2/3)')
-  })
-
-  it('labels a loaded-message estimate and hides complete-context counts and compression', () => {
+  it('labels a loading context and hides message counts and compression', () => {
     renderMenu({
       isCalculating: true,
       isContextCalculating: true,
@@ -94,7 +90,6 @@ describe('TokenCountMenu', () => {
       onCompressClick: vi.fn(),
     })
     expect(screen.getByRole('status', { hidden: true }).textContent).toContain('Loading context...')
-    expect(getMenuRow('Context').textContent).not.toContain('(2/3)')
     expect(screen.queryByText('Context messages:')).toBeNull()
     expect(screen.queryByText('Compress Conversation')).toBeNull()
   })
@@ -107,10 +102,7 @@ describe('TokenCountMenu', () => {
       isContextCalculating: false,
       pendingContextMessages: 0,
     })
-
     expect(getMenuRow('Current input').textContent).toContain('Current input:~100')
-    expect(getMenuRow('Context').textContent).toContain('Context:1K')
-    expect(getMenuRow('Context').textContent).not.toContain('~')
     expect(getMenuRow('Total').textContent).toContain('Total:~1K')
     expect(getMenuRow('Total').querySelector('.mantine-Loader-root')).toBeNull()
   })

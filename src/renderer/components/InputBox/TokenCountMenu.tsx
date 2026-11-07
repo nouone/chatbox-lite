@@ -134,26 +134,11 @@ const TokenCountMenu: FC<Props> = ({
           </Flex>
         </Menu.Item>
 
-        <Menu.Item disabled style={{ cursor: 'default' }}>
-          <Flex justify="space-between" align="center" gap="xs">
-            <Text size="sm">{t('Context')}:</Text>
-            <Flex align="center" gap="xs">
-              <Text size="sm" fw={500}>
-                {isContextCalculating || isContextApproximate ? '~' : ''}
-                {formatNumber(contextTokens)}
-              </Text>
-              {!isContextLoading &&
-                isContextCalculating &&
-                pendingContextMessages !== undefined &&
-                totalContextMessages !== undefined &&
-                totalContextMessages > 0 && (
-                  <Text size="xs" c="dimmed">
-                    ({Math.max(0, totalContextMessages - pendingContextMessages)}/{totalContextMessages})
-                  </Text>
-                )}
-            </Flex>
-          </Flex>
-        </Menu.Item>
+        {/* The cl100k "Context" estimate row was removed: with the engine-
+            anchored Total present it is a second, worse ruler measuring the
+            same stick (field: "Context ~548K" beside "Total ~434K measured"
+            confused benchmarking). Total already falls back to this estimate
+            whenever no engine measurement exists, so nothing is lost. */}
 
         {!isContextLoading && maxContextMessageCount !== undefined && currentMessageCount !== undefined && (
           <Menu.Item disabled style={{ cursor: 'default' }}>
