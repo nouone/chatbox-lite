@@ -773,19 +773,6 @@ const InputBox = forwardRef<InputBoxRef, InputBoxProps>(
       contextPending || policyPending || isModelToolCapabilityError || sandboxQuery.isError || tokensTotalApproximate
     const isContextCalculating = contextPending || tokensContextCalculating
 
-    // Engine-anchored context size: once this conversation has an
-    // engine-measured reply, its exact prompt size replaces the cl100k
-    // estimate for the badge, the percentage and (in compaction's measure)
-    // the auto-compaction decision, so a Qwen-class engine's tighter BPE no
-    // longer reads as 102% when it is really ~85%.
-    const engineCalibratedTokens = useEngineCalibratedContextTokens({
-      sessionId: currentSessionId || null,
-      revision: headerRead?.revision,
-      model,
-      estimatedTokens: totalTokens,
-      draftTokens: currentInputTokens,
-    })
-
     const globalAutoCompaction = useSettingsStore((state) => state.autoCompaction)
     const [isCompacting, setIsCompacting] = useState(false)
 
@@ -860,6 +847,22 @@ const InputBox = forwardRef<InputBoxRef, InputBoxProps>(
       if (model?.modelId) return getModelContextWindowSync(model.modelId)
       return null
     }, [modelInfo?.contextWindow, model?.modelId, model?.provider, modelRegistryVersion])
+
+    // Engine-anchored context size: once this conversation has an
+    // engine-measured reply, its exact prompt size replaces the cl100k
+    // estimate for the badge, the percentage and (in compaction's measure)
+    // the auto-compaction decision, so a Qwen-class engine's tighter BPE no
+    // longer reads as 102% when it is really ~85%. Measurements above the
+    // model's own window (some engines report session-cumulative totals, not
+    // prompt sizes) fall back to the estimate instead.
+    const engineCalibratedTokens = useEngineCalibratedContextTokens({
+      sessionId: currentSessionId || null,
+      revision: headerRead?.revision,
+      model,
+      estimatedTokens: totalTokens,
+      draftTokens: currentInputTokens,
+      contextWindow: effectiveContextWindow ?? undefined,
+    })
 
     // Calculate token usage percentage
     const tokenPercentage = useMemo(() => {

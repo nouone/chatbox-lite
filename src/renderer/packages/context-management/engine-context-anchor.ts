@@ -49,10 +49,12 @@ export function calibrateContextTokens(params: {
   anchor: { index: number; inputTokens: number } | null
   /** Cl100k estimate of the full context the caller already computed. */
   estimatedTokens: number
+  /** The model's context window; an anchor above it is not a prompt size. */
+  contextWindow?: number
   /** Draft not present in `messages`; counted into the tail when given. */
   pendingTokens?: number
 }): { tokens: number; calibrated: boolean } {
-  const { messages, model, anchor, estimatedTokens, pendingTokens = 0 } = params
+  const { messages, model, anchor, estimatedTokens, contextWindow, pendingTokens = 0 } = params
   if (!anchor) return { tokens: estimatedTokens, calibrated: false }
   const type = getTokenizerType(model)
   let tail = 0
@@ -63,7 +65,19 @@ export function calibrateContextTokens(params: {
   const tokens = anchor.inputTokens + tail + pendingTokens
   // A stale or mismatched measurement must never hide an overflow: the
   // anchor's own size is the hard floor.
-  return { tokens: Math.max(tokens, anchor.inputTokens), calibrated: true }
+  const anchored = Math.max(tokens, anchor.inputTokens)
+  // Engines disagree on what "prompt tokens" means: some report the exact
+  // size of the last request, others a running total across the session
+  // (measured in the field: 2.9M and 13.1M "prompt tokens" on a 262K window,
+  // which made the badge read 1110%). A real prompt can never exceed the
+  // model's context window, so an anchor above it is a cumulative count and
+  // must not calibrate anything; fall back to the raw estimate. Without a
+  // known window, an anchor at more than 1.5x the estimate is the same tell.
+  const cumulative =
+    (contextWindow && contextWindow > 0 && anchor.inputTokens > contextWindow) ||
+    (!contextWindow && anchor.inputTokens > estimatedTokens * 1.5)
+  if (cumulative) return { tokens: estimatedTokens, calibrated: false }
+  return { tokens: anchored, calibrated: true }
 }
 
 /**
@@ -78,8 +92,9 @@ export function useEngineCalibratedContextTokens(params: {
   model?: TokenModel
   estimatedTokens: number
   draftTokens: number
+  contextWindow?: number
 }): { totalTokens: number; calibrated: boolean } {
-  const { sessionId, revision, model, estimatedTokens, draftTokens } = params
+  const { sessionId, revision, model, estimatedTokens, draftTokens, contextWindow } = params
   const [anchorState, setAnchorState] = useState<{
     sessionId: string
     anchor: { index: number; inputTokens: number }
@@ -120,6 +135,7 @@ export function useEngineCalibratedContextTokens(params: {
     model,
     anchor: anchorState.anchor,
     estimatedTokens,
+    contextWindow,
     pendingTokens: draftTokens,
   })
   return { totalTokens: calibrated.tokens, calibrated: calibrated.calibrated }

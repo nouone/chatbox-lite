@@ -73,16 +73,51 @@ describe('calibrateContextTokens', () => {
     expect(result).toEqual({ tokens: 777, calibrated: false })
   })
 
+  it('rejects a cumulative engine measurement (anchor above the context window)', () => {
+    // Field case: lamina's running-total usage recorded 2.9M "prompt tokens"
+    // on a chat whose real context estimate was ~333K with a 262144 window;
+    // trusting it made the badge read 1110%. A prompt can never exceed the
+    // window, so an anchor above it is cumulative and the estimate wins.
+    const messages = [msg('assistant', LONG_TEXT, { usage: { inputTokens: 2909841 } })]
+    const result = calibrateContextTokens({
+      messages,
+      model: { provider: 'custom-strata', modelId: 'qwen' },
+      anchor: { index: 0, inputTokens: 2909841 },
+      estimatedTokens: 333000,
+      contextWindow: 262144,
+    })
+    expect(result).toEqual({ tokens: 333000, calibrated: false })
+  })
+
+  it('calibrates an anchor moderately above the estimate (estimate undercounted)', () => {
+    // Boundary: a real measurement can legitimately exceed the cl100k
+    // estimate (the two tokenizers differ in both directions). 240K inside a
+    // 262K window is a plausible prompt, so it anchors despite the 200K
+    // estimate.
+    const messages = [msg('assistant', LONG_TEXT, { usage: { inputTokens: 240000 } })]
+    const result = calibrateContextTokens({
+      messages,
+      model: { provider: 'custom-strata', modelId: 'qwen' },
+      anchor: { index: 0, inputTokens: 240000 },
+      estimatedTokens: 200000,
+      contextWindow: 262144,
+    })
+    expect(result.calibrated).toBe(true)
+    expect(result.tokens).toBeGreaterThanOrEqual(240000)
+    expect(result.tokens).toBeLessThan(240000 + 1200)
+  })
+
   it('never reports below the engine measurement itself', () => {
     const messages = [msg('assistant', 'tiny', { usage: { inputTokens: 5000 } })]
     const result = calibrateContextTokens({
       messages,
       model: { provider: 'custom-strata', modelId: 'qwen' },
       anchor: { index: 0, inputTokens: 5000 },
-      estimatedTokens: 100,
+      // A plausible under-estimate (not an order of magnitude off) is
+      // corrected upward to the measurement plus the reply's own tail.
+      estimatedTokens: 4500,
     })
-    // The raw estimate (100) would hide the real size; the anchor measurement
-    // plus the reply's own tail wins, and the floor keeps it >= 5000.
+    expect(result.calibrated).toBe(true)
     expect(result.tokens).toBeGreaterThanOrEqual(5000)
     expect(result.tokens).toBeLessThan(5010)
   })

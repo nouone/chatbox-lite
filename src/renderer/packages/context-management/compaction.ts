@@ -36,6 +36,7 @@ async function calibrateCompactionTokens(params: {
   modelId: string
   model?: { provider: string; modelId: string }
   estimated: number
+  contextWindow?: number
   draftTokens: number
 }): Promise<number> {
   try {
@@ -53,6 +54,7 @@ async function calibrateCompactionTokens(params: {
       model: params.model as never,
       anchor,
       estimatedTokens: params.estimated,
+      contextWindow: params.contextWindow,
       // The draft is not in the transcript; add its already-estimated size.
       pendingTokens: params.draftTokens,
     })
@@ -109,6 +111,7 @@ const compactionService = new CompactionService({
           modelId,
           model,
           estimated,
+          contextWindow: getConfiguredContextWindow(globalSettings, providerId, modelId) ?? undefined,
           draftTokens: estimate.currentInputTokens,
         })
         return budget ? { tokens, budget } : null
