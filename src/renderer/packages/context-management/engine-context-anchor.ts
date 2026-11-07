@@ -106,7 +106,7 @@ export function useEngineCalibratedContextTokens(params: {
       setAnchorState(null)
       return
     }
-    void (async () => {
+    const run = async () => {
       try {
         const page = await rendererApplication.sessions.readSessionTranscriptWindow({
           sessionId,
@@ -121,9 +121,17 @@ export function useEngineCalibratedContextTokens(params: {
       } catch {
         if (!cancelled) setAnchorState(null)
       }
-    })()
+    }
+    void run()
+    // A reply's usage.inputTokens is persisted AFTER its text completes, and
+    // the revision bump that retriggers this read can race that write; the
+    // badge then anchors on the previous reply and reads below the engine's
+    // newest measurement (field: 339K badge vs 344,777 monitor). One delayed
+    // re-read lands the fresh measurement.
+    const retry = setTimeout(() => void run(), 3000)
     return () => {
       cancelled = true
+      clearTimeout(retry)
     }
     // revision re-runs the read so a fresh reply's usage becomes the anchor
   }, [sessionId, revision, model?.modelId])
