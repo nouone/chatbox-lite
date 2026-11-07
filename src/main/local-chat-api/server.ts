@@ -162,7 +162,23 @@ export async function startLocalChatApi(options: {
           reply(res, 400, { error: 'content must be non-empty text (max 60000 characters)' })
           return
         }
-        call = { action: 'send', chatId: decodeURIComponent(match[1]), content }
+        // Optional per-send thinking level (voice clients). Unknown values are
+        // rejected instead of ignored: silently dropping a caller's chosen
+        // reasoning budget is exactly the confusion this field exists to end.
+        const rawEffort = (input as { thinkingEffort?: unknown } | null)?.thinkingEffort
+        if (
+          rawEffort !== undefined &&
+          rawEffort !== null &&
+          !['off', 'low', 'medium', 'high'].includes(String(rawEffort))
+        ) {
+          reply(res, 400, { error: 'thinkingEffort must be off, low, medium or high' })
+          return
+        }
+        const thinkingEffort =
+          rawEffort === undefined || rawEffort === null
+            ? undefined
+            : (String(rawEffort) as 'off' | 'low' | 'medium' | 'high')
+        call = { action: 'send', chatId: decodeURIComponent(match[1]), content, ...(thinkingEffort ? { thinkingEffort } : {}) }
       } else {
         reply(res, 404, { error: 'Route not found' })
         return

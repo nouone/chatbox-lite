@@ -3,6 +3,10 @@ export type LocalChatCall = {
   messageId?: string
   chatId?: string
   content?: string
+  // Per-send thinking level for chats driven by API clients (voice apps). The
+  // renderer persists it into the session settings the same way the desktop
+  // Thinking Effort selector does, so the next generation in this chat uses it.
+  thinkingEffort?: 'off' | 'low' | 'medium' | 'high'
   cursor?: string
   limit?: number
 }

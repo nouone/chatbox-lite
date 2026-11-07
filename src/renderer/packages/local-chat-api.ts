@@ -123,6 +123,16 @@ export async function handleLocalChatCall(call: LocalChatCall): Promise<LocalCha
     const message = createMessage('user', call.content)
     message.suppressDesktopAutoRead = true
     const chatId = call.chatId
+    if (call.thinkingEffort) {
+      try {
+        await applyThinkingEffort(chatId, call.thinkingEffort)
+      } catch (error) {
+        return {
+          status: 500,
+          body: { error: error instanceof Error ? `thinkingEffort failed: ${error.message}` : 'thinkingEffort could not be applied' },
+        }
+      }
+    }
     pendingChats.add(chatId)
     errors.delete(chatId)
     // Exactly the controller used by routes/session/$sessionId.tsx's desktop Send handler.
@@ -145,4 +155,38 @@ export async function handleLocalChatCall(call: LocalChatCall): Promise<LocalCha
 export function initLocalChatApiBridge() {
   if (!window.electronAPI?.onLocalChatApiRequest) return
   return window.electronAPI.onLocalChatApiRequest(handleLocalChatCall)
+}
+
+// Persist the caller's per-send thinking level the same way the desktop
+// Thinking Effort selector does: build the provider options for the
+// conversation's model with the shared level helper (capability-gated, and
+// off maps to the provider's explicit none), then write them into the
+// session header settings where the generation service resolves them.
+async function applyThinkingEffort(sessionId: string, level: 'off' | 'low' | 'medium' | 'high') {
+  const { getReasoningProviderOptions, resolveReasoningProviderOptions, setReasoningProviderOptionsForModel } =
+    await import('@shared/utils/reasoning-control')
+  const { settingsStore } = await import('@/stores/settingsStore')
+  await rendererApplication.sessions.updateSessionHeader(sessionId, (session) => {
+    if (!session) throw new Error('Session not found')
+    const settings = session.settings
+    const store = settingsStore.getState()
+    const defaults = store.getSettings()
+    const providerId = settings.provider || defaults.defaultChatModel?.provider
+    const modelId = settings.modelId || defaults.defaultChatModel?.model
+    if (!providerId || !modelId) throw new Error('No chat model is selected for this conversation')
+    // Custom-provider lookup mirroring modals/ModelEdit.tsx (the surface where
+    // the "Strata Thinking control" flag lives); a missing entry is not an
+    // error: the capability check below then no-ops and the send proceeds.
+    const providerInfo = (store.customProviders || []).find((item) => item.id === providerId)
+    const modelInfo = providerInfo?.models?.find((item) => item.modelId === modelId) || null
+    const previous = resolveReasoningProviderOptions(settings, providerId, modelId)
+    const next = getReasoningProviderOptions(providerId as never, modelInfo as never, level, previous)
+    return {
+      ...session,
+      settings: {
+        ...settings,
+        ...setReasoningProviderOptionsForModel(settings, providerId, modelId, next),
+      },
+    }
+  })
 }

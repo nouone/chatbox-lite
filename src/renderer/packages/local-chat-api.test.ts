@@ -9,6 +9,7 @@ const mocks = vi.hoisted(() => ({
   live: vi.fn(),
   messages: vi.fn(),
   speech: vi.fn(),
+  updateHeader: vi.fn(),
 }))
 vi.mock('@/app/renderer-application', () => ({
   rendererApplication: {
@@ -18,12 +19,26 @@ vi.mock('@/app/renderer-application', () => ({
       listSessionsMetaPage: mocks.list,
       getSessionHeader: mocks.header,
       readSessionTranscriptWindow: mocks.history,
+      updateSessionHeader: mocks.updateHeader,
     },
   },
 }))
 vi.mock('./local-chat-speech', () => ({synthesizeWebReply:mocks.speech}))
 vi.mock('@/stores/session/crud', () => ({ createEmpty: mocks.create }))
 vi.mock('@/stores/session/messages', () => ({ submitNewUserMessage: mocks.send }))
+vi.mock('@/stores/settingsStore', () => ({
+  settingsStore: {
+    getState: () => ({
+      customProviders: [
+        {
+          id: 'custom-strata',
+          models: [{ modelId: 'qwen-next', type: 'chat', reasoningControl: 'strata' }],
+        },
+      ],
+      getSettings: () => ({}),
+    }),
+  },
+}))
 vi.mock('@/stores/sessionActivityStore', () => ({ isSessionGenerating: mocks.busy }))
 vi.mock('@/stores/session/action-guard', () => ({
   getSessionLockStateNow: async () => ({
@@ -127,4 +142,22 @@ it('synthesizes only a saved completed assistant reply without exposing speech c
 it('marks web sends so Desktop auto-read stays silent', async () => {
   await handleLocalChatCall({action:'send',chatId:'chat',content:'Hello from phone'})
   expect(mocks.send).toHaveBeenCalledWith('chat',expect.objectContaining({newUserMsg:expect.objectContaining({suppressDesktopAutoRead:true})}))
+})
+it('persists a thinkingEffort into the conversation settings before submitting', async () => {
+  let patched: { settings?: Record<string, unknown> } | undefined
+  mocks.updateHeader.mockImplementation(async (_id: string, updater: (s: unknown) => unknown) => {
+    patched = updater({ id: 'chat', settings: { provider: 'custom-strata', modelId: 'qwen-next' } }) as never
+    return patched
+  })
+  const result = await handleLocalChatCall({ action: 'send', chatId: 'chat', content: 'Go on', thinkingEffort: 'off' })
+  expect(result.status).toBe(202)
+  expect(mocks.updateHeader).toHaveBeenCalledOnce()
+  const byModel = patched?.settings?.providerOptionsByModel as Record<string, { openaiCompatible?: { reasoningEffort?: string } }> | undefined
+  expect(byModel?.['custom-strata:qwen-next']?.openaiCompatible?.reasoningEffort).toBe('none')
+  expect(mocks.send).toHaveBeenCalledOnce()
+})
+it('sends without touching settings when no thinkingEffort is given', async () => {
+  await handleLocalChatCall({ action: 'send', chatId: 'chat', content: 'Plain' })
+  expect(mocks.updateHeader).not.toHaveBeenCalled()
+  expect(mocks.send).toHaveBeenCalledOnce()
 })

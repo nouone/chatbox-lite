@@ -126,6 +126,30 @@ it('routes list/history/send to the same renderer boundary', async () => {
   expect(response.status).toBe(202)
   expect(dispatch).toHaveBeenLastCalledWith({ action: 'send', chatId: 'chat-id', content: 'my question', limit: 50 })
 })
+it('carries a valid thinkingEffort and rejects an unknown one', async () => {
+  const { request, dispatch } = await setup()
+  dispatch.mockResolvedValue({ status: 202, body: { status: 'accepted' } })
+  const response = await request('/api/chats/chat-id/messages', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ content: 'continue', thinkingEffort: 'off' }),
+  })
+  expect(response.status).toBe(202)
+  expect(dispatch).toHaveBeenLastCalledWith({
+    action: 'send',
+    chatId: 'chat-id',
+    content: 'continue',
+    thinkingEffort: 'off',
+    limit: 50,
+  })
+  const bad = await request('/api/chats/chat-id/messages', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ content: 'continue', thinkingEffort: 'ultra' }),
+  })
+  expect(bad.status).toBe(400)
+  expect(dispatch).toHaveBeenCalledTimes(1)
+})
 it('validates JSON, text, body size and pagination before invoking desktop', async () => {
   const { request, dispatch } = await setup()
   for (const body of ['{broken', '{}', '{"content":" "}', JSON.stringify({ content: 'x'.repeat(60001) })])
