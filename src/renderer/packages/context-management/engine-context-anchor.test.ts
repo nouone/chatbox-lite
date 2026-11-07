@@ -84,38 +84,36 @@ describe('calibrateContextTokens', () => {
     expect(result).toEqual({ tokens: 777, calibrated: false })
   })
 
-  it('rejects a cumulative engine measurement (anchor above the context window)', () => {
+  it('rejects a cumulative engine measurement (anchor far above the estimate)', () => {
     // Field case: lamina's running-total usage recorded 2.9M "prompt tokens"
-    // on a chat whose real context estimate was ~333K with a 262144 window;
-    // trusting it made the badge read 1110%. A prompt can never exceed the
-    // window, so an anchor above it is cumulative and the estimate wins.
+    // on a chat whose real context estimate was ~333K; trusting it made the
+    // badge read 1110%. The AI SDK sums usage across agent-loop steps, so
+    // sums sit at 2x+ the estimate while tokenizer disagreement is ~1.5x
+    // at most - the ratio is the discriminator, not the window.
     const messages = [msg('assistant', LONG_TEXT, { usage: { inputTokens: 2909841 } })]
     const result = calibrateContextTokens({
       messages,
       model: { provider: 'custom-strata', modelId: 'qwen' },
       anchor: { index: 0, inputTokens: 2909841 },
       estimatedTokens: 333000,
-      contextWindow: 262144,
     })
     expect(result).toEqual({ tokens: 333000, calibrated: false })
   })
 
-  it('calibrates an anchor moderately above the estimate (estimate undercounted)', () => {
-    // Boundary: a real measurement can legitimately exceed the cl100k
-    // estimate (the two tokenizers differ in both directions). 240K inside a
-    // 262K window is a plausible prompt, so it anchors despite the 200K
-    // estimate.
-    const messages = [msg('assistant', LONG_TEXT, { usage: { inputTokens: 240000 } })]
+  it('accepts a genuine large prompt at the window edge (521K field case)', () => {
+    // The window-cap guard used to reject these: a Work Mode chat grew past
+    // a 524K window, the engine honestly measured 521K+, and the badge fell
+    // back to the estimate and read "wrong" while benchmarking. A measurement
+    // consistent with the estimate is real regardless of the window.
+    const messages = [msg('assistant', LONG_TEXT, { usage: { inputTokens: 521000 } })]
     const result = calibrateContextTokens({
       messages,
       model: { provider: 'custom-strata', modelId: 'qwen' },
-      anchor: { index: 0, inputTokens: 240000 },
-      estimatedTokens: 200000,
-      contextWindow: 262144,
+      anchor: { index: 0, inputTokens: 521000 },
+      estimatedTokens: 520000,
     })
     expect(result.calibrated).toBe(true)
-    expect(result.tokens).toBeGreaterThanOrEqual(240000)
-    expect(result.tokens).toBeLessThan(240000 + 1200)
+    expect(result.tokens).toBeGreaterThanOrEqual(521000)
   })
 
   it('never reports below the engine measurement itself', () => {

@@ -861,7 +861,6 @@ const InputBox = forwardRef<InputBoxRef, InputBoxProps>(
       model,
       estimatedTokens: totalTokens,
       draftTokens: currentInputTokens,
-      contextWindow: effectiveContextWindow ?? undefined,
     })
 
     // Calculate token usage percentage
