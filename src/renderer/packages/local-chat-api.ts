@@ -168,7 +168,7 @@ async function applyThinkingEffort(sessionId: string, level: 'off' | 'low' | 'me
   const { settingsStore } = await import('@/stores/settingsStore')
   await rendererApplication.sessions.updateSessionHeader(sessionId, (session) => {
     if (!session) throw new Error('Session not found')
-    const settings = session.settings
+    const settings = session.settings || {}
     const store = settingsStore.getState()
     const defaults = store.getSettings()
     const providerId = settings.provider || defaults.defaultChatModel?.provider
@@ -177,8 +177,13 @@ async function applyThinkingEffort(sessionId: string, level: 'off' | 'low' | 'me
     // Custom-provider lookup mirroring modals/ModelEdit.tsx (the surface where
     // the "Strata Thinking control" flag lives); a missing entry is not an
     // error: the capability check below then no-ops and the send proceeds.
-    const providerInfo = (store.customProviders || []).find((item) => item.id === providerId)
-    const modelInfo = providerInfo?.models?.find((item) => item.modelId === modelId) || null
+    // Models sit on provider.models or provider.defaultSettings.models, the
+    // same dual shape ReasoningControlButton accepts.
+    const providerInfo = (store.customProviders || []).find((item) => item.id === providerId) as
+      | { models?: { modelId: string }[]; defaultSettings?: { models?: { modelId: string }[] } }
+      | undefined
+    const modelList = providerInfo?.models || providerInfo?.defaultSettings?.models
+    const modelInfo = modelList?.find((item) => item.modelId === modelId) || null
     const previous = resolveReasoningProviderOptions(settings, providerId, modelId)
     const next = getReasoningProviderOptions(providerId as never, modelInfo as never, level, previous)
     return {
