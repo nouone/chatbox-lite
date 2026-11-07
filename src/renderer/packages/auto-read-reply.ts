@@ -1,6 +1,7 @@
 import { isSuccessfulAssistantReply } from '@chatbox/core/session/message-success'
 import type { Message } from '@shared/types'
 import { type ResponseSpeechPlayer, responseSpeechText, type SpeechSettings, synthesizeSpeech } from './text-to-speech'
+import { rewriteForSpeech } from './speech-rewrite'
 
 interface AutoReadDependencies {
   getSettings(): SpeechSettings | undefined
@@ -32,7 +33,8 @@ export function createAutoReadCompletionHandler(dependencies: AutoReadDependenci
     try {
       await dependencies.player.play(
         `${sessionId}:${message.id}`,
-        (signal) => synthesizeSpeech(text, settings, dependencies.request, signal),
+        async (signal) =>
+          synthesizeSpeech(await rewriteForSpeech(text, settings, signal), settings, dependencies.request, signal),
         dependencies.onError
       )
     } catch (error) {

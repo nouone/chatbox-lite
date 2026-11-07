@@ -10,6 +10,7 @@ import {
   responseSpeechText,
   synthesizeSpeech,
 } from '@/packages/text-to-speech'
+import { rewriteForSpeech } from '@/packages/speech-rewrite'
 import platform from '@/platform'
 import { useSettingsStore } from '@/stores/settingsStore'
 import * as toast from '@/stores/toastActions'
@@ -40,7 +41,8 @@ export function useReplySpeech(message: Message, playbackId: string) {
         : fetch
     void player.play(
       playbackId,
-      (signal) => synthesizeSpeech(text, settings, request, signal),
+      async (signal) =>
+        synthesizeSpeech(await rewriteForSpeech(text, settings, signal), settings, request, signal),
       (error) => {
         toast.add(`${t('Read aloud')}: ${error.message}`)
       }

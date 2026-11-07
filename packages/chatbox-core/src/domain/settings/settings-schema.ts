@@ -486,6 +486,9 @@ export const SettingsSchema = GlobalSessionSettingsSchema.extend({
       voice: z.string().optional(),
       speed: z.number().min(0.25).max(4).optional().catch(undefined),
       autoRead: z.boolean().optional(),
+      // Chat-model rewrite before synthesis (speech-rewrite.ts). Absent means
+      // on; only an explicit false disables it.
+      rewrite: z.boolean().optional(),
     })
     .default({
       enabled: true,
@@ -494,6 +497,7 @@ export const SettingsSchema = GlobalSessionSettingsSchema.extend({
       voice: 'af_heart',
       speed: 1.1,
       autoRead: false,
+      rewrite: true,
     })
     .catch({
       enabled: true,
@@ -502,6 +506,7 @@ export const SettingsSchema = GlobalSessionSettingsSchema.extend({
       voice: 'af_heart',
       speed: 1.1,
       autoRead: false,
+      rewrite: true,
     }),
   providers: z.record(z.string(), ProviderSettingsSchema).optional().catch(undefined),
   customProviders: z.array(CustomProviderBaseInfoSchema).optional().catch(undefined),
