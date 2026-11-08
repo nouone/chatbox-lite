@@ -519,7 +519,10 @@ const _Message: FC<Props> = (props) => {
         // Work Mode: command wall time was billed to the reply; separate it
         // from the model's own time (same split the web page shows).
         tips.push({
-          label: `${(modelMs / 1000).toFixed(1)}s model + ${(toolMs / 1000).toFixed(1)}s tools`,
+          label: (() => {
+            const fmt = (ms: number) => (ms < 60000 ? (ms / 1000).toFixed(1) + "s" : `${Math.floor(ms / 60000)}:${String(Math.round((ms % 60000) / 1000)).padStart(2, "0")}`)
+            return `${fmt(modelMs)} model + ${fmt(toolMs)} tools`
+          })(),
           tooltip: t(
             'Reply wall time split: model time (thinking + generation) versus tool command time. Commands like sleeps count as tools, not the model.'
           ) as string,
