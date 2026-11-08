@@ -32,7 +32,7 @@ function RouteComponent() {
               </Flex>
               <Text>Custom AI endpoints, local voice, and a streamlined interface.</Text>
               <Text c="chatbox-tertiary">
-                Independent community edition based on Chatbox. Lite build #${BUILD_INFO.n} (${BUILD_INFO.at}, ${BUILD_INFO.hash}).
+                Independent community edition based on Chatbox. Lite build #{BUILD_INFO.n} ({BUILD_INFO.at}, {BUILD_INFO.hash}).
               </Text>
             </Stack>
           </Flex>
