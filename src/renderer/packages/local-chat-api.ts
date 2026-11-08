@@ -152,6 +152,13 @@ export async function handleLocalChatCall(call: LocalChatCall): Promise<LocalCha
                 processingTokensPerSecond: message.usage?.engineInputTokensPerSecond,
                 processedTokens: message.usage?.engineProcessedTokens,
                 durationMs: message.generationDuration,
+                // Same rule as the desktop message-token-display: the highest
+                // content-part stepIndex + 1 is the number of engine requests
+                // this reply took; only surfaced when it exceeds one step.
+                stepCount: (message.contentParts || []).reduce(
+                  (max, part) => ('stepIndex' in part && typeof part.stepIndex === 'number' ? Math.max(max, part.stepIndex + 1) : max),
+                  0
+                ) || undefined,
               },
               files: message.files?.map((f) => ({ name: f.name })),
             })),

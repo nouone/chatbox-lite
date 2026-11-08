@@ -124,8 +124,8 @@ it('requests a new desktop chat through the API and displays reported processing
       },
     }),
   })
-  expect(document.querySelector('.message-meta')!.textContent).toContain('Processing 500.0 t/s')
-  expect(document.querySelector('.message-meta')!.textContent).toContain('Generation 68.1 t/s')
+  expect(document.querySelector('.message-meta')!.textContent).toContain('210 processed')
+  expect(document.querySelector('.message-meta')!.textContent).toContain('68.1 t/s')
 })
 
 it('updates a streamed message in place and follows only when already near the bottom', async () => {
