@@ -510,12 +510,24 @@ const _Message: FC<Props> = (props) => {
       tips.push({ label: `${wc} words`, tooltip: t('Word count') as string })
     }
     if (showFirstTokenLatency && msg.role === 'assistant' && !msg.generating) {
-      if (msg.firstTokenLatency)
+      const toolMs = (msg.contentParts || []).reduce(
+        (sum: number, part: any) => (part.type === 'tool-call' && typeof part.duration === 'number' ? sum + part.duration : sum),
+        0
+      )
+      const modelMs = msg.generationDuration ? Math.max(0, msg.generationDuration - toolMs) : 0
+      if (msg.generationDuration && toolMs > 0) {
+        // Work Mode: command wall time was billed to the reply; separate it
+        // from the model's own time (same split the web page shows).
+        tips.push({
+          label: `${(modelMs / 1000).toFixed(1)}s model + ${(toolMs / 1000).toFixed(1)}s tools`,
+          tooltip: t(
+            'Reply wall time split: model time (thinking + generation) versus tool command time. Commands like sleeps count as tools, not the model.'
+          ) as string,
+        })
+      } else if (msg.firstTokenLatency)
         tips.push({
           label: `${(msg.firstTokenLatency / 1000).toFixed(1)}s`,
-          tooltip: t(
-            'First token latency: wall time from send to the first token, including any tool commands run in between. For a long Work Mode reply this mostly reflects command time, not the model.'
-          ) as string,
+          tooltip: t('First token latency') as string,
         })
     }
   } else if (props.sessionType === 'picture') {

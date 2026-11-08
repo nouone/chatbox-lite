@@ -7,6 +7,7 @@ extraMetadata:
     name: Chatbox Lite Contributors
     email: 4097153+nouone@users.noreply.github.com
     url: https://github.com/nouone
+compression: store
 nsis:
   shortcutName: Chatbox Lite
   uninstallDisplayName: Chatbox Lite
