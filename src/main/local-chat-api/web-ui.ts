@@ -21,6 +21,7 @@ export const LOCAL_CHAT_WEB_UI = `<!doctype html><html lang="en"><head><meta cha
 #voice-drawer summary{cursor:pointer;list-style:none;text-align:center}
 #voice-drawer label{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:7px 4px;border-bottom:1px solid #eeece6}
 #voice-drawer select{border:1px solid #dfddd6;border-radius:8px;background:#fff;padding:.3rem .5rem;color:inherit}
+#voice .seg{display:inline-flex;border:1px solid #dfddd6;border-radius:14px;overflow:hidden;background:#fff}#voice .seg button{min-height:46px;min-width:52px;padding:10px 14px;font-size:15px;color:#5a6060;border-radius:0;border-right:1px solid #eeece6}#voice .seg button:last-child{border-right:0}#voice .seg button.on{background:#d97856;color:#fff}#voice-exit{min-height:46px;font-size:15px;color:#747a7d}#voice-drawer label{min-height:52px}@media(max-width:680px){#voice-row{flex-wrap:wrap;justify-content:center}}
 </style></head><body>
 <div class="app"><aside><div class="brand">Chatbox <span>Lite</span></div><div class="aside-heading">Conversations<button id="refresh" aria-label="Refresh conversations" title="Refresh conversations">&#8635;</button></div><button id="new-chat" style="text-align:left;color:#b95f40">+ New chat</button><nav id="chats" aria-label="Conversations"></nav><button id="more" hidden>More conversations</button></aside>
 <main><header><div class="header-text"><h1 id="title">Continue a conversation</h1><p>Models, files and tools stay on Desktop</p></div><select id="mobile-chats" aria-label="Conversation"></select><button id="new-chat-mobile">+ New chat</button><button id="credentials">Connection</button></header>
@@ -30,10 +31,10 @@ export const LOCAL_CHAT_WEB_UI = `<!doctype html><html lang="en"><head><meta cha
 <p id="voice-status">Listening</p>
 <div id="voice-level"><i></i></div>
 <button id="voice-orb" type="button" aria-label="Talk" title="Talk"><svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5a3 3 0 0 1 3 -3a3 3 0 0 1 3 3v5a3 3 0 0 1 -3 3a3 3 0 0 1 -3 -3l0 -5"/><path d="M5 10a7 7 0 0 0 14 0"/><path d="M8 21l8 0"/><path d="M12 17l0 4"/></svg></button>
-<div id="voice-row"><select id="voice-think" aria-label="Thinking level"><option value="off">Think: off</option><option value="low">Think: low</option><option value="medium">Think: medium</option><option value="high">Think: high</option></select><button id="voice-exit" type="button">Exit voice</button></div>
+<div id="voice-row"><div class="seg" id="voice-think" role="group" aria-label="Thinking level"><button type="button" data-v="off">think off</button><button type="button" data-v="low">low</button><button type="button" data-v="med">med</button><button type="button" data-v="high">high</button></div><button id="voice-exit" type="button">Exit voice</button></div>
 <details id="voice-drawer"><summary>Voice settings</summary>
-<label>Interrupt me while speaking<select id="voice-barge"><option value="on" selected>on</option><option value="off">off</option></select></label>
-<label>Turn responsiveness<select id="voice-timing"><option value="700">quick</option><option value="1200" selected>normal</option><option value="2000">patient</option></select></label>
+<label>Interrupt me while speaking<span class="seg" id="voice-barge" role="group" aria-label="Interrupt while speaking"><button type="button" data-v="on">on</button><button type="button" data-v="off">off</button></span></label>
+<label>Turn responsiveness<span class="seg" id="voice-timing" role="group" aria-label="Turn responsiveness"><button type="button" data-v="700">quick</button><button type="button" data-v="1200">normal</button><button type="button" data-v="2000">patient</button></span></label>
 </details>
 </div>
 <script>
@@ -75,9 +76,14 @@ var ring=[],ringLen=0,sampling=false,chunks=[],chunkLen=0,silTimer=null,maxTimer
 var queue=[],playing=false,armedBits=[],armedThisTurn=0,spoken='';
 function orb(){return el('voice-orb')}
 function vstatus(t){el('voice-status').textContent=t}
-function cfg(){return {barge:el('voice-barge').value==='on',win:Number(el('voice-timing').value),effort:el('voice-think').value}}
-try{var saved=JSON.parse(localStorage.getItem('cbl.voice')||'{}');if(saved.effort)el('voice-think').value=saved.effort;if(saved.barge)el('voice-barge').value=saved.barge;if(saved.win)el('voice-timing').value=String(saved.win)}catch(e){}
-;['voice-think','voice-barge','voice-timing'].forEach(function(id){el(id).onchange=function(){try{localStorage.setItem('cbl.voice',JSON.stringify({effort:el('voice-think').value,barge:el('voice-barge').value,win:el('voice-timing').value}))}catch(e){}}})
+function segv(id){var on=document.querySelector('#'+id+' button.on');return on?on.getAttribute('data-v'):''}
+function cfg(){return {barge:segv('voice-barge')==='on',win:Number(segv('voice-timing')),effort:segv('voice-think')}}
+function segSet(id,v){var hit=null;document.querySelectorAll('#'+id+' button').forEach(function(b){var m=b.getAttribute('data-v')===v;b.classList.toggle('on',m);if(m)hit=b});return !!hit}
+try{var saved=JSON.parse(localStorage.getItem('cbl.voice')||'{}');if(saved.effort)segSet('voice-think',saved.effort);if(saved.barge)segSet('voice-barge',saved.barge);if(saved.win)segSet('voice-timing',String(saved.win))}catch(e){}
+if(!document.querySelector('#voice-think button.on'))segSet('voice-think','off');
+if(!document.querySelector('#voice-barge button.on'))segSet('voice-barge','on');
+if(!document.querySelector('#voice-timing button.on'))segSet('voice-timing','1200');
+['voice-think','voice-barge','voice-timing'].forEach(function(id){document.querySelectorAll('#'+id+' button').forEach(function(b){b.onclick=function(){segSet(id,b.getAttribute('data-v'));try{localStorage.setItem('cbl.voice',JSON.stringify({effort:segv('voice-think'),barge:segv('voice-barge'),win:segv('voice-timing')}))}catch(e){}}})})
 function wav16(samples){var n=samples.length,buf=new DataView(new ArrayBuffer(44+n*2));function w(o,s){for(var i=0;i<s.length;i++)buf.setUint8(o+i,s.charCodeAt(i))}w(0,'RIFF');buf.setUint32(4,36+n*2,true);w(8,'WAVE');w(12,'fmt ');buf.setUint16(16,1,true);buf.setUint16(20,1,true);buf.setUint32(24,RATE,true);buf.setUint32(28,RATE*2,true);buf.setUint16(32,2,true);buf.setUint16(34,16,true);w(36,'data');buf.setUint32(40,n*2,true);for(var i=0;i<n;i++)buf.setInt16(44+i*2,Math.max(-32768,Math.min(32767,samples[i]*32767)),true);return buf.buffer}
 function b64(buf){var bytes=new Uint8Array(buf),s='';for(var i=0;i<bytes.length;i+=32768)s+=String.fromCharCode.apply(null,bytes.subarray(i,i+32768));return btoa(s)}
 function stats(frame){var sum=0,zc=0;for(var i=0;i<frame.length;i++){var v=frame[i];sum+=v*v;if(i&&(v>=0)!==(frame[i-1]>=0))zc++}return {rms:Math.sqrt(sum/frame.length),zc:zc}}

@@ -86,7 +86,7 @@ it('continues the selected desktop chat, renders response text safely, and sends
       })
     )
   )
-  expect(document.querySelectorAll('select').length).toBe(4) // Conversation picker + think/barge/timing selects; still no model picker.
+  expect(document.querySelectorAll('select').length).toBe(1) // Conversation picker only; voice mode uses segmented tap controls, still no model picker.
 })
 
 it('reconnects a remembered browser after a closed stream without asking for its token', async () => {
