@@ -513,7 +513,9 @@ const _Message: FC<Props> = (props) => {
       if (msg.firstTokenLatency)
         tips.push({
           label: `${(msg.firstTokenLatency / 1000).toFixed(1)}s`,
-          tooltip: t('First token latency') as string,
+          tooltip: t(
+            'First token latency: wall time from send to the first token, including any tool commands run in between. For a long Work Mode reply this mostly reflects command time, not the model.'
+          ) as string,
         })
     }
   } else if (props.sessionType === 'picture') {

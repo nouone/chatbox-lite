@@ -152,6 +152,11 @@ export async function handleLocalChatCall(call: LocalChatCall): Promise<LocalCha
                 processingTokensPerSecond: message.usage?.engineInputTokensPerSecond,
                 processedTokens: message.usage?.engineProcessedTokens,
                 durationMs: message.generationDuration,
+                // Tool wall time vs model time (Nou: sleeps in commands were billed
+                // to reply latency). toolMs = sum of tool-call part durations;
+                // modelMs = generationDuration - toolMs, what the engine actually took.
+                toolMs: (message.contentParts || []).reduce((sum: number, part: any) => (part.type === 'tool-call' && typeof part.duration === 'number' ? sum + part.duration : sum), 0) || undefined,
+                modelMs: message.generationDuration ? Math.max(0, message.generationDuration - (message.contentParts || []).reduce((sum: number, part: any) => (part.type === 'tool-call' && typeof part.duration === 'number' ? sum + part.duration : sum), 0)) : undefined,
                 // Same rule as the desktop message-token-display: the highest
                 // content-part stepIndex + 1 is the number of engine requests
                 // this reply took; only surfaced when it exceeds one step.
