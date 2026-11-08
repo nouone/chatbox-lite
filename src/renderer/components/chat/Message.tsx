@@ -478,7 +478,7 @@ const _Message: FC<Props> = (props) => {
         tips.push({
           label: `${formatNumber(tokenDisplay.totalTokens)} processed`,
           tooltip: t(
-            'Tokens processed across every step of this reply. Work Mode re-sends the conversation on each step, so this can far exceed the context size; the token badge shows the conversation.'
+            'Tokens billed across the whole agent loop for this reply. Work Mode re-sends the conversation on each step, so this is the cost, not the context size; the token badge at the prompt box shows the conversation.'
           ) as string,
         })
         if (tokenDisplay.stepCount) {
@@ -488,16 +488,25 @@ const _Message: FC<Props> = (props) => {
           })
         }
         if (tokenDisplay.cachedInputTokens) {
+          // Cache share is about prompt tokens only; totalTokens includes the
+          // reply itself. The engine reports it per request (dashboard REUSED
+          // column); the SDK sums it across steps, so this is the loop average.
+          const cacheDenom = tokenDisplay.inputTokens ?? tokenDisplay.totalTokens
           tips.push({
-            label: `${Math.round((tokenDisplay.cachedInputTokens / tokenDisplay.totalTokens) * 100)}% cached`,
-            tooltip: t('{{n}} cached input tokens', { n: formatNumber(tokenDisplay.cachedInputTokens) }) as string,
+            label: `~${Math.round((tokenDisplay.cachedInputTokens / cacheDenom) * 100)}% cached`,
+            tooltip: t(
+              'Share of prompt tokens the engine reused from cache, averaged across all steps of this reply ({{n}} of {{m}}). Per-request figures are in the engine dashboard.',
+              { n: formatNumber(tokenDisplay.cachedInputTokens), m: formatNumber(cacheDenom) }
+            ) as string,
           })
         }
         if (tokenDisplay.outputTokensPerSecond) {
           tips.push({
-            label: `${tokenDisplay.outputTokensPerSecond.toFixed(1)} t/s`,
+            label: `${tokenDisplay.outputTokensPerSecond.toFixed(1)} t/s avg`,
             tooltip: (tokenDisplay.engineSpeed
-              ? t('Provider-reported generation tokens per second, excluding prompt processing')
+              ? t(
+                  'Average engine decode speed across every step of this reply: tokens generated divided by generation time only. Excludes prompt processing and tool time; not reply speed - see the model + tools split for that.'
+                )
               : t(
                   'Average output tokens per second over the whole reply, including prompt processing and tools'
                 )) as string,

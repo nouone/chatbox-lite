@@ -53,7 +53,7 @@ describe('Message token display', () => {
           firstTokenLatency: 2600,
         })
       )
-    ).toEqual({ totalTokens: 7542, cachedInputTokens: 4957, outputTokensPerSecond: 54.2 })
+    ).toEqual({ totalTokens: 7542, inputTokens: 7000, cachedInputTokens: 4957, outputTokensPerSecond: 54.2 })
   })
   test.each([undefined, 0, -1, Number.NaN, Number.POSITIVE_INFINITY])(
     'omits speed for missing/invalid duration %s',
@@ -92,7 +92,7 @@ describe('Message token display', () => {
           tokensUsed: 999,
         })
       )
-    ).toEqual({ totalTokens: 15 })
+    ).toEqual({ totalTokens: 15, inputTokens: 10 })
   })
 
   test('includes cached input tokens reported by the provider', () => {
@@ -103,7 +103,7 @@ describe('Message token display', () => {
           usage: { inputTokens: 10, outputTokens: 5, totalTokens: 15, cachedInputTokens: 8 },
         })
       )
-    ).toEqual({ totalTokens: 15, cachedInputTokens: 8 })
+    ).toEqual({ totalTokens: 15, inputTokens: 10, cachedInputTokens: 8 })
   })
 
   test.each([0, Number.NaN, Number.POSITIVE_INFINITY])(

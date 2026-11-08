@@ -7,6 +7,9 @@ function isPositiveTokenCount(value: number | undefined): value is number {
 
 export interface MessageTokenDisplay {
   totalTokens: number
+  /** Summed prompt tokens across all steps; the cache share's denominator
+   * (totalTokens includes output, which is not part of the cache question). */
+  inputTokens?: number
   cachedInputTokens?: number
   engineSpeed?: boolean
   outputTokensPerSecond?: number
@@ -45,8 +48,10 @@ export function getMessageTokenDisplay(message: Message): MessageTokenDisplay | 
       }
     }
     if (!stepCount || stepCount < 2) stepCount = undefined
+    const inputTokens = message.usage?.inputTokens
     return {
       totalTokens,
+      ...(isPositiveTokenCount(inputTokens) ? { inputTokens } : {}),
       ...(engineSpeed ? { engineSpeed: true } : {}),
       ...(isPositiveTokenCount(cachedInputTokens) ? { cachedInputTokens } : {}),
       ...(isPositiveTokenCount(outputTokensPerSecond) ? { outputTokensPerSecond } : {}),
