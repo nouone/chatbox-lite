@@ -81,7 +81,7 @@ export default class MenuBuilder {
       label: 'Chatbox',
       submenu: [
         {
-          label: 'About Chatbox',
+          label: 'About Wao',
           selector: 'orderFrontStandardAboutPanel:',
         },
         { type: 'separator' },

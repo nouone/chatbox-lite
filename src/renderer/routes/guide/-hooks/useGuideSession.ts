@@ -168,7 +168,7 @@ export function useGuideSession(): UseGuideSessionReturn {
     if (enterCompleted) {
       // User already has valid config, show completion message
       const configCompleteMsg = t(
-        "You've already completed the setup and can use Chatbox normally.\n\nIf you have any questions about Chatbox AI, feel free to ask me here."
+        "You've already completed the setup and can use Wao normally.\n\nIf you have any questions about Wao, feel free to ask me here."
       )
       setMessages([
         {
@@ -611,7 +611,7 @@ Chatbox is an **all-in-one AI chat client** that supports 30+ mainstream models 
       setOnboardingStep('completed')
       appendFixedMessage(
         t(
-          "You've already completed the setup and can use Chatbox normally.\n\nIf you have any questions about Chatbox AI, feel free to ask me here."
+          "You've already completed the setup and can use Wao normally.\n\nIf you have any questions about Wao, feel free to ask me here."
         ),
         [
           createNewChatButtonToolPart(`new-chat-btn-${Date.now()}`, {
