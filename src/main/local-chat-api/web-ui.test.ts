@@ -3,7 +3,13 @@ import { fireEvent, waitFor } from '@testing-library/dom'
 import { expect, it, vi } from 'vitest'
 import { LOCAL_CHAT_WEB_UI } from './web-ui'
 
-async function setup() {
+type ChatSnapshot = {
+  id: string
+  revision: number
+  messages: { id: string; role: string; text: string }[]
+}
+
+async function setup(readChat?: (url: string) => Promise<ChatSnapshot>) {
   document.body.innerHTML = LOCAL_CHAT_WEB_UI.split('<body>')[1].split('<script>')[0]
   const history = {
     id: 'existing-chat',
@@ -12,6 +18,7 @@ async function setup() {
   }
   let paired = false
   const chats = [{ id: 'existing-chat', name: 'Desktop chat' }]
+  if (readChat) chats.push({ id: 'other-chat', name: 'Other chat' })
   const fetch = vi.fn(
     async (url: string, options?: { method?: string; body?: string; headers?: Record<string, string> }) => {
       if (url.endsWith('/speech') && options?.method === 'POST') return {ok:true,blob:async()=>new Blob(['audio'],{type:'audio/mpeg'})}
@@ -30,7 +37,7 @@ async function setup() {
             ? { items: chats, nextCursor: null }
             : options?.method === 'POST'
               ? { messageId: 'new-message' }
-              : history,
+              : readChat ? await readChat(url) : history,
       }
     }
   )
@@ -87,6 +94,74 @@ it('continues the selected desktop chat, renders response text safely, and sends
     )
   )
   expect(document.querySelectorAll('select').length).toBe(1) // Conversation picker only; voice mode uses segmented tap controls, still no model picker.
+})
+
+function snapshot(revision: number, ...messages: string[]): ChatSnapshot {
+  return {
+    id: 'existing-chat',
+    revision,
+    messages: messages.map((id) => ({ id, role: 'assistant', text: id })),
+  }
+}
+
+function renderedReplies() {
+  return Array.from(document.querySelectorAll('#messages .message-content'), (node) => node.textContent)
+}
+
+it('keeps the newest reply at the bottom when the live window adds older history', async () => {
+  const { fetch, sockets } = await setup(async () => snapshot(20, 'newest'))
+  expect(fetch).toHaveBeenCalledWith('/api/chats/existing-chat?view=web&limit=100', expect.anything())
+  expect(renderedReplies()).toEqual(['newest'])
+
+  const update = (chat: ChatSnapshot) => sockets[0].onmessage!({
+    data: JSON.stringify({ type: 'chat.snapshot', status: 200, chat }),
+  })
+  update(snapshot(20, 'older', 'newest'))
+  expect(renderedReplies()).toEqual(['older', 'newest'])
+
+  update(snapshot(19, 'older'))
+  expect(renderedReplies()).toEqual(['older', 'newest'])
+})
+
+it('ignores an outstanding refresh from a previous visit to the same conversation', async () => {
+  let current = snapshot(19, 'older')
+  let pending: Promise<ChatSnapshot> | undefined
+  const { timers } = await setup(async (url) =>
+    url.includes('other-chat') ? { ...snapshot(1), id: 'other-chat' } : pending ?? current
+  )
+  expect(renderedReplies()).toEqual(['older'])
+
+  let release!: (chat: ChatSnapshot) => void
+  pending = new Promise((resolve) => { release = resolve })
+  timers.at(-1)!()
+  pending = undefined
+  current = snapshot(20, 'older', 'newest')
+
+  const picker = document.getElementById('mobile-chats')!
+  fireEvent.change(picker, { target: { value: 'other-chat' } })
+  await waitFor(() => expect(document.getElementById('status')!.textContent).toBe('Connected to Desktop'))
+  fireEvent.change(picker, { target: { value: 'existing-chat' } })
+  await waitFor(() => expect(renderedReplies()).toEqual(['older', 'newest']))
+
+  release(snapshot(20, 'older'))
+  // Drain the pending fetch and JSON promises before checking the rendered result.
+  await new Promise((resolve) => setTimeout(resolve, 0))
+  expect(renderedReplies()).toEqual(['older', 'newest'])
+})
+
+it('keeps a live update when an earlier refresh returns at the same revision', async () => {
+  let response = Promise.resolve(snapshot(20, 'older'))
+  const { sockets, timers } = await setup(() => response)
+  let release!: (chat: ChatSnapshot) => void
+  response = new Promise((resolve) => { release = resolve })
+  timers.at(-1)!()
+
+  sockets[0].onmessage!({
+    data: JSON.stringify({ type: 'chat.snapshot', status: 200, chat: snapshot(20, 'older', 'newest') }),
+  })
+  release(snapshot(20, 'older'))
+  await new Promise((resolve) => setTimeout(resolve, 0))
+  expect(renderedReplies()).toEqual(['older', 'newest'])
 })
 
 it('reconnects a remembered browser after a closed stream without asking for its token', async () => {

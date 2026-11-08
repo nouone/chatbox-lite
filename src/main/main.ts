@@ -8,9 +8,9 @@ import { installSessionPrivacy } from './network-privacy'
 
 // Validate QA profile and task isolation before any Electron module can touch userData.
 import { CHATBOX_QA_PREFLIGHT } from './qa-preflight'
+import './profile'
 
-// solve electron breaking changes, see https://www.electronjs.org/docs/latest/breaking-changes#behavior-changed-directory-databases-in-userdata-will-be-deleted
-// since 1.21.0, and this NEEDS to be the first import that initializes Electron's app module.
+// Migrate legacy databases before Chromium can remove the old databases directory.
 import './legacy-database-migration'
 import { registerLocalChatApi } from './local-chat-api/desktop'
 import { registerFileTransferIpc } from './file-transfer-ipc'
@@ -269,14 +269,6 @@ if (process.platform === 'linux' && !IS_HARMONY_BUILD) {
   const { disableGpu, disableDevShmUsage } = linuxRuntimeFlags
   log.info(`[Linux startup flags] disableGpu=${disableGpu}, disableDevShmUsage=${disableDevShmUsage}`)
 }
-
-// Profile identity: Wao reads %APPDATA%\Wao (was xyz.chatboxapp.ce before
-// the rename). Must run before app.whenReady(): userData, logs, the log
-// mirror, local-api token/settings, skills and sandbox blobs all derive
-// from this single name, and the Windows notification AUMID below follows
-// it. Existing installs migrate by renaming the profile folder once while
-// the app is closed; nothing else keys off the old directory name.
-app.setName('Wao')
 
 // 这行代码是解决 Windows 通知的标题和图标不正确的问题，标题会错误显示成 electron.app.Chatbox
 // 参考：https://stackoverflow.com/questions/65859634/notification-from-electron-shows-electron-app-electron
