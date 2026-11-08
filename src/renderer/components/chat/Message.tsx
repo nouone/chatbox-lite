@@ -86,6 +86,7 @@ import { isErrorOnlyMessage, shouldRightAlignMessage } from './message-layout'
 import { getMessagePreviewText } from './message-navigation-utils'
 import { getMessageRoleClass } from './message-role-class'
 import { createCollapsedDisplayGroups, createMessageTimelineLayout } from './message-timeline'
+import { formatNumber } from '@shared/utils'
 import { getMessageTokenDisplay } from './message-token-display'
 import { PictureGallery } from './PictureGallery'
 import ReadAloudButton from './ReadAloudButton'
@@ -475,13 +476,21 @@ const _Message: FC<Props> = (props) => {
       const tokenDisplay = getMessageTokenDisplay(msg)
       if (tokenDisplay) {
         tips.push({
-          label: `${tokenDisplay.totalTokens} tokens`,
-          tooltip: t('Total tokens consumed') as string,
+          label: `${formatNumber(tokenDisplay.totalTokens)} processed`,
+          tooltip: t(
+            'Tokens processed across every step of this reply. Work Mode re-sends the conversation on each step, so this can far exceed the context size; the token badge shows the conversation.'
+          ) as string,
         })
+        if (tokenDisplay.stepCount) {
+          tips.push({
+            label: `${tokenDisplay.stepCount} steps`,
+            tooltip: t('Requests this reply took; each step re-sends the conversation') as string,
+          })
+        }
         if (tokenDisplay.cachedInputTokens) {
           tips.push({
-            label: `${tokenDisplay.cachedInputTokens} cached`,
-            tooltip: t('Cached input tokens') as string,
+            label: `${Math.round((tokenDisplay.cachedInputTokens / tokenDisplay.totalTokens) * 100)}% cached`,
+            tooltip: t('{{n}} cached input tokens', { n: formatNumber(tokenDisplay.cachedInputTokens) }) as string,
           })
         }
         if (tokenDisplay.outputTokensPerSecond) {

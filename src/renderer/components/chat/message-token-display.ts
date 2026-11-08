@@ -10,6 +10,8 @@ export interface MessageTokenDisplay {
   cachedInputTokens?: number
   engineSpeed?: boolean
   outputTokensPerSecond?: number
+  /** Generation steps this reply took; only reported when > 1. */
+  stepCount?: number
 }
 
 export function getMessageTokenDisplay(message: Message): MessageTokenDisplay | null {
@@ -31,11 +33,24 @@ export function getMessageTokenDisplay(message: Message): MessageTokenDisplay | 
       : isPositiveTokenCount(outputTokens) && isPositiveTokenCount(duration)
         ? outputTokens / (duration / 1000)
         : undefined
+    // Work Mode replies re-send the whole conversation on every step, so
+    // totalTokens is the summed cost of ALL steps (field: 6.8M for a 380K
+    // chat), not the context size. The step count is what makes that number
+    // legible; content parts carry their stepIndex, and the last one plus one
+    // is the number of requests this reply took.
+    let stepCount: number | undefined
+    for (const part of message.contentParts || []) {
+      if ('stepIndex' in part && typeof part.stepIndex === 'number' && part.stepIndex >= 0) {
+        stepCount = Math.max(stepCount ?? 0, part.stepIndex + 1)
+      }
+    }
+    if (!stepCount || stepCount < 2) stepCount = undefined
     return {
       totalTokens,
       ...(engineSpeed ? { engineSpeed: true } : {}),
       ...(isPositiveTokenCount(cachedInputTokens) ? { cachedInputTokens } : {}),
       ...(isPositiveTokenCount(outputTokensPerSecond) ? { outputTokensPerSecond } : {}),
+      ...(stepCount ? { stepCount } : {}),
     }
   }
 
