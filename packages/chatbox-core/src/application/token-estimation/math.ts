@@ -134,7 +134,15 @@ export function getCompactionBudget(
   const outputReserveTokens = getOutputReserveTokens(contextWindow, options.maxOutputTokens)
   const usableTokens = contextWindow - outputReserveTokens
   if (usableTokens <= 0) return null
-  const thresholdTokens = Math.floor(usableTokens * (options.compactionThreshold ?? DEFAULT_COMPACTION_THRESHOLD))
+  // "90% is 90%" (field): the trigger is threshold of the FULL window, the same
+  // denominator the token badge displays. Sizing it against the post-reservation
+  // window made a 90% setting fire at ~88.6% on the badge (524K window, 8K reply
+  // limit), which reads as the app ignoring the dial. The reply reservation is
+  // still protected: it caps the trigger, so a percentage that would leave less
+  // than a full reply (tiny window, big max-tokens) fires at the safe ceiling
+  // instead of overflowing the engine mid-stream.
+  const threshold = options.compactionThreshold ?? DEFAULT_COMPACTION_THRESHOLD
+  const thresholdTokens = Math.min(Math.floor(contextWindow * threshold), usableTokens)
   return {
     contextWindow,
     outputReserveTokens,

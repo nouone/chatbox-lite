@@ -24,8 +24,11 @@ function round(id: string, chars = 20_000): ModelMessage[] {
   ]
 }
 
-/** A 100K window: 25.6K reply reservation, 76.8K usable, compaction above 57.6K. */
-function harness(contextWindow = 102_400, language?: string, extra: Partial<MidRunCompactionOptions> = {}) {
+/** Default 0.5625 keeps the trigger the controller tests were calibrated
+ * against (57.6K on a 100K window, 9,216 on 16K, 112 on 200): under the
+ * full-window trigger formula that is 0.5625 of the window, not 0.75 of the
+ * post-reservation usable. The formula itself is covered in math.test.ts. */
+function harness(contextWindow = 102_400, language?: string, threshold = 0.5625, extra: Partial<MidRunCompactionOptions> = {}) {
   const abort = new AbortController()
   const source: ModelMessage[] = [
     { role: 'system', content: 'system' },
@@ -39,7 +42,7 @@ function harness(contextWindow = 102_400, language?: string, extra: Partial<MidR
   let fail: 'throw' | 'false' | 'boundary' | 'busy' | 'stale_path' | undefined
   let declineSplit = false
   const controller = new MidRunCompactionController({
-    budget: getCompactionBudget(contextWindow),
+    budget: getCompactionBudget(contextWindow, { compactionThreshold: threshold }),
     ...extra,
     language,
     signal: abort.signal,
@@ -105,7 +108,7 @@ function harness(contextWindow = 102_400, language?: string, extra: Partial<MidR
 
 describe('MidRunCompactionController', () => {
   it('rejects a mismatched coverage receipt even when every current tool call stays in the tail', async () => {
-    const h = harness(200)
+    const h = harness(200, undefined, 0.75)
     h.source[1] = { role: 'user', content: 'history '.repeat(1000) }
     h.append('current-tool', 10)
     h.setFailure('boundary')
@@ -116,7 +119,7 @@ describe('MidRunCompactionController', () => {
 
   for (const reason of ['busy'] as const) {
     it(`keeps later compaction available after ${reason}`, async () => {
-      const h = harness(200)
+      const h = harness(200, undefined, 0.75)
       h.source[1] = { role: 'user', content: 'history '.repeat(1000) }
       h.append('current-tool', 10)
       h.setFailure(reason)
@@ -129,7 +132,7 @@ describe('MidRunCompactionController', () => {
   }
 
   it('resumes the task in the session language before the retained tool rounds', async () => {
-    const h = harness(200, 'zh-Hans')
+    const h = harness(200, 'zh-Hans', 0.75)
     h.source[1] = { role: 'user', content: 'history '.repeat(1000) }
     h.append('current-tool', 10)
     const rewritten = await h.controller.prepareStep(h.source, 1)
@@ -145,7 +148,7 @@ describe('MidRunCompactionController', () => {
   })
 
   it('stops planning after the generation path becomes stale', async () => {
-    const h = harness(200)
+    const h = harness(200, undefined, 0.75)
     h.source[1] = { role: 'user', content: 'history '.repeat(1000) }
     h.append('current-tool', 10)
     h.setFailure('stale_path')
@@ -162,7 +165,7 @@ describe('MidRunCompactionController', () => {
       const effective = await h.controller.prepareStep(h.source, step)
       const tokens = estimateModelMessagesTokens(effective)
       measurements.push(tokens)
-      assert.ok(tokens <= 57_600, `step ${step} grew to ${tokens} tokens`)
+      assert.ok(tokens <= 57_600, `step ${step} grew to ${tokens} tokens`) // trigger 0.5625 x 102,400
       assert.ok(collectToolCallIds(effective).has(`t${step}`), 'the newest result must survive')
     }
     assert.ok(h.compactions >= 3, `only compacted ${h.compactions} time(s)`)
@@ -247,8 +250,9 @@ describe('MidRunCompactionController', () => {
 
   it('waits for growth when fixed content keeps a compacted request above the threshold', async () => {
     const headroom: Array<{ tokens: number; thresholdTokens: number }> = []
-    // 16K window: 12,288 usable, threshold 9,216, 1,843 growth between compactions.
-    const h = harness(16_384, undefined, { onInsufficientHeadroom: (info) => headroom.push(info) })
+    // 16K window at 0.5625 of the full window: 12,288 usable, trigger 9,216,
+    // 1,843 growth between compactions (same numbers the test was tuned against).
+    const h = harness(16_384, undefined, 0.5625, { onInsufficientHeadroom: (info) => headroom.push(info) })
     h.source[0] = { role: 'system', content: 'x'.repeat(37_000) }
     for (let step = 1; step <= 20; step += 1) {
       h.append(`t${step}`, 2_000)
@@ -261,8 +265,10 @@ describe('MidRunCompactionController', () => {
   })
 
   it('counts request overhead such as tool definitions toward the threshold', async () => {
-    const withoutOverhead = harness(16_384)
-    const withOverhead = harness(16_384, undefined, { getRequestOverheadTokens: async () => 6_000 })
+    // 0.5625 keeps the trigger at the original 9,216: six ~510-token rounds
+    // (3,060) must stay under it, and 3,060 + 6,000 overhead must cross it.
+    const withoutOverhead = harness(16_384, undefined, 0.5625)
+    const withOverhead = harness(16_384, undefined, 0.5625, { getRequestOverheadTokens: async () => 6_000 })
     for (const h of [withoutOverhead, withOverhead]) {
       for (let step = 1; step <= 6; step += 1) h.append(`t${step}`, 2_000)
       await h.controller.prepareStep(h.source, 6)
@@ -284,7 +290,7 @@ describe('MidRunCompactionController', () => {
   it('leaves the request below a low threshold instead of compacting to half the usable window', async () => {
     const headroom: Array<{ tokens: number; thresholdTokens: number }> = []
     const budget = getCompactionBudget(16_384, { compactionThreshold: 0.4 })!
-    const h = harness(16_384, undefined, { budget, onInsufficientHeadroom: (info) => headroom.push(info) })
+    const h = harness(16_384, undefined, 0.4, { budget, onInsufficientHeadroom: (info) => headroom.push(info) })
     for (let step = 1; step <= 12; step += 1) h.append(`t${step}`, 2_000)
     const effective = await h.controller.prepareStep(h.source, 12)
     assert.equal(h.compactions, 1)

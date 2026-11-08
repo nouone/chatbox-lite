@@ -161,3 +161,51 @@ it('sends without touching settings when no thinkingEffort is given', async () =
   expect(mocks.updateHeader).not.toHaveBeenCalled()
   expect(mocks.send).toHaveBeenCalledOnce()
 })
+it('re-reads a stale cursor page once against the current revision', async () => {
+  // The page cursor pins the revision it was cut at; a desktop send bumps it.
+  // Load-older must re-stamp the cursor and retry, not surface "changed".
+  const cursor = {
+    sessionId: 'chat',
+    revision: 4,
+    threadId: 'thread',
+    threadOrder: 0,
+    messageId: 'anchor',
+    direction: 'before',
+    limit: 50,
+    maxBytes: 2 * 1024 * 1024,
+    scope: 'transcript',
+  }
+  mocks.history
+    .mockRejectedValueOnce(new Error('Conversation changed; refresh and try again'))
+    .mockResolvedValueOnce({
+      messages: [{ threadId: 'thread', message: { id: 'older', role: 'user', contentParts: [{ type: 'text', text: 'older page' }] } }],
+      older: null,
+    })
+  const result = await handleLocalChatCall({ action: 'read', chatId: 'chat', cursor: JSON.stringify(cursor), limit: 50 })
+  expect(result.status).toBe(200)
+  expect(result.body).toMatchObject({ messages: [{ id: 'older', text: 'older page' }] })
+  expect(mocks.history).toHaveBeenCalledTimes(2)
+  expect(mocks.history).toHaveBeenLastCalledWith(
+    expect.objectContaining({
+      expectedRevision: 5,
+      cursor: expect.objectContaining({ revision: 5, messageId: 'anchor' }),
+    })
+  )
+})
+it('does not retry a cursor read when the revision did not actually move', async () => {
+  const cursor = {
+    sessionId: 'chat',
+    revision: 5,
+    threadId: 'thread',
+    threadOrder: 0,
+    messageId: 'anchor',
+    direction: 'before',
+    limit: 50,
+    maxBytes: 2 * 1024 * 1024,
+    scope: 'transcript',
+  }
+  mocks.history.mockRejectedValueOnce(new Error('Conversation changed; refresh and try again'))
+  const result = await handleLocalChatCall({ action: 'read', chatId: 'chat', cursor: JSON.stringify(cursor), limit: 50 })
+  expect(result.status).toBe(409)
+  expect(mocks.history).toHaveBeenCalledOnce()
+})

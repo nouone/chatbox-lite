@@ -22,8 +22,12 @@ import {
   getRequestOverheadBeyond,
 } from './CompactionService'
 
-/** A 16K window: 4K reply reservation, 12K usable, compaction above 9.2K. */
-const budget = getCompactionBudget(16_384)!
+/** A 32K window at 0.6: 8K reply reservation, 24K usable, compaction above
+ * 19.6K. The threshold must stay below the usable ceiling for the growth-baseline
+ * tests to exercise the waiting rule instead of the always-fits rule; with the
+ * full-window trigger formula a small window's default 0.75 lands exactly on the
+ * ceiling (min(window x threshold, usable)), which would collapse both. */
+const budget = getCompactionBudget(32_768, { compactionThreshold: 0.6 })!
 const overThreshold = { tokens: budget.thresholdTokens + 1, budget }
 function message(id: string, role: Message['role']): Message {
   return { id, role, contentParts: [{ type: 'text', text: id }] }

@@ -493,8 +493,10 @@ describe('row token estimation', () => {
   it('keeps an unknown visual limit unknown while compaction receives the 128k fallback', () => {
     const model = { provider: 'custom-provider', modelId: 'unknown-private-model' }
     expect(resolveModelContextWindow(model)).toBeNull()
+    // Trigger is 60% of the full fallback window (the badge's denominator),
+    // under the 96K usable ceiling.
     expect(getCompactionBudgetForModel({ model, compactionThreshold: 0.6 })?.thresholdTokens).toBe(
-      Math.floor((FALLBACK_CONTEXT_WINDOW_TOKENS - 32_000) * 0.6)
+      Math.floor(FALLBACK_CONTEXT_WINDOW_TOKENS * 0.6)
     )
   })
 

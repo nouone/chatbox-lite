@@ -151,15 +151,16 @@ describe('runCompactionWithUIState', () => {
   })
 
   it('adds the recorded tools and extra instructions to the history estimate', async () => {
-    // Unknown model: 128K fallback window, 96K usable, compaction above 72K.
-    estimateMock.mockResolvedValueOnce({ totalTokens: 70_000 })
+    // Unknown model: 128K fallback window, 96K usable; the default 0.75 trigger
+    // is 75% of the full window (96K, exactly the usable ceiling).
+    estimateMock.mockResolvedValueOnce({ totalTokens: 92_000 })
     await expect(runCompactionWithUIState('session-1', { kind: 'automatic' })).resolves.toEqual({
       status: 'skipped',
       reason: 'not_needed',
     })
 
     recordRequestOverhead('session-1', { toolTokens: 2_000, extraSystemTokens: 3_000 })
-    estimateMock.mockResolvedValueOnce({ totalTokens: 70_000 })
+    estimateMock.mockResolvedValueOnce({ totalTokens: 92_000 })
     generateSummaryWithStreamMock.mockResolvedValueOnce({ success: true, summary: 'Summary' })
     await expect(runCompactionWithUIState('session-1', { kind: 'automatic' })).resolves.toMatchObject({
       status: 'compacted',

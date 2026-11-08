@@ -109,13 +109,32 @@ export async function handleLocalChatCall(call: LocalChatCall): Promise<LocalCha
       } catch {
         return { status: 400, body: { error: 'Invalid history cursor' } }
       }
-      const page = await sessions.readSessionTranscriptWindow({
-        sessionId: call.chatId,
-        expectedRevision: cursor?.revision ?? source.revision,
-        limit: Math.min(call.limit || 50, 100),
-        maxBytes: 2 * 1024 * 1024,
-        ...(cursor ? { cursor } : { origin: 'tail' as const }),
-      })
+      const limit = Math.min(call.limit || 50, 100)
+      const readChatId = call.chatId
+      const readWindow = (revision: number, pageCursor = cursor) =>
+        sessions.readSessionTranscriptWindow({
+          sessionId: readChatId,
+          expectedRevision: revision,
+          limit,
+          maxBytes: 2 * 1024 * 1024,
+          ...(pageCursor ? { cursor: pageCursor } : { origin: 'tail' as const }),
+        })
+      let page
+      try {
+        page = await readWindow(cursor?.revision ?? source.revision)
+      } catch (error) {
+        // A cursor read races any new message: the page cursor pins the revision
+        // it was cut at, and a desktop send bumps it. The cursor's anchor is a
+        // message ID that still exists, so re-read once against the current
+        // revision (cursor re-stamped; the reader requires cursor.revision to
+        // equal expectedRevision) instead of failing "Conversation changed"
+        // (field: load-older broke after every desktop send on long chats).
+        // Non-cursor reads pass the fresh header revision and cannot race.
+        if (!cursor) throw error
+        const fresh = await sessions.getSessionHeader(call.chatId)
+        if (!fresh || fresh.revision === cursor.revision) throw error
+        page = await readWindow(fresh.revision, { ...cursor, revision: fresh.revision })
+      }
       return {
         status: 200,
         body: {
