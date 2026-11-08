@@ -270,6 +270,14 @@ if (process.platform === 'linux' && !IS_HARMONY_BUILD) {
   log.info(`[Linux startup flags] disableGpu=${disableGpu}, disableDevShmUsage=${disableDevShmUsage}`)
 }
 
+// Profile identity: Wao reads %APPDATA%\Wao (was xyz.chatboxapp.ce before
+// the rename). Must run before app.whenReady(): userData, logs, the log
+// mirror, local-api token/settings, skills and sandbox blobs all derive
+// from this single name, and the Windows notification AUMID below follows
+// it. Existing installs migrate by renaming the profile folder once while
+// the app is closed; nothing else keys off the old directory name.
+app.setName('Wao')
+
 // 这行代码是解决 Windows 通知的标题和图标不正确的问题，标题会错误显示成 electron.app.Chatbox
 // 参考：https://stackoverflow.com/questions/65859634/notification-from-electron-shows-electron-app-electron
 if (process.platform === 'win32') {
