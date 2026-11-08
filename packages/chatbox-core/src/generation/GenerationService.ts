@@ -18,7 +18,7 @@ import type { MemoryToolContext } from '@shared/types/agent-persona'
 import { resolveCommandApprovalMode } from '@shared/types/command-execution'
 import { getTokenizerType } from '@shared/token-estimation/tokenizer'
 import { getMessageText } from '@shared/utils/message'
-import { resolveReasoningProviderOptions } from '@shared/utils/reasoning-control'
+import { readReasoningEffortLevel, resolveReasoningProviderOptions } from '@shared/utils/reasoning-control'
 import { MAX_TOOL_CALLS_BEFORE_CONFIRMATION, shouldPauseOnToolCallLimit } from '@shared/utils/tool-call-limit-pause'
 import type { ModelMessage, ToolSet } from 'ai'
 import { isAutoCompactionEnabled, type RequestOverheadTokens } from '../application/context'
@@ -644,6 +644,11 @@ export class GenerationService<TContext> {
       // Reasoning options are scoped to the provider+model they were configured for;
       // resolving here guarantees a switched model never inherits another model's parameters.
       const reasoningProviderOptions = resolveReasoningProviderOptions(settings, settings.provider, settings.modelId)
+      // Stamp the thinking mode this reply actually runs with - resolved from
+      // the same per-model options that go on the wire - so the meta line's
+      // t/s average can name the mode that produced it. Every later persist
+      // spreads targetMessage, so this lands on the saved reply.
+      targetMessage = { ...targetMessage, thinkingEffort: readReasoningEffortLevel(reasoningProviderOptions) }
       const knowledgeBase = host.getKnowledgeBase(sessionId)
       const webBrowsing = host.getWebBrowsing(sessionId, settings.provider, settings)
       const agentModeSupported =

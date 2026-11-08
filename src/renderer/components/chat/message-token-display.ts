@@ -13,6 +13,13 @@ export interface MessageTokenDisplay {
   cachedInputTokens?: number
   engineSpeed?: boolean
   outputTokensPerSecond?: number
+  /** Engine-measured totals behind the t/s average (provider-reported only). */
+  engineDecodeMs?: number
+  enginePromptMs?: number
+  engineProcessedTokens?: number
+  outputTokens?: number
+  /** Thinking budget this reply was stamped with at generation start. */
+  thinkingEffort?: 'default' | 'off' | 'low' | 'medium' | 'high'
   /** Generation steps this reply took; only reported when > 1. */
   stepCount?: number
 }
@@ -53,6 +60,11 @@ export function getMessageTokenDisplay(message: Message): MessageTokenDisplay | 
       totalTokens,
       ...(isPositiveTokenCount(inputTokens) ? { inputTokens } : {}),
       ...(engineSpeed ? { engineSpeed: true } : {}),
+      ...(isPositiveTokenCount(message.usage?.engineDecodeMs) ? { engineDecodeMs: message.usage!.engineDecodeMs } : {}),
+      ...(isPositiveTokenCount(message.usage?.enginePromptMs) ? { enginePromptMs: message.usage!.enginePromptMs } : {}),
+      ...(isPositiveTokenCount(message.usage?.engineProcessedTokens) ? { engineProcessedTokens: message.usage!.engineProcessedTokens } : {}),
+      ...(isPositiveTokenCount(outputTokens) ? { outputTokens } : {}),
+      ...(message.thinkingEffort ? { thinkingEffort: message.thinkingEffort } : {}),
       ...(isPositiveTokenCount(cachedInputTokens) ? { cachedInputTokens } : {}),
       ...(isPositiveTokenCount(outputTokensPerSecond) ? { outputTokensPerSecond } : {}),
       ...(stepCount ? { stepCount } : {}),

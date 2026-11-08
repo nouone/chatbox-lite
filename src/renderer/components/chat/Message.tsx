@@ -467,6 +467,8 @@ const _Message: FC<Props> = (props) => {
 
   // Units like "tokens", "words", "tkn", "s" are intentionally kept as hardcoded English
   // because they are technical/universal abbreviations that remain readable across all locales.
+  // Single-letter thinking levels match the Strata selector: default/off/low/medium/high.
+  const THINK_LEVEL_LABEL: Record<string, string> = { default: 'd', off: 'o', low: 'l', medium: 'm', high: 'h' }
   const tips: { label: string; tooltip?: string; copy?: string }[] = []
   if (props.sessionType === 'chat' || !props.sessionType) {
     if (showModelName && props.msg.role === 'assistant') {
@@ -500,16 +502,45 @@ const _Message: FC<Props> = (props) => {
             ) as string,
           })
         }
+        if (tokenDisplay.thinkingEffort) {
+          tips.push({
+            label: THINK_LEVEL_LABEL[tokenDisplay.thinkingEffort],
+            tooltip: t('Thinking budget this reply ran with: {{level}}', {
+              level: tokenDisplay.thinkingEffort,
+            }) as string,
+          })
+        }
         if (tokenDisplay.outputTokensPerSecond) {
+          // Engine-measured totals behind the average: mergeEngineTiming stores
+          // summed decode/prompt milliseconds and summed evaluated prompt tokens,
+          // and each step's reported rate equals its own n/ms exactly (verified
+          // against the engine), so tokens/decodeMs reproduces the chip number.
+          const fmtSec = (ms?: number) =>
+            ms === undefined ? '' : ms < 60000 ? `${(ms / 1000).toFixed(1)}s` : `${Math.floor(ms / 60000)}m${String(Math.round((ms % 60000) / 1000)).padStart(2, '0')}s`
+          const measured =
+            tokenDisplay.engineSpeed && tokenDisplay.engineDecodeMs && tokenDisplay.outputTokens
+              ? t(
+                  '{{rate}} t/s avg = {{n}} tokens generated / {{d}} decode across {{steps}} step(s). Prompt eval: {{p}} tokens / {{pm}} (cache-served tokens excluded). Thinking: {{think}}. Excludes tool time - see the model + tools split for wall time.',
+                  {
+                    rate: tokenDisplay.outputTokensPerSecond.toFixed(1),
+                    n: formatNumber(tokenDisplay.outputTokens),
+                    d: fmtSec(tokenDisplay.engineDecodeMs),
+                    steps: tokenDisplay.stepCount ?? 1,
+                    p: tokenDisplay.engineProcessedTokens !== undefined ? formatNumber(tokenDisplay.engineProcessedTokens) : '?',
+                    pm: fmtSec(tokenDisplay.enginePromptMs) || '?',
+                    think: THINK_LEVEL_LABEL[tokenDisplay.thinkingEffort ?? 'default'],
+                  }
+                )
+              : tokenDisplay.engineSpeed
+                ? t(
+                    'Average engine decode speed across every step of this reply: tokens generated divided by generation time only. Excludes prompt processing and tool time; not reply speed - see the model + tools split for that.'
+                  )
+                : t(
+                    'Average output tokens per second over the whole reply, including prompt processing and tools'
+                  )
           tips.push({
             label: `${tokenDisplay.outputTokensPerSecond.toFixed(1)} t/s avg`,
-            tooltip: (tokenDisplay.engineSpeed
-              ? t(
-                  'Average engine decode speed across every step of this reply: tokens generated divided by generation time only. Excludes prompt processing and tool time; not reply speed - see the model + tools split for that.'
-                )
-              : t(
-                  'Average output tokens per second over the whole reply, including prompt processing and tools'
-                )) as string,
+            tooltip: measured as string,
           })
         }
       }

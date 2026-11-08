@@ -162,6 +162,7 @@ export async function handleLocalChatCall(call: LocalChatCall): Promise<LocalCha
               timestamp: message.timestamp,
               model: message.model,
               thinking: message.generating && message.contentParts?.some((part) => part.type === 'reasoning'),
+              thinkingEffort: message.thinkingEffort,
               performance: {
                 inputTokens: message.usage?.inputTokens,
                 outputTokens: message.usage?.outputTokens,
@@ -170,6 +171,8 @@ export async function handleLocalChatCall(call: LocalChatCall): Promise<LocalCha
                 generationTokensPerSecond: message.usage?.engineOutputTokensPerSecond,
                 processingTokensPerSecond: message.usage?.engineInputTokensPerSecond,
                 processedTokens: message.usage?.engineProcessedTokens,
+                decodeMs: message.usage?.engineDecodeMs,
+                promptMs: message.usage?.enginePromptMs,
                 durationMs: message.generationDuration,
                 // Tool wall time vs model time (Nou: sleeps in commands were billed
                 // to reply latency). toolMs = sum of tool-call part durations;

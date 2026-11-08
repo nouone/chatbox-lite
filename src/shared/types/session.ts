@@ -410,6 +410,13 @@ export const MessageSchema = z.object({
    * provenance record for a message.
    */
   modelId: z.string().optional(),
+  /**
+   * Thinking budget this reply ran with, stamped at generation start from the
+   * session's resolved reasoning options for its model. The meta line shows it
+   * as d/o/l/m/h so a t/s average can be read against the mode that produced
+   * it. Absent on messages saved before the field existed.
+   */
+  thinkingEffort: z.enum(['default', 'off', 'low', 'medium', 'high']).optional().catch(undefined),
   style: z.string().optional(),
   files: z.array(MessageFileSchema).optional(),
   links: z.array(MessageLinkSchema).optional(),

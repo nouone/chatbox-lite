@@ -853,6 +853,31 @@ export function getReasoningControlOptions(
   ]
 }
 
+/**
+ * Reverse-map persisted per-model reasoning options to the control level the
+ * thinking selector shows (same vocabulary as ReasoningControlLevel). Used at
+ * generation start to stamp each reply with the thinking budget it actually
+ * ran with, so the meta line's t/s number can name its own mode. Reads the
+ * namespaces the option writers above produce; an entry with no reasoning
+ * namespace is 'default' (provider server-side default applies).
+ */
+export function readReasoningEffortLevel(options: ProviderOptions | undefined): ReasoningControlLevel {
+  if (!options) return 'default'
+  const ns = options as unknown as Record<
+    string,
+    { reasoningEffort?: string; effort?: string; thinking?: { type?: string } } | undefined
+  >
+  for (const value of [ns.openaiCompatible?.reasoningEffort, ns.openai?.reasoningEffort, ns.claude?.effort, ns.deepseek?.reasoningEffort]) {
+    if (value === 'none' || value === 'minimal') return 'off'
+    if (value === 'low' || value === 'medium' || value === 'high') return value
+    // DeepSeek/Anthropic gateways accept max/xhigh; the UI's strongest level.
+    if (value === 'max' || value === 'xhigh') return 'high'
+  }
+  if (ns.claude?.thinking?.type === 'disabled' || ns.deepseek?.thinking?.type === 'disabled') return 'off'
+  if (ns.claude?.thinking?.type === 'enabled' || ns.deepseek?.thinking?.type === 'enabled') return 'medium'
+  return 'default'
+}
+
 export function getReasoningProviderOptions(
   provider: ModelProvider | undefined,
   model: ProviderModelInfo | null | undefined,
