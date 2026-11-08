@@ -6,36 +6,51 @@ export const LOCAL_CHAT_WEB_UI = `<!doctype html><html lang="en"><head><meta cha
 .bubble .cbl-message-markdown> :first-child{margin-top:0}.bubble .cbl-message-markdown> :last-child{margin-bottom:0}.bubble p{margin:0 0 .7em}.bubble ul,.bubble ol{margin:.5em 0 .8em;padding-left:1.5em}.bubble li{margin:.25em 0}.bubble li p{margin:.2em 0}.bubble h1,.bubble h2,.bubble h3,.bubble h4{white-space:normal;margin:.9em 0 .45em;line-height:1.3;font-weight:650}.bubble h1{font-size:1.4em}.bubble h2{font-size:1.25em}.bubble h3{font-size:1.1em}.bubble code{font: .88em ui-monospace,Consolas,monospace;background:#dfddd5;border-radius:5px;padding:.1em .3em}.bubble pre{white-space:pre;overflow-x:auto;max-width:100%;padding:14px;border-radius:10px;background:#e1dfd7;line-height:1.5}.bubble pre code{background:transparent;padding:0}.bubble blockquote{border-left:3px solid #c8c3b8;margin:.7em 0;padding-left:1em;color:#63696a}.bubble table{border-collapse:collapse;display:block;max-width:100%;overflow-x:auto;margin:.8em 0}.bubble th,.bubble td{border:1px solid #ccc8bf;padding:.4em .65em;text-align:left}.bubble a{color:#b95f40;text-decoration:underline}.bubble hr{border:0;border-top:1px solid #d4d0c7;margin:1em 0}.image-placeholder{color:#777;font-style:italic}
 .message-actions{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:5px;max-width:100%}.message-actions button{font-size:13px;color:#ad563b;padding:6px 10px}.message-actions audio{max-width:100%;width:300px;height:38px}.reply-dots{display:inline-flex;align-items:center;gap:5px;min-height:20px;margin-top:5px;color:#d97856}.reply-dots span{width:6px;height:6px;border-radius:50%;background:currentColor;animation:reply-dot 1.2s ease-in-out infinite}.reply-dots span:nth-child(2){animation-delay:.15s}.reply-dots span:nth-child(3){animation-delay:.3s}@keyframes reply-dot{0%,60%,100%{opacity:.3;transform:translateY(0)}30%{opacity:1;transform:translateY(-3px)}}@media(prefers-reduced-motion:reduce){.reply-dots span{animation:none;opacity:.7}}
 #mic{flex:none;width:42px;height:42px;border-radius:12px;background:#eeece6;color:#5a6060;font-size:20px;padding:0}#mic.live{background:#d97856;color:#fff}#mic:disabled{background:#eeece6;opacity:.45}
-#voice{position:fixed;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:22px;background:#faf9f6;z-index:20;padding:24px}
-#voice-status{font-size:17px;font-weight:600;color:#4a5050;min-height:1.4em;text-align:center}
-#voice-level{width:min(340px,80%);height:6px;border-radius:3px;background:#e5e2db;overflow:hidden}
-#voice-level i{display:block;height:100%;width:0;background:#d97856;border-radius:3px;transition:width .08s}
-#voice-orb{width:110px;height:110px;border-radius:50%;background:#eeece6;color:#5a6060;font-size:44px;display:grid;place-items:center;border:0;padding:0}
-#voice-orb.armed{background:#d97856;color:#fff;animation:voice-pulse 1.4s ease-in-out infinite}
+#voice{position:fixed;inset:0;display:flex;flex-direction:column;background:#faf9f6;z-index:20;padding:24px 20px 0;touch-action:manipulation}
+#voice-top{flex:none;text-align:center;padding-top:min(12dvh,80px)}
+#voice-status{font-size:30px;font-weight:700;color:#303333;min-height:1.3em;letter-spacing:-.02em}
+#voice-dots{display:flex;gap:9px;justify-content:center;margin-top:14px}
+#voice-dots i{width:11px;height:11px;border-radius:50%;background:#d97856;opacity:.3;animation:vdot 1.2s infinite}
+#voice-dots i:nth-child(2){animation-delay:.18s;opacity:.55}
+#voice-dots i:nth-child(3){animation-delay:.36s;opacity:.8}
+@keyframes vdot{0%,60%,100%{opacity:.25;transform:scale(1)}30%{opacity:1;transform:scale(1.15)}}
+#voice-stage{flex:1;display:flex;align-items:center;justify-content:center}
+#voice-orb{width:min(200px,46vw);height:min(200px,46vw);border-radius:50%;background:#eeece6;color:#5a6060;display:grid;place-items:center;border:0;padding:0;box-shadow:0 0 0 18px #d978561f}
+#voice-orb.armed{background:#d97856;color:#fff;box-shadow:0 0 0 18px #d9785614}
 #voice-orb.speaking{background:#8fb5a5;color:#fff}
-@keyframes voice-pulse{0%,100%{box-shadow:0 0 0 0 #d9785655}50%{box-shadow:0 0 0 22px #d9785600}}
-#voice-row{display:flex;align-items:center;gap:14px}
-#voice select{border:1px solid #dfddd6;border-radius:9px;background:#fff;padding:.4rem .6rem;color:inherit}
-#voice-exit{font-size:14px;color:#747a7d}
-#voice-drawer{width:min(420px,100%);font-size:13px;color:#747a7d}
-#voice-drawer summary{cursor:pointer;list-style:none;text-align:center}
-#voice-drawer label{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:7px 4px;border-bottom:1px solid #eeece6}
-#voice-drawer select{border:1px solid #dfddd6;border-radius:8px;background:#fff;padding:.3rem .5rem;color:inherit}
-#voice .seg{display:inline-flex;border:1px solid #dfddd6;border-radius:14px;overflow:hidden;background:#fff}#voice .seg button{min-height:46px;min-width:52px;padding:10px 14px;font-size:15px;color:#5a6060;border-radius:0;border-right:1px solid #eeece6}#voice .seg button:last-child{border-right:0}#voice .seg button.on{background:#d97856;color:#fff}#voice-exit{min-height:46px;font-size:15px;color:#747a7d}#voice-drawer label{min-height:52px}@media(max-width:680px){#voice-row{flex-wrap:wrap;justify-content:center}}
+#voice-level{width:min(340px,80%);height:6px;border-radius:3px;background:#e5e2db;overflow:hidden;margin:18px auto 0}
+#voice-level i{display:block;height:100%;width:0;background:#d97856;border-radius:3px;transition:width .08s}
+#voice-reason{flex:none;margin-bottom:14px}
+#voice-reason h3{margin:0 4px 8px;font-size:14px;font-weight:600;color:#303333}
+.seg{display:flex;border-radius:16px;background:#e9e6df;overflow:hidden;width:100%}
+.seg button{flex:1;min-height:52px;padding:10px 4px;font-size:16px;font-weight:500;color:#5a6060;border-radius:12px;margin:5px;border:0}
+.seg button.on{background:#fff;color:#303333;font-weight:700;box-shadow:0 1px 4px #00000022}
+#voice-bar{flex:none;display:flex;justify-content:space-between;align-items:center;border-top:1px solid #e8e5df;padding:8px 4px 18px;margin:0 -20px;padding-left:24px;padding-right:24px;background:#faf9f6}
+#voice-bar button{display:flex;align-items:center;gap:10px;min-height:48px;font-size:16px;color:#303333}
+#voice-bar svg{flex:none}
+#voice-drawer{flex:none;display:none;margin-bottom:10px;border:1px solid #e8e5df;border-radius:16px;background:#fff;padding:4px 16px}
+#voice-drawer.open{display:block}
+#voice-drawer label{display:flex;justify-content:space-between;align-items:center;gap:16px;min-height:56px;font-size:16px;color:#303333;border-bottom:1px solid #f0ede7}
+#voice-drawer label:last-child{border-bottom:0}
+#voice-drawer .seg{width:auto;flex:none;background:transparent}
+#voice-drawer .seg button{min-width:64px;min-height:44px;font-size:14px;margin:3px}
+@media(prefers-reduced-motion:reduce){#voice-dots i{animation:none;opacity:.7}}
 </style></head><body>
 <div class="app"><aside><div class="brand">Chatbox <span>Lite</span></div><div class="aside-heading">Conversations<button id="refresh" aria-label="Refresh conversations" title="Refresh conversations">&#8635;</button></div><button id="new-chat" style="text-align:left;color:#b95f40">+ New chat</button><nav id="chats" aria-label="Conversations"></nav><button id="more" hidden>More conversations</button></aside>
 <main><header><div class="header-text"><h1 id="title">Continue a conversation</h1><p>Models, files and tools stay on Desktop</p></div><select id="mobile-chats" aria-label="Conversation"></select><button id="new-chat-mobile">+ New chat</button><button id="credentials">Connection</button></header>
 <div id="messages" role="log" aria-label="Conversation messages"></div><footer><p id="status" role="status">Connect to your running desktop app.</p><form id="composer" class="composer"><textarea id="content" aria-label="Message" placeholder="Type your message..." rows="2" disabled></textarea><button id="mic" type="button" aria-label="Voice mode" title="Voice mode" disabled><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5a3 3 0 0 1 3 -3a3 3 0 0 1 3 3v5a3 3 0 0 1 -3 3a3 3 0 0 1 -3 -3l0 -5"/><path d="M5 10a7 7 0 0 0 14 0"/><path d="M8 21l8 0"/><path d="M12 17l0 4"/></svg></button><button id="send" aria-label="Send message" title="Send message" disabled>&#8593;</button></form><p class="footnote">Uses the same saved conversation in Chatbox Lite Desktop.</p></footer></main></div>
 <div id="login" class="overlay"><form id="connect-form" class="login"><h2>Chatbox Lite Web</h2><p>Continue your desktop chats here. Keep CBL open on this computer.</p><p>In Desktop, open <strong>Settings &rarr; Advanced &rarr; Local chat API</strong> and click <strong>Copy token</strong>.</p><label for="token">API token</label><input id="token" type="password" autocomplete="off" spellcheck="false" required><label style="display:flex;align-items:center;gap:8px"><input id="remember" type="checkbox" style="width:auto" checked> Remember this device for 30 days</label><button id="connect">Connect</button><button id="forget" type="button">Forget this device</button><p id="login-error" role="alert"></p></form></div>
 <div id="voice" hidden>
-<p id="voice-status">Listening</p>
+<div id="voice-top"><p id="voice-status">Listening</p><div id="voice-dots" aria-hidden="true"><i></i><i></i><i></i></div></div>
+<div id="voice-stage"><button id="voice-orb" type="button" aria-label="Talk" title="Talk"><svg viewBox="0 0 24 24" width="72" height="72" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5a3 3 0 0 1 3 -3a3 3 0 0 1 3 3v5a3 3 0 0 1 -3 3a3 3 0 0 1 -3 -3l0 -5"/><path d="M5 10a7 7 0 0 0 14 0"/><path d="M8 21l8 0"/><path d="M12 17l0 4"/></svg></button></div>
 <div id="voice-level"><i></i></div>
-<button id="voice-orb" type="button" aria-label="Talk" title="Talk"><svg viewBox="0 0 24 24" width="48" height="48" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 5a3 3 0 0 1 3 -3a3 3 0 0 1 3 3v5a3 3 0 0 1 -3 3a3 3 0 0 1 -3 -3l0 -5"/><path d="M5 10a7 7 0 0 0 14 0"/><path d="M8 21l8 0"/><path d="M12 17l0 4"/></svg></button>
-<div id="voice-row"><div class="seg" id="voice-think" role="group" aria-label="Thinking level"><button type="button" data-v="off">think off</button><button type="button" data-v="low">low</button><button type="button" data-v="med">med</button><button type="button" data-v="high">high</button></div><button id="voice-exit" type="button">Exit voice</button></div>
-<details id="voice-drawer"><summary>Voice settings</summary>
+<div id="voice-drawer">
 <label>Interrupt me while speaking<span class="seg" id="voice-barge" role="group" aria-label="Interrupt while speaking"><button type="button" data-v="on">on</button><button type="button" data-v="off">off</button></span></label>
 <label>Turn responsiveness<span class="seg" id="voice-timing" role="group" aria-label="Turn responsiveness"><button type="button" data-v="700">quick</button><button type="button" data-v="1200">normal</button><button type="button" data-v="2000">patient</button></span></label>
-</details>
+</div>
+<div id="voice-reason"><h3>Reasoning</h3><div class="seg" id="voice-think" role="group" aria-label="Thinking level"><button type="button" data-v="off">Off</button><button type="button" data-v="low">Low</button><button type="button" data-v="med">Medium</button><button type="button" data-v="high">High</button></div></div>
+<div id="voice-bar"><button id="voice-settings" type="button"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M4 6h10"/><path d="M18 6h2"/><circle cx="16" cy="6" r="2"/><path d="M4 12h4"/><path d="M12 12h8"/><circle cx="10" cy="12" r="2"/><path d="M4 18h12"/><path d="M20 18h0"/><circle cx="18" cy="18" r="2"/></svg>Voice settings</button><button id="voice-exit" type="button"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12"/><path d="M18 6l-12 12"/></svg>Exit voice</button></div>
+
 </div>
 <script>
 const el=id=>document.getElementById(id);
@@ -75,7 +90,7 @@ var on=false,ctx,stream,proc,media,cal=[],silRms=0.012,calStart=0;
 var ring=[],ringLen=0,sampling=false,chunks=[],chunkLen=0,silTimer=null,maxTimer=null;
 var queue=[],playing=false,armedBits=[],armedThisTurn=0,spoken='';
 function orb(){return el('voice-orb')}
-function vstatus(t){el('voice-status').textContent=t}
+function vstatus(t){el('voice-status').textContent=t;var d=el('voice-dots');if(d)d.style.visibility=(t==='Thinking...')?'visible':'hidden'}
 function segv(id){var on=document.querySelector('#'+id+' button.on');return on?on.getAttribute('data-v'):''}
 function cfg(){return {barge:segv('voice-barge')==='on',win:Number(segv('voice-timing')),effort:segv('voice-think')}}
 function segSet(id,v){var hit=null;document.querySelectorAll('#'+id+' button').forEach(function(b){var m=b.getAttribute('data-v')===v;b.classList.toggle('on',m);if(m)hit=b});return !!hit}
@@ -102,6 +117,7 @@ function onframe(frame){var st=stats(frame),rms=st.rms,zc=st.zc;var bar=document
 function start(){if(on)return;if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){status('Microphone needs HTTPS or localhost (secure context).',true);return}navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:false,channelCount:1}}).then(function(s){stream=s;ctx=new (window.AudioContext||window.webkitAudioContext)({sampleRate:RATE});return ctx.resume()}).then(function(){var source=ctx.createMediaStreamSource(stream);proc=ctx.createScriptProcessor(256,1,1);var ratio=ctx.sampleRate/RATE;var pending=new Float32Array(160),pendLen=0;proc.onaudioprocess=function(e){var input=e.inputBuffer.getChannelData(0);var out=new Float32Array(input.length/ratio|0);for(var i=0;i<out.length;i++)out[i]=input[Math.min(input.length-1,Math.floor(i*ratio))];e.outputBuffer.getChannelData(0).fill(0);var p=0;/* ScriptProcessor needs a power-of-two buffer; frames stay 160 samples via this accumulator (160 is not a power of two). */while(p<out.length){var take=Math.min(160-pendLen,out.length-p);pending.set(out.subarray(p,p+take),pendLen);pendLen+=take;p+=take;if(pendLen===160){var frame=pending;pending=new Float32Array(160);pendLen=0;if(sampling){chunks.push(frame);chunkLen+=frame.length}onframe(frame)}}};var sink=ctx.createGain();source.connect(proc);proc.connect(sink);sink.connect(ctx.destination);on=true;cal=[0.0];calStart=Date.now();ring=[];ringLen=0;armedBits=[];el('voice').hidden=false;el('mic').classList.add('live');vstatus('Calibrating, stay quiet...');orb().classList.add('armed')}).catch(function(error){status('Microphone unavailable: '+error.message,true);stop()})}
 function stop(){on=false;sampling=false;clearTimeout(silTimer);clearTimeout(maxTimer);stopSpeaking();if(proc){try{proc.disconnect()}catch(e){}proc=null}if(stream){stream.getTracks().forEach(function(t){t.stop()});stream=null}if(ctx){ctx.close().catch(function(){});ctx=null}el('voice').hidden=true;el('mic').classList.remove('live');orb().classList.remove('armed')}
 el('mic').onclick=function(){on?stop():start()};
+el('voice-settings').onclick=function(){el('voice-drawer').classList.toggle('open')};
 el('voice-exit').onclick=stop;
 orb().onclick=function(){if(playing){stopSpeaking();vstatus('Listening')}};
 document.addEventListener('keydown',function(event){if(event.key==='Escape'&&on)stop()});
