@@ -477,28 +477,32 @@ const _Message: FC<Props> = (props) => {
     if (showTokenUsed && msg.role === 'assistant' && !msg.generating) {
       const tokenDisplay = getMessageTokenDisplay(msg)
       if (tokenDisplay) {
-        tips.push({
-          label: `${formatNumber(tokenDisplay.totalTokens)} processed`,
-          tooltip: t(
-            'Tokens billed across the whole agent loop for this reply. Work Mode re-sends the conversation on each step, so this is the cost, not the context size; the token badge at the prompt box shows the conversation.'
-          ) as string,
-        })
         if (tokenDisplay.stepCount) {
           tips.push({
             label: `${tokenDisplay.stepCount} steps`,
             tooltip: t('Requests this reply took; each step re-sends the conversation') as string,
           })
         }
-        if (tokenDisplay.cachedInputTokens) {
-          // Cache share is about prompt tokens only; totalTokens includes the
-          // reply itself. The engine reports it per request (dashboard REUSED
-          // column); the SDK sums it across steps, so this is the loop average.
+        // Merged cost chip (Nou format): "2.9M tokens (99% cached)". The cache
+        // share is about prompt tokens only; totalTokens includes the reply
+        // itself. The engine reports reuse per request (dashboard REUSED
+        // column); the SDK sums across steps, so this is the loop average.
+        {
+          const cached = tokenDisplay.cachedInputTokens
           const cacheDenom = tokenDisplay.inputTokens ?? tokenDisplay.totalTokens
           tips.push({
-            label: `~${Math.round((tokenDisplay.cachedInputTokens / cacheDenom) * 100)}% cached`,
+            label:
+              cached && cacheDenom > 0
+                ? `${formatNumber(tokenDisplay.totalTokens)} tokens (${Math.round((cached / cacheDenom) * 100)}% cached)`
+                : `${formatNumber(tokenDisplay.totalTokens)} tokens`,
             tooltip: t(
-              'Share of prompt tokens the engine reused from cache, averaged across all steps of this reply ({{n}} of {{m}}). Per-request figures are in the engine dashboard.',
-              { n: formatNumber(tokenDisplay.cachedInputTokens), m: formatNumber(cacheDenom) }
+              'Tokens billed across the whole agent loop for this reply. Work Mode re-sends the conversation on each step, so this is the cost, not the context size; the token badge at the prompt box shows the conversation.{{cache}}',
+              {
+                cache:
+                  cached && cacheDenom > 0
+                    ? ` Cache: ${formatNumber(cached)} of ${formatNumber(cacheDenom)} prompt tokens reused, averaged across steps; per-request figures are in the engine dashboard.`
+                    : '',
+              }
             ) as string,
           })
         }
@@ -539,7 +543,7 @@ const _Message: FC<Props> = (props) => {
                     'Average output tokens per second over the whole reply, including prompt processing and tools'
                   )
           tips.push({
-            label: `${tokenDisplay.outputTokensPerSecond.toFixed(1)} t/s avg`,
+            label: `${Math.round(tokenDisplay.outputTokensPerSecond)} t/s`,
             tooltip: measured as string,
           })
         }
@@ -547,7 +551,7 @@ const _Message: FC<Props> = (props) => {
     }
     if (showWordCount && !msg.generating) {
       const wc = msg.wordCount !== undefined ? msg.wordCount : countWord(getMessageText(msg))
-      tips.push({ label: `${wc}w`, tooltip: t('Word count') as string })
+      if (wc > 0) tips.push({ label: `${wc} words`, tooltip: t('Word count') as string })
     }
     if (showFirstTokenLatency && msg.role === 'assistant' && !msg.generating) {
       const toolMs = (msg.contentParts || []).reduce(
@@ -555,17 +559,21 @@ const _Message: FC<Props> = (props) => {
         0
       )
       const modelMs = msg.generationDuration ? Math.max(0, msg.generationDuration - toolMs) : 0
+      // Nou format: total wall time first, split in parens: "56s (50 model / 6 tools)".
+      const fmt = (ms: number) => (ms < 60000 ? Math.max(1, Math.round(ms / 1000)) + 's' : `${Math.floor(ms / 60000)}:${String(Math.round((ms % 60000) / 1000)).padStart(2, '0')}`)
       if (msg.generationDuration && toolMs > 0) {
         // Work Mode: command wall time was billed to the reply; separate it
         // from the model's own time (same split the web page shows).
         tips.push({
-          label: (() => {
-            const fmt = (ms: number) => (ms < 60000 ? (ms / 1000).toFixed(1) + "s" : `${Math.floor(ms / 60000)}:${String(Math.round((ms % 60000) / 1000)).padStart(2, "0")}`)
-            return `${fmt(modelMs)} model + ${fmt(toolMs)} tools`
-          })(),
+          label: `${fmt(msg.generationDuration)} (${fmt(modelMs)} model / ${fmt(toolMs)} tools)`,
           tooltip: t(
             'Reply wall time split: model time (thinking + generation) versus tool command time. Commands like sleeps count as tools, not the model.'
           ) as string,
+        })
+      } else if (msg.generationDuration) {
+        tips.push({
+          label: fmt(msg.generationDuration),
+          tooltip: t('Reply wall time') as string,
         })
       } else if (msg.firstTokenLatency)
         tips.push({
@@ -593,11 +601,11 @@ const _Message: FC<Props> = (props) => {
     const date = new Date(msg.timestamp)
     let messageTimestamp: string
     if (dateFns.isToday(date)) {
-      messageTimestamp = dateFns.format(date, 'HH:mm')
+      messageTimestamp = dateFns.format(date, 'h:mm a').toLowerCase()
     } else if (dateFns.isThisYear(date)) {
-      messageTimestamp = dateFns.format(date, 'MM-dd HH:mm')
+      messageTimestamp = dateFns.format(date, 'MM-dd h:mm a').toLowerCase()
     } else {
-      messageTimestamp = dateFns.format(date, 'yyyy-MM-dd HH:mm')
+      messageTimestamp = dateFns.format(date, 'yyyy-MM-dd h:mm a').toLowerCase()
     }
     tips.push({ label: messageTimestamp })
   }

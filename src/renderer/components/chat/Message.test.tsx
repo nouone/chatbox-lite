@@ -80,7 +80,7 @@ describe('Message token display', () => {
             generationDuration: 10000,
           })
         )
-      ).toEqual({ totalTokens: 7542, ...(Number.isFinite(outputTokens) && outputTokens > 0 ? { outputTokens } : {}) })
+      ).toEqual({ totalTokens: 7542, ...(Number.isFinite(outputTokens) && (outputTokens ?? 0) > 0 ? { outputTokens } : {}) })
     }
   )
   test('shows provider usage as consumed for a successful completed reply', () => {
