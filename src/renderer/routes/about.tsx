@@ -4,6 +4,7 @@ import { useTranslation } from 'react-i18next'
 import Page from '@/components/layout/Page'
 import { useIsSmallScreen } from '@/hooks/useScreenChange'
 import useVersion from '@/hooks/useVersion'
+import { BUILD_INFO } from '../buildInfo'
 import iconPNG from '@/static/icon.png'
 
 export const Route = createFileRoute('/about')({
@@ -31,8 +32,7 @@ function RouteComponent() {
               </Flex>
               <Text>Custom AI endpoints, local voice, and a streamlined interface.</Text>
               <Text c="chatbox-tertiary">
-                Independent community edition based on Chatbox. Lite build: 2026-11-03 (Markdown, QR access and document
-                fixes).
+                Independent community edition based on Chatbox. Lite build #${BUILD_INFO.n} (${BUILD_INFO.at}, ${BUILD_INFO.hash}).
               </Text>
             </Stack>
           </Flex>

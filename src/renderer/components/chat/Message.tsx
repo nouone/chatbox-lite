@@ -507,7 +507,7 @@ const _Message: FC<Props> = (props) => {
     }
     if (showWordCount && !msg.generating) {
       const wc = msg.wordCount !== undefined ? msg.wordCount : countWord(getMessageText(msg))
-      tips.push({ label: `${wc} words`, tooltip: t('Word count') as string })
+      tips.push({ label: `${wc}w`, tooltip: t('Word count') as string })
     }
     if (showFirstTokenLatency && msg.role === 'assistant' && !msg.generating) {
       const toolMs = (msg.contentParts || []).reduce(
