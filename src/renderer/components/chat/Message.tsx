@@ -467,7 +467,7 @@ const _Message: FC<Props> = (props) => {
 
   // Units like "tokens", "words", "tkn", "s" are intentionally kept as hardcoded English
   // because they are technical/universal abbreviations that remain readable across all locales.
-  const tips: { label: string; tooltip?: string }[] = []
+  const tips: { label: string; tooltip?: string; copy?: string }[] = []
   if (props.sessionType === 'chat' || !props.sessionType) {
     if (showModelName && props.msg.role === 'assistant') {
       tips.push({ label: props.msg.model || 'unknown', tooltip: t('Model') as string })
@@ -542,6 +542,13 @@ const _Message: FC<Props> = (props) => {
 
   const finishTip = getMessageFinishTip(msg, t)
 
+  if (msg.role === 'assistant' && msg.id) {
+    tips.push({
+      label: msg.id.slice(0, 8),
+      copy: msg.id,
+      tooltip: t('Reply id {{id}} - click to copy', { id: msg.id }) as string,
+    })
+  }
   if (showMessageTimestamp && msg.timestamp !== undefined) {
     const date = new Date(msg.timestamp)
     let messageTimestamp: string
@@ -1175,7 +1182,23 @@ const _Message: FC<Props> = (props) => {
     !msg.generating &&
     tips.length > 0 &&
     tips.map((tip, i) => {
-      const text = (
+      const text = tip.copy ? (
+        <Text
+          key={i}
+          size="11px"
+          c="chatbox-tertiary"
+          ff="monospace"
+          lh={1.4}
+          className="whitespace-nowrap cursor-pointer hover:underline"
+          title={tip.copy}
+          onClick={() => {
+            copyToClipboard(tip.copy!)
+            toastActions.add(t('copied to clipboard'), 2000)
+          }}
+        >
+          {i > 0 ? `· ${tip.label}` : tip.label}
+        </Text>
+      ) : (
         <Text key={i} size="11px" c="chatbox-tertiary" ff="monospace" lh={1.4} className="whitespace-nowrap">
           {i > 0 ? `· ${tip.label}` : tip.label}
         </Text>
