@@ -1,0 +1,131 @@
+import { getLogger } from '@/lib/utils'
+import platform from '@/platform'
+
+const log = getLogger('base-storage')
+
+export interface StorageReadOptions {
+  /** Require the default value to be persisted before returning it. */
+  persistInitialValue?: boolean
+}
+
+export default class BaseStorage {
+  constructor() {}
+
+  public getStorageType() {
+    return platform.getStorageType()
+  }
+
+  public async setItem<T>(key: string, value: T): Promise<void> {
+    return this.setItemNow(key, value)
+  }
+
+  public async setItemNow<T>(key: string, value: T): Promise<void> {
+    try {
+      if (key === 'settings') {
+        const valueObj = value as Record<string, unknown>
+        const providers = valueObj?.providers
+        const providersCount =
+          providers && typeof providers === 'object' && !Array.isArray(providers) ? Object.keys(providers).length : 0
+        if (providersCount === 0) {
+          log.info(
+            `[CONFIG_DEBUG] setItemNow settings with providersCount=0, stack=${new Error().stack?.split('\n').slice(1, 6).join(' <- ')}`
+          )
+        }
+      }
+      return await platform.setStoreValue(key, value)
+    } catch (error) {
+      log.error(`Failed to write to storage (key: ${key}):`, error)
+      throw error
+    }
+  }
+
+  /** Read a stored value, returning null when the key is absent. */
+  public async getItemRaw<T>(key: string): Promise<T | null> {
+    try {
+      const value: unknown = await platform.getStoreValue(key)
+      return (value ?? null) as T | null
+    } catch (error) {
+      log.error(`Failed to read from storage (key: ${key}):`, error)
+      throw error
+    }
+  }
+
+  public async getItem<T>(key: string, initialValue: T, options: StorageReadOptions = {}): Promise<T> {
+    try {
+      let value: unknown = await platform.getStoreValue(key)
+      if (value === undefined || value === null) {
+        value = initialValue
+        if (key === 'settings') {
+          log.info(`[CONFIG_DEBUG] getItem settings: value was null/undefined, using initialValue`)
+        }
+        const seed = this.setItemNow(key, value)
+        if (options.persistInitialValue) await seed
+        else void seed.catch(() => undefined)
+      } else if (key === 'settings') {
+        const providers = (value as Record<string, unknown>)?.providers
+        const providersCount =
+          providers && typeof providers === 'object' && !Array.isArray(providers) ? Object.keys(providers).length : 0
+        if (providersCount === 0) {
+          log.info(`[CONFIG_DEBUG] getItem settings: read providersCount=0 from storage`)
+        }
+      }
+      return value as T
+    } catch (error) {
+      log.error(`Failed to read from storage (key: ${key}):`, error)
+      throw error
+    }
+  }
+
+  public async removeItem(key: string): Promise<void> {
+    return platform.delStoreValue(key)
+  }
+
+  public async getAll(): Promise<{ [key: string]: any }> {
+    try {
+      return await platform.getAllStoreValues()
+    } catch (error) {
+      log.error('Failed to read all values from storage:', error)
+      throw error
+    }
+  }
+
+  public async getAllKeys(): Promise<string[]> {
+    try {
+      return await platform.getAllStoreKeys()
+    } catch (error) {
+      log.error('Failed to read all keys from storage:', error)
+      throw error
+    }
+  }
+
+  public async setAll(data: { [key: string]: any }) {
+    return platform.setAllStoreValues(data)
+  }
+
+  public get removeItems() {
+    return platform.delStoreValues?.bind(platform)
+  }
+
+  public get copyItem() {
+    return platform.copyStoreValue?.bind(platform)
+  }
+
+  public async setBlob(key: string, value: string) {
+    return platform.setStoreBlob(key, value)
+  }
+  public async getBlob(key: string): Promise<string | null> {
+    try {
+      return await platform.getStoreBlob(key)
+    } catch (error) {
+      log.error(`Failed to read blob from storage (key: ${key}):`, error)
+      throw error
+    }
+  }
+  public async delBlob(key: string) {
+    return platform.delStoreBlob(key)
+  }
+  public async getBlobKeys(): Promise<string[]> {
+    return platform.listStoreBlobKeys()
+  }
+  // subscribe(key: string, callback: any, initialValue: any): Promise<void>
+}

@@ -1,0 +1,84 @@
+import type { SessionApplicationEvent, SessionEventBus } from '@chatbox/core/application/session'
+import { registerWorkspaceCleanup } from '@shared/mobile-work/workspace-cleanup'
+import { rendererApplication } from '@/app/renderer-application'
+import { sessionStartupRecovery } from '@/packages/session-startup-recovery'
+import platform from '@/platform'
+import { clearSessionNameGenerationState, syncSessionAutoTitleOnOpen } from '@/stores/session/naming'
+import { clearSessionActivity } from '@/stores/sessionActivityStore'
+import { uiStore } from '@/stores/uiStore'
+
+async function runInChunks<T>(items: T[], chunkSize: number, worker: (item: T) => Promise<void>): Promise<void> {
+  for (let index = 0; index < items.length; index += chunkSize) {
+    await Promise.all(items.slice(index, index + chunkSize).map((item) => worker(item)))
+  }
+}
+
+async function cleanupAttachmentRagEntries(event: Extract<SessionApplicationEvent, { type: 'session-will-delete' }>) {
+  if (!platform.isDesktopLike) return
+  await runInChunks(event.ids, 10, async (sessionId) => {
+    try {
+      await platform.getSessionAttachmentRagController().deleteSessionAttachments(sessionId)
+    } catch (error) {
+      console.warn(`Failed to cleanup session attachment RAG entries for ${event.operation}:`, error)
+    }
+  })
+}
+
+function cleanupDeletedSessionRuntimeState(sessionId: string): void {
+  uiStore.getState().clearSessionWebBrowsing(sessionId)
+  uiStore.getState().removeSessionKnowledgeBase(sessionId)
+  uiStore.getState().clearSessionAgentMode(sessionId)
+  uiStore.getState().clearSessionPanel(sessionId)
+  platform.builtInBrowser
+    ?.forSession(sessionId)
+    .dispose()
+    .catch((error: unknown) => {
+      console.warn('Failed to release the deleted conversation browser:', error)
+    })
+  clearSessionNameGenerationState(sessionId)
+  clearSessionActivity(sessionId)
+  platform.sandboxReset?.({ sessionId }).catch(() => {})
+  platform.sandboxRemoveArtifacts?.({ sessionId }).catch(() => {})
+}
+
+/**
+ * Connects application events to Renderer-only cleanup. This is registered by
+ * the Renderer composition root and is not part of the portable SessionService.
+ */
+export function registerSessionUiEffects(events: SessionEventBus): () => void {
+  const unregisterWorkspaceCleanup =
+    platform.type === 'mobile'
+      ? registerWorkspaceCleanup(
+          events,
+          async () => (await import('@/packages/mobile-work-mode/runtime')).capacitorWorkspace,
+          (sessionId) => rendererApplication.generationRuntime.abort(sessionId, undefined, 'session-deleted')
+        )
+      : undefined
+  const unsubscribe = events.subscribe(async (event) => {
+    if (event.type === 'session-will-delete') {
+      for (const sessionId of event.ids) {
+        rendererApplication.generationRuntime.abort(sessionId, undefined, 'session-deleted')
+      }
+      await cleanupAttachmentRagEntries(event)
+      return
+    }
+    if (event.type === 'session-command-committed') {
+      if (event.meta && !event.delta.header.hidden) {
+        void syncSessionAutoTitleOnOpen(event.delta.header, () => true).catch((error: unknown) => {
+          console.warn('Failed to synchronize session title:', error)
+        })
+      }
+      return
+    }
+    if (event.type === 'session-deleted') {
+      sessionStartupRecovery.forget(event.ids)
+      for (const sessionId of event.ids) {
+        cleanupDeletedSessionRuntimeState(sessionId)
+      }
+    }
+  })
+  return () => {
+    unregisterWorkspaceCleanup?.()
+    unsubscribe()
+  }
+}

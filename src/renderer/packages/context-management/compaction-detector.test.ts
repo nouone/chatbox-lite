@@ -1,0 +1,365 @@
+import { beforeEach, describe, expect, it, vi } from 'vitest'
+import {
+  checkOverflow,
+  DEFAULT_COMPACTION_THRESHOLD,
+  FALLBACK_CONTEXT_WINDOW_TOKENS,
+  getCompactionThresholdTokens,
+  isOverflow,
+  OUTPUT_RESERVE_TOKENS,
+} from './compaction-detector'
+
+/** Usable window when the reply limit is unknown: the reservation is capped at a quarter of the window. */
+function usableWindow(contextWindow: number): number {
+  return contextWindow - Math.min(OUTPUT_RESERVE_TOKENS, Math.floor(contextWindow * 0.25))
+}
+
+/** Trigger = threshold of the FULL window (the badge's denominator), capped at
+ * the usable window so the reply reservation is always protected. */
+function expectedTrigger(contextWindow: number, threshold: number): number {
+  return Math.min(Math.floor(contextWindow * threshold), usableWindow(contextWindow))
+}
+
+vi.mock('../model-registry', () => ({
+  getModelContextWindowSync: vi.fn((modelId: string) => {
+    const contextWindows: Record<string, number> = {
+      'gpt-4o': 128_000,
+      'gpt-4o-mini': 128_000,
+      'claude-3-5-sonnet-20241022': 200_000,
+      'claude-3-haiku-20240307': 200_000,
+      'gemini-1.5-pro': 1_000_000,
+      'deepseek-chat': 64_000,
+      'small-model': 40_000,
+    }
+    return contextWindows[modelId] ?? null
+  }),
+}))
+
+describe('compaction-detector', () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
+  describe('checkOverflow', () => {
+    describe('edge cases', () => {
+      it('returns no overflow for zero tokens', () => {
+        const result = checkOverflow({ tokens: 0, modelId: 'gpt-4o' })
+        expect(result.isOverflow).toBe(false)
+        expect(result.contextWindow).toBeNull()
+        expect(result.thresholdTokens).toBeNull()
+        expect(result.currentTokens).toBe(0)
+      })
+
+      it('returns no overflow for negative tokens', () => {
+        const result = checkOverflow({ tokens: -100, modelId: 'gpt-4o' })
+        expect(result.isOverflow).toBe(false)
+        expect(result.currentTokens).toBe(-100)
+      })
+
+      it('assumes the fallback window for unknown models', () => {
+        const availableWindow = usableWindow(FALLBACK_CONTEXT_WINDOW_TOKENS)
+        const threshold = expectedTrigger(FALLBACK_CONTEXT_WINDOW_TOKENS, DEFAULT_COMPACTION_THRESHOLD)
+
+        const below = checkOverflow({ tokens: threshold, modelId: 'unknown-model-xyz' })
+        expect(below.isOverflow).toBe(false)
+        expect(below.contextWindow).toBe(FALLBACK_CONTEXT_WINDOW_TOKENS)
+        expect(below.thresholdTokens).toBe(threshold)
+
+        const above = checkOverflow({ tokens: threshold + 1, modelId: 'unknown-model-xyz' })
+        expect(above.isOverflow).toBe(true)
+      })
+
+      it('handles small context models with available window fallback', () => {
+        const result = checkOverflow({ tokens: 1000, modelId: 'small-model' })
+        const contextWindow = 40_000
+        const availableWindow = usableWindow(contextWindow)
+        expect(result.isOverflow).toBe(false)
+        expect(result.contextWindow).toBe(40_000)
+        expect(result.thresholdTokens).toBe(expectedTrigger(contextWindow, DEFAULT_COMPACTION_THRESHOLD))
+      })
+    })
+
+    describe('threshold calculation with default settings', () => {
+      it('calculates threshold correctly for gpt-4o', () => {
+        const contextWindow = 128_000
+        const availableWindow = usableWindow(contextWindow)
+        const expectedThreshold = expectedTrigger(contextWindow, DEFAULT_COMPACTION_THRESHOLD)
+
+        const result = checkOverflow({ tokens: 10_000, modelId: 'gpt-4o' })
+
+        expect(result.contextWindow).toBe(contextWindow)
+        expect(result.thresholdTokens).toBe(expectedThreshold)
+        expect(result.currentTokens).toBe(10_000)
+      })
+
+      it('detects overflow when tokens exceed threshold', () => {
+        const contextWindow = 128_000
+        const availableWindow = usableWindow(contextWindow)
+        const threshold = expectedTrigger(contextWindow, DEFAULT_COMPACTION_THRESHOLD)
+
+        const result = checkOverflow({ tokens: threshold + 1, modelId: 'gpt-4o' })
+        expect(result.isOverflow).toBe(true)
+      })
+
+      it('detects no overflow when tokens equal threshold', () => {
+        const contextWindow = 128_000
+        const availableWindow = usableWindow(contextWindow)
+        const threshold = expectedTrigger(contextWindow, DEFAULT_COMPACTION_THRESHOLD)
+
+        const result = checkOverflow({ tokens: threshold, modelId: 'gpt-4o' })
+        expect(result.isOverflow).toBe(false)
+      })
+
+      it('detects no overflow when tokens below threshold', () => {
+        const contextWindow = 128_000
+        const availableWindow = usableWindow(contextWindow)
+        const threshold = expectedTrigger(contextWindow, DEFAULT_COMPACTION_THRESHOLD)
+
+        const result = checkOverflow({ tokens: threshold - 1, modelId: 'gpt-4o' })
+        expect(result.isOverflow).toBe(false)
+      })
+    })
+
+    describe('threshold calculation with custom settings', () => {
+      it('uses custom compactionThreshold from settings', () => {
+        const contextWindow = 128_000
+        const availableWindow = usableWindow(contextWindow)
+        const customThreshold = 0.8
+        const expectedThresholdTokens = expectedTrigger(contextWindow, customThreshold)
+
+        const result = checkOverflow({
+          tokens: 10_000,
+          modelId: 'gpt-4o',
+          settings: { compactionThreshold: customThreshold },
+        })
+
+        expect(result.thresholdTokens).toBe(expectedThresholdTokens)
+      })
+
+      it('lower threshold triggers overflow earlier', () => {
+        const contextWindow = 128_000
+        const availableWindow = usableWindow(contextWindow)
+        const lowThreshold = 0.4
+        const thresholdTokens = expectedTrigger(contextWindow, lowThreshold)
+
+        const result = checkOverflow({
+          tokens: thresholdTokens + 1,
+          modelId: 'gpt-4o',
+          settings: { compactionThreshold: lowThreshold },
+        })
+
+        expect(result.isOverflow).toBe(true)
+      })
+
+      it('higher threshold allows more tokens before overflow', () => {
+        // 128K gpt-4o cannot show this: with the 32K reply reservation both 0.75
+        // and 0.9 cap at the same usable ceiling (min(window x threshold, usable)
+        // is the intended safety behavior). A 1M window keeps percentages distinct.
+        const contextWindow = 1_000_000
+        const defaultThresholdTokens = expectedTrigger(contextWindow, DEFAULT_COMPACTION_THRESHOLD)
+        const highThreshold = 0.9
+        const highThresholdTokens = expectedTrigger(contextWindow, highThreshold)
+
+        const tokensAboveDefault = defaultThresholdTokens + 5000
+
+        const resultDefault = checkOverflow({
+          tokens: tokensAboveDefault,
+          modelId: 'gemini-1.5-pro',
+        })
+        const resultHigh = checkOverflow({
+          tokens: tokensAboveDefault,
+          modelId: 'gemini-1.5-pro',
+          settings: { compactionThreshold: highThreshold },
+        })
+
+        expect(resultDefault.isOverflow).toBe(true)
+        expect(resultHigh.isOverflow).toBe(false)
+        expect(highThresholdTokens).toBeGreaterThan(defaultThresholdTokens)
+      })
+    })
+
+    describe('different models', () => {
+      it('handles Claude models with 200k context', () => {
+        const contextWindow = 200_000
+        const availableWindow = usableWindow(contextWindow)
+        const expectedThreshold = expectedTrigger(contextWindow, DEFAULT_COMPACTION_THRESHOLD)
+
+        const result = checkOverflow({ tokens: 50_000, modelId: 'claude-3-5-sonnet-20241022' })
+
+        expect(result.contextWindow).toBe(contextWindow)
+        expect(result.thresholdTokens).toBe(expectedThreshold)
+        expect(result.isOverflow).toBe(false)
+      })
+
+      it('handles Gemini models with 1M context', () => {
+        const contextWindow = 1_000_000
+        const availableWindow = usableWindow(contextWindow)
+        const expectedThreshold = expectedTrigger(contextWindow, DEFAULT_COMPACTION_THRESHOLD)
+
+        const result = checkOverflow({ tokens: 100_000, modelId: 'gemini-1.5-pro' })
+
+        expect(result.contextWindow).toBe(contextWindow)
+        expect(result.thresholdTokens).toBe(expectedThreshold)
+        expect(result.isOverflow).toBe(false)
+      })
+
+      it('handles DeepSeek with 64k context', () => {
+        const result = checkOverflow({ tokens: 10_000, modelId: 'deepseek-chat' })
+
+        expect(result.contextWindow).toBe(64_000)
+        expect(result.isOverflow).toBe(false)
+      })
+    })
+
+    describe('provided contextWindow override', () => {
+      it('uses provided contextWindow over builtin-data when specified', () => {
+        const providedContextWindow = 64_000
+        const availableWindow = usableWindow(providedContextWindow)
+        const expectedThreshold = expectedTrigger(providedContextWindow, DEFAULT_COMPACTION_THRESHOLD)
+
+        const result = checkOverflow({
+          tokens: 25_000,
+          modelId: 'gpt-4o',
+          contextWindow: providedContextWindow,
+        })
+
+        expect(result.contextWindow).toBe(providedContextWindow)
+        expect(result.thresholdTokens).toBe(expectedThreshold)
+      })
+
+      it('detects overflow with smaller provided contextWindow even when builtin is larger', () => {
+        const providedContextWindow = 64_000
+        const availableWindow = usableWindow(providedContextWindow)
+        const threshold = expectedTrigger(providedContextWindow, DEFAULT_COMPACTION_THRESHOLD)
+
+        const result = checkOverflow({
+          tokens: threshold + 1,
+          modelId: 'gpt-4o',
+          contextWindow: providedContextWindow,
+        })
+
+        expect(result.isOverflow).toBe(true)
+        expect(result.contextWindow).toBe(providedContextWindow)
+      })
+
+      it('falls back to builtin-data when contextWindow is not provided', () => {
+        const result = checkOverflow({
+          tokens: 10_000,
+          modelId: 'gpt-4o',
+        })
+
+        expect(result.contextWindow).toBe(128_000)
+      })
+
+      it('works with unknown model when contextWindow is provided', () => {
+        const providedContextWindow = 50_000
+        const availableWindow = usableWindow(providedContextWindow)
+        const expectedThreshold = expectedTrigger(providedContextWindow, DEFAULT_COMPACTION_THRESHOLD)
+
+        const result = checkOverflow({
+          tokens: 10_000,
+          modelId: 'unknown-model-xyz',
+          contextWindow: providedContextWindow,
+        })
+
+        expect(result.isOverflow).toBe(false)
+        expect(result.contextWindow).toBe(providedContextWindow)
+        expect(result.thresholdTokens).toBe(expectedThreshold)
+      })
+    })
+  })
+
+  describe('isOverflow', () => {
+    it('returns boolean true for overflow', () => {
+      const contextWindow = 128_000
+      const availableWindow = usableWindow(contextWindow)
+      const threshold = expectedTrigger(contextWindow, DEFAULT_COMPACTION_THRESHOLD)
+
+      const result = isOverflow({ tokens: threshold + 1, modelId: 'gpt-4o' })
+      expect(result).toBe(true)
+    })
+
+    it('returns boolean false for no overflow', () => {
+      const result = isOverflow({ tokens: 10_000, modelId: 'gpt-4o' })
+      expect(result).toBe(false)
+    })
+
+    it('overflows past the fallback window for unknown model', () => {
+      const result = isOverflow({ tokens: 999_999, modelId: 'unknown-xyz' })
+      expect(result).toBe(true)
+    })
+  })
+
+  describe('getCompactionThresholdTokens', () => {
+    it('returns threshold tokens for known model', () => {
+      const contextWindow = 128_000
+      const availableWindow = usableWindow(contextWindow)
+      const expectedThreshold = expectedTrigger(contextWindow, DEFAULT_COMPACTION_THRESHOLD)
+
+      const result = getCompactionThresholdTokens('gpt-4o')
+      expect(result).toBe(expectedThreshold)
+    })
+
+    it('returns the fallback-window threshold for unknown model', () => {
+      const availableWindow = usableWindow(FALLBACK_CONTEXT_WINDOW_TOKENS)
+      const result = getCompactionThresholdTokens('unknown-model')
+      expect(result).toBe(expectedTrigger(FALLBACK_CONTEXT_WINDOW_TOKENS, DEFAULT_COMPACTION_THRESHOLD))
+    })
+
+    it('uses custom threshold from settings', () => {
+      const contextWindow = 128_000
+      const availableWindow = usableWindow(contextWindow)
+      const customThreshold = 0.5
+      const expectedThreshold = expectedTrigger(contextWindow, customThreshold)
+
+      const result = getCompactionThresholdTokens('gpt-4o', { compactionThreshold: customThreshold })
+      expect(result).toBe(expectedThreshold)
+    })
+
+    it('caps the trigger at the usable window when the reply reservation eats the margin', () => {
+      // At 16K with the default 0.75, 75% of the full window equals the usable
+      // ceiling under the 4K reservation, so both reply limits land on 12288;
+      // the smaller reservation only helps percentages above the ceiling.
+      expect(getCompactionThresholdTokens('local-9b', undefined, 16_384, 2_048)).toBe(12_288)
+      expect(getCompactionThresholdTokens('local-9b', undefined, 16_384)).toBe(12_288)
+      // A big percentage on a small window clamps to usable instead of overflowing.
+      expect(getCompactionThresholdTokens('local-9b', { compactionThreshold: 0.95 }, 16_384)).toBe(12_288)
+    })
+
+    it('handles model with small context window', () => {
+      const contextWindow = 40_000
+      const availableWindow = usableWindow(contextWindow)
+
+      const result = getCompactionThresholdTokens('small-model')
+
+      expect(result).toBe(expectedTrigger(contextWindow, DEFAULT_COMPACTION_THRESHOLD))
+    })
+
+    it('uses provided contextWindow when specified', () => {
+      const providedContextWindow = 64_000
+      const availableWindow = usableWindow(providedContextWindow)
+      const expectedThreshold = expectedTrigger(providedContextWindow, DEFAULT_COMPACTION_THRESHOLD)
+
+      const result = getCompactionThresholdTokens('gpt-4o', undefined, providedContextWindow)
+      expect(result).toBe(expectedThreshold)
+    })
+
+    it('returns threshold for unknown model when contextWindow is provided', () => {
+      const providedContextWindow = 50_000
+      const availableWindow = usableWindow(providedContextWindow)
+      const expectedThreshold = expectedTrigger(providedContextWindow, DEFAULT_COMPACTION_THRESHOLD)
+
+      const result = getCompactionThresholdTokens('unknown-model', undefined, providedContextWindow)
+      expect(result).toBe(expectedThreshold)
+    })
+  })
+
+  describe('constants', () => {
+    it('exports OUTPUT_RESERVE_TOKENS as 32000', () => {
+      expect(OUTPUT_RESERVE_TOKENS).toBe(32_000)
+    })
+
+    it('exports DEFAULT_COMPACTION_THRESHOLD as 0.75', () => {
+      expect(DEFAULT_COMPACTION_THRESHOLD).toBe(0.75)
+    })
+  })
+})

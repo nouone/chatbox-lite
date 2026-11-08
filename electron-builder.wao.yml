@@ -1,0 +1,16 @@
+extends: ./electron-builder.yml
+productName: Wao
+appId: local.chatbox.lite
+publish: null
+extraMetadata:
+  author:
+    name: Wao Contributors
+    email: 4097153+nouone@users.noreply.github.com
+    url: https://github.com/nouone
+compression: store
+nsis:
+  shortcutName: Wao
+  uninstallDisplayName: Wao
+
+win:
+  artifactName: Wao-${version}-${arch}-Setup.${ext}

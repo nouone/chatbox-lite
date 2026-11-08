@@ -1,0 +1,336 @@
+import {
+  CapacitorSQLite,
+  type capSQLiteSet,
+  SQLiteConnection,
+  type SQLiteDBConnection,
+} from '@capacitor-community/sqlite'
+import {
+  CAPACITOR_SESSION_META_LIST_INDEX_SQL,
+  CAPACITOR_SESSION_META_SCHEMA_SQL,
+  capacitorSessionListOrderBy,
+} from '@chatbox/core'
+import type { SessionMetaPage, SessionMetaRecord } from '@shared/types'
+import { type SessionMetaStorage, sortSessionRecords } from './SessionMetaStorage'
+
+const DB_NAME = 'chatbox-session-meta'
+
+function safeJsonParse(value: string | null | undefined): SessionMetaRecord['backgroundImage'] {
+  if (!value) return undefined
+  try {
+    return JSON.parse(value) as SessionMetaRecord['backgroundImage']
+  } catch {
+    return undefined
+  }
+}
+
+function parseBackgroundImage(value: string | null | undefined): SessionMetaRecord['backgroundImage'] {
+  const parsed = safeJsonParse(value)
+  if (!parsed || typeof parsed !== 'object') return undefined
+  if ('type' in parsed && parsed.type === 'url' && 'url' in parsed && typeof parsed.url === 'string') {
+    return { type: 'url', url: parsed.url }
+  }
+  if (
+    'type' in parsed &&
+    parsed.type === 'storage-key' &&
+    'storageKey' in parsed &&
+    typeof parsed.storageKey === 'string'
+  ) {
+    return { type: 'storage-key', storageKey: parsed.storageKey }
+  }
+  return undefined
+}
+
+export class SQLiteSessionMetaStorage implements SessionMetaStorage {
+  private sqlite: SQLiteConnection
+  private database!: SQLiteDBConnection
+  private initPromise: Promise<void> | null = null
+
+  constructor() {
+    this.sqlite = new SQLiteConnection(CapacitorSQLite)
+  }
+
+  initialize(): Promise<void> {
+    if (this.initPromise) {
+      return this.initPromise
+    }
+    this.initPromise = this.openDatabase()
+    return this.initPromise
+  }
+
+  private async openDatabase(): Promise<void> {
+    try {
+      this.sqlite.closeConnection(DB_NAME, false)
+    } catch {
+      // ignore - connection may not exist
+    }
+
+    this.database = await this.sqlite.createConnection(DB_NAME, false, 'no-encryption', 1, false)
+    await this.database.open()
+
+    await this.database.execute(CAPACITOR_SESSION_META_SCHEMA_SQL)
+
+    const columns = await this.database.query('PRAGMA table_info(session_meta)')
+    const hasArchivedAt = columns.values?.some((column) => column.name === 'archived_at')
+    if (!hasArchivedAt) {
+      await this.database.execute('ALTER TABLE session_meta ADD COLUMN archived_at INTEGER')
+    }
+    const hasPausedToolCall = columns.values?.some((column) => column.name === 'has_paused_tool_call')
+    if (!hasPausedToolCall) {
+      await this.database.execute('ALTER TABLE session_meta ADD COLUMN has_paused_tool_call INTEGER NOT NULL DEFAULT 0')
+    }
+    const hasFolderId = columns.values?.some((column) => column.name === 'folder_id')
+    if (!hasFolderId) {
+      await this.database.execute('ALTER TABLE session_meta ADD COLUMN folder_id TEXT')
+    }
+    const hasRecoveryArchived = columns.values?.some((column) => column.name === 'recovery_archived')
+    if (!hasRecoveryArchived) {
+      await this.database.execute('ALTER TABLE session_meta ADD COLUMN recovery_archived INTEGER NOT NULL DEFAULT 0')
+    }
+    await this.database.execute(CAPACITOR_SESSION_META_LIST_INDEX_SQL)
+  }
+
+  private recordToRow(record: SessionMetaRecord): Record<string, unknown> {
+    return {
+      id: record.id,
+      name: record.name,
+      folder_id: record.folderId || null,
+      starred: record.starred ? 1 : 0,
+      hidden: record.hidden ? 1 : 0,
+      archived_at: record.archivedAt ?? null,
+      assistant_avatar_key: record.assistantAvatarKey || null,
+      pic_url: record.picUrl || null,
+      background_image: record.backgroundImage ? JSON.stringify(record.backgroundImage) : null,
+      type: record.type || null,
+      sort_order: record.sortOrder,
+      created_at: record.createdAt,
+      has_paused_tool_call: record.hasPausedToolCall ? 1 : 0,
+      recovery_archived: record.recoveryArchived ? 1 : 0,
+    }
+  }
+
+  private rowToRecord(row: Record<string, unknown>): SessionMetaRecord {
+    return {
+      id: row.id as string,
+      name: row.name as string,
+      folderId: (row.folder_id as string) || undefined,
+      starred: row.starred === 1 ? true : undefined,
+      hidden: row.hidden === 1 ? true : undefined,
+      archivedAt: row.archived_at === null || row.archived_at === undefined ? undefined : Number(row.archived_at),
+      assistantAvatarKey: (row.assistant_avatar_key as string) || undefined,
+      picUrl: (row.pic_url as string) || undefined,
+      backgroundImage: parseBackgroundImage(row.background_image as string),
+      type: (row.type as SessionMetaRecord['type']) || undefined,
+      hasPausedToolCall: row.has_paused_tool_call === 1 ? true : undefined,
+      recoveryArchived: row.recovery_archived === 1 ? true : undefined,
+      sortOrder: row.sort_order as number,
+      createdAt: row.created_at as number,
+    }
+  }
+
+  async create(record: SessionMetaRecord): Promise<void> {
+    await this.initialize()
+    const row = this.recordToRow(record)
+    await this.database.run(
+      `INSERT INTO session_meta
+       (id, name, folder_id, starred, hidden, archived_at, assistant_avatar_key, pic_url, background_image, type, sort_order, created_at, has_paused_tool_call, recovery_archived)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+      [
+        row.id,
+        row.name,
+        row.folder_id,
+        row.starred,
+        row.hidden,
+        row.archived_at,
+        row.assistant_avatar_key,
+        row.pic_url,
+        row.background_image,
+        row.type,
+        row.sort_order,
+        row.created_at,
+        row.has_paused_tool_call,
+        row.recovery_archived,
+      ]
+    )
+  }
+
+  async createMany(records: SessionMetaRecord[]): Promise<void> {
+    await this.initialize()
+    if (records.length === 0) return
+
+    const statement = `INSERT OR REPLACE INTO session_meta
+      (id, name, folder_id, starred, hidden, archived_at, assistant_avatar_key, pic_url, background_image, type, sort_order, created_at, has_paused_tool_call, recovery_archived)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    const set: capSQLiteSet[] = records.map((record) => {
+      const row = this.recordToRow(record)
+      return {
+        statement,
+        values: [
+          row.id,
+          row.name,
+          row.folder_id,
+          row.starred,
+          row.hidden,
+          row.archived_at,
+          row.assistant_avatar_key,
+          row.pic_url,
+          row.background_image,
+          row.type,
+          row.sort_order,
+          row.created_at,
+          row.has_paused_tool_call,
+          row.recovery_archived,
+        ],
+      }
+    })
+
+    await this.database.executeSet(set, true)
+  }
+
+  async update(id: string, updates: Partial<SessionMetaRecord>): Promise<SessionMetaRecord | null> {
+    await this.initialize()
+    const existing = await this.getById(id)
+    if (!existing) return null
+
+    const updated = { ...existing, ...updates }
+    const row = this.recordToRow(updated)
+
+    await this.database.run(
+      `UPDATE session_meta SET
+       name = ?, folder_id = ?, starred = ?, hidden = ?, archived_at = ?, assistant_avatar_key = ?, pic_url = ?,
+       background_image = ?, type = ?, sort_order = ?, created_at = ?, has_paused_tool_call = ?, recovery_archived = ?
+       WHERE id = ?`,
+      [
+        row.name,
+        row.folder_id,
+        row.starred,
+        row.hidden,
+        row.archived_at,
+        row.assistant_avatar_key,
+        row.pic_url,
+        row.background_image,
+        row.type,
+        row.sort_order,
+        row.created_at,
+        row.has_paused_tool_call,
+        row.recovery_archived,
+        id,
+      ]
+    )
+
+    return updated
+  }
+
+  async getById(id: string): Promise<SessionMetaRecord | null> {
+    await this.initialize()
+    const result = await this.database.query('SELECT * FROM session_meta WHERE id = ?', [id])
+    if (!result.values || result.values.length === 0) return null
+    return this.rowToRecord(result.values[0])
+  }
+
+  async delete(id: string): Promise<void> {
+    await this.initialize()
+    await this.database.run('DELETE FROM session_meta WHERE id = ?', [id])
+  }
+
+  async deleteMany(ids: string[]): Promise<void> {
+    await this.initialize()
+    if (ids.length === 0) return
+    const set: capSQLiteSet[] = ids.map((id) => ({
+      statement: 'DELETE FROM session_meta WHERE id = ?',
+      values: [id],
+    }))
+    await this.database.executeSet(set, true)
+  }
+
+  async getAll(): Promise<SessionMetaRecord[]> {
+    await this.initialize()
+    const result = await this.database.query('SELECT * FROM session_meta ORDER BY sort_order DESC')
+    const records = (result.values || []).map((row) => this.rowToRecord(row))
+    return sortSessionRecords(records)
+  }
+
+  async getAllIncludingHidden(): Promise<SessionMetaRecord[]> {
+    await this.initialize()
+    const result = await this.database.query('SELECT * FROM session_meta ORDER BY sort_order DESC')
+    return (result.values || []).map((row) => this.rowToRecord(row))
+  }
+
+  async *iterateIds(): AsyncGenerator<string> {
+    await this.initialize()
+    let after: string | undefined
+    for (;;) {
+      const result = await this.database.query(
+        after === undefined
+          ? 'SELECT id FROM session_meta ORDER BY id LIMIT 128'
+          : 'SELECT id FROM session_meta WHERE id > ? ORDER BY id LIMIT 128',
+        after === undefined ? [] : [after]
+      )
+      const rows = result.values ?? []
+      if (!rows.length) return
+      for (const row of rows) {
+        if (typeof row.id !== 'string') throw new Error('Invalid stored session identity')
+        yield row.id
+      }
+      after = rows[rows.length - 1].id
+    }
+  }
+
+  async getArchived(): Promise<SessionMetaRecord[]> {
+    await this.initialize()
+    const result = await this.database.query(
+      'SELECT * FROM session_meta WHERE archived_at IS NOT NULL ORDER BY archived_at DESC'
+    )
+    return (result.values || []).map((row) => this.rowToRecord(row))
+  }
+
+  async getArchivedPage(cursor: number = 0, limit: number = 50): Promise<SessionMetaPage> {
+    await this.initialize()
+    const result = await this.database.query(
+      'SELECT * FROM session_meta WHERE archived_at IS NOT NULL ORDER BY archived_at DESC LIMIT ? OFFSET ?',
+      [limit, cursor]
+    )
+    const items = (result.values || []).map((row) => this.rowToRecord(row))
+    const totalResult = await this.database.query(
+      'SELECT COUNT(*) as total FROM session_meta WHERE archived_at IS NOT NULL'
+    )
+    const total = (totalResult.values?.[0]?.total as number) || 0
+    const nextCursor = cursor + items.length < total ? cursor + items.length : null
+    return { items, nextCursor, total }
+  }
+
+  async getPage(cursor: number = 0, limit: number = 50, folderIds: readonly string[] = []): Promise<SessionMetaPage> {
+    await this.initialize()
+    const orderBy = capacitorSessionListOrderBy(folderIds)
+    const result = await this.database.query(
+      `SELECT * FROM session_meta WHERE hidden = 0 ORDER BY ${orderBy.sql} LIMIT ? OFFSET ?`,
+      [...orderBy.params, limit, cursor]
+    )
+    const items = (result.values || []).map((row) => this.rowToRecord(row))
+    const total = await this.getTotal()
+    const nextCursor = cursor + items.length < total ? cursor + items.length : null
+    return { items, nextCursor, total }
+  }
+
+  async getTotal(): Promise<number> {
+    await this.initialize()
+    const result = await this.database.query('SELECT COUNT(*) as total FROM session_meta WHERE hidden = 0')
+    return (result.values?.[0]?.total as number) || 0
+  }
+
+  async getAllTotal(): Promise<number> {
+    await this.initialize()
+    const result = await this.database.query('SELECT COUNT(*) as total FROM session_meta')
+    return (result.values?.[0]?.total as number) || 0
+  }
+
+  async getArchivedTotal(): Promise<number> {
+    await this.initialize()
+    const result = await this.database.query('SELECT COUNT(*) as total FROM session_meta WHERE archived_at IS NOT NULL')
+    return (result.values?.[0]?.total as number) || 0
+  }
+
+  async clear(): Promise<void> {
+    await this.initialize()
+    await this.database.run('DELETE FROM session_meta')
+  }
+}
