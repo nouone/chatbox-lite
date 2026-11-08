@@ -107,11 +107,11 @@ if(pendingPair){el('token').required=false;el('token').hidden=true;document.quer
 // calibration floor and preroll ring, mirroring the cbl-voice sidecar that
 // pioneered it; knobs deliberately few (ChatGPT voice mode shape).
 (function(){
-var RATE=16000,WINDOW=300,HOT=55;
+var RATE=16000,WINDOW=24,HOT=14;
 function prerollMax(){return calStart?400:25}
-var on=false,ctx,stream,proc,media,cal=[],silRms=0.012,calStart=0;
-var ring=[],ringLen=0,sampling=false,chunks=[],chunkLen=0,silTimer=null,maxTimer=null;var voicedFrames=0,turnStart=0;
-var queue=[],playing=false,armedBits=[],armedThisTurn=0,spoken='';
+var on=false,ctx,stream,proc,cancelAudio,cal=[],silRms=0.012,calStart=0;
+var ring=[],ringLen=0,sampling=false,chunks=[],chunkLen=0,silTimer=null,maxTimer=null;var voicedFrames=0,captureDuringPlayback=false,captureSentence="";
+var queue=[],playing=false,armedBits=[],captureInterrupted=false,playbackId=0,voiceSession=0;
 function orb(){return el('voice-orb')}
 function vstatus(t){el('voice-status').textContent=t;var d=el('voice-dots');if(d)d.style.visibility=(t==='Thinking...')?'visible':'hidden'}
 function segv(id){var on=document.querySelector('#'+id+' button.on');return on?on.getAttribute('data-v'):''}
@@ -127,8 +127,8 @@ function b64(buf){var bytes=new Uint8Array(buf),s='';for(var i=0;i<bytes.length;
 function stats(frame){var sum=0,zc=0;for(var i=0;i<frame.length;i++){var v=frame[i];sum+=v*v;if(i&&(v>=0)!==(frame[i-1]>=0))zc++}return {rms:Math.sqrt(sum/frame.length),zc:zc}}
 function pushRing(frame){ring.push(frame);ringLen+=frame.length;while(ringLen>prerollMax()*160)ringLen-=ring.shift().length}
 function ringJoin(){var out=new Float32Array(ringLen),o=0;ring.forEach(function(f){out.set(f,o);o+=f.length});return out}
-function beginCapture(){sampling=true;chunks=[];chunkLen=0;voicedFrames=0;turnStart=Date.now();var pre=ringJoin();chunks.push(pre);chunkLen+=pre.length;clearTimeout(silTimer);clearTimeout(maxTimer);maxTimer=setTimeout(function(){if(sampling)endTurn()},30000)}
-function endTurn(){if(!sampling)return;sampling=false;clearTimeout(silTimer);clearTimeout(maxTimer);var total=new Float32Array(chunkLen),o=0;chunks.forEach(function(c){total.set(c,o);o+=c.length});chunks=[];transcribe(total)}
+function beginCapture(){sampling=true;chunks=[];chunkLen=0;voicedFrames=0;captureDuringPlayback=playing;captureSentence=playing?spokenNow:"";captureInterrupted=false;var pre=ringJoin();chunks.push(pre);chunkLen+=pre.length;clearTimeout(silTimer);clearTimeout(maxTimer);maxTimer=setTimeout(function(){if(sampling)endTurn()},30000)}
+function endTurn(){if(!sampling)return;sampling=false;clearTimeout(silTimer);clearTimeout(maxTimer);var total=new Float32Array(chunkLen),o=0;chunks.forEach(function(c){total.set(c,o);o+=c.length});chunks=[];transcribe(total,captureDuringPlayback,captureInterrupted,captureSentence,voicedFrames)}
 var voiceOutWords=[],lastVoiceOutTs=0,resumeTail=[],spokenNow="",sending=false;
 function pushVoiceOut(t){var ws=String(t||"").toLowerCase().match(/[a-z']+/g)||[];for(var i=0;i<ws.length;i++)voiceOutWords.push(ws[i]);if(voiceOutWords.length>90)voiceOutWords=voiceOutWords.slice(-90);lastVoiceOutTs=Date.now()}
 function inEchoWindow(){return voiceOutWords.length>0&&(playing||Date.now()-lastVoiceOutTs<1500)}
@@ -138,19 +138,187 @@ var COMMANDS=new Set(["stop","stop talking","stop it","stop that","stop this","s
 var RESUMES=new Set(["go on","continue","keep going","keep talking","carry on","go ahead","start talking","say more","keep reading"]);
 function bargeDisposition(core){if(!core)return "echo";if(RESUMES.has(core))return "resume";if(COMMANDS.has(core))return "drop";return "send"}
 function idleDisposition(core,active,hasStash){if(COMMANDS.has(core))return active?"stop":"noop";if(RESUMES.has(core)&&hasStash)return "resume";return "send"}
-function transcribe(samples){var durS=samples.length/RATE,voicedS=voicedFrames/100;if(durS<0.35||voicedS<0.35){vstatus(armedThisTurn?"interrupted":"nothing heard");api("/api/voice/note",{method:"POST",body:JSON.stringify({msg:"capture too short: voiced "+voicedS.toFixed(2)+"s dur "+durS.toFixed(2)+"s"})}).catch(function(){});armedThisTurn=0;return}vstatus("Thinking...");api("/api/voice/asr",{method:"POST",body:JSON.stringify({audio:b64(wav16(samples))})}).then(function(j){var text=String(j.text||"").trim();if(!text){if(armedThisTurn)vstatus("interrupted, go ahead");else vstatus(playing?"Speaking":"Listening");api("/api/voice/note",{method:"POST",body:JSON.stringify({msg:"empty capture (barge="+armedThisTurn+" playing="+playing+")"})}).catch(function(){});armedThisTurn=0;return}var sub=echoSubtract(text);if(!sub.core&&sub.removed){vstatus("echo of my own voice, ignored");api("/api/voice/note",{method:"POST",body:JSON.stringify({msg:"echo ignored: "+text.slice(0,60)})}).catch(function(){});armedThisTurn=0;return}var core=normCmd(sub.core);if(armedThisTurn){armedThisTurn=0;var act=bargeDisposition(core);if(act==="resume"){if(resumeTail.length){queue=resumeTail.slice();resumeTail=[];playQueue()}else vstatus("go ahead");return}if(act==="drop"){stopSpeaking();vstatus("interrupted");api("/api/voice/note",{method:"POST",body:JSON.stringify({msg:"barge command drop: "+core})}).catch(function(){});return}turn(text);return}var act2=idleDisposition(core,sending||playing,resumeTail.length>0);api("/api/voice/note",{method:"POST",body:JSON.stringify({msg:"idle "+act2+": "+core})}).catch(function(){});if(act2==="stop"){stopSpeaking();vstatus("stopped, go ahead");return}if(act2==="noop"){vstatus("nothing to stop");return}if(act2==="resume"){queue=resumeTail.slice();resumeTail=[];playQueue();return}turn(text);}).catch(function(error){status("Voice: "+error.message,true);vstatus("Listening")});}
-function turn(text){sending=true;var chatId=selected,current=version;if(!chatId){api('/api/voice/note',{method:'POST',body:JSON.stringify({msg:'send blocked: no chat selected'})}).catch(function(){});return}var content=text;if(armedThisTurn&&spoken)content='(Heads up: you were interrupted while saying: "'+spoken.slice(0,160)+'")\\n'+text;var barged=armedThisTurn;armedThisTurn=0;api('/api/voice/note',{method:'POST',body:JSON.stringify({msg:'sent: '+(barged?'(barge) ':'')+text.slice(0,40)})}).catch(function(){});api('/api/chats/'+encodeURIComponent(chatId)+'/messages',{method:'POST',body:JSON.stringify({content:content,thinkingEffort:cfg().effort})}).then(function(){pollReply(chatId,current)}).catch(function(){sending=false;vstatus("Listening")}).catch(function(error){status('Voice send failed: '+error.message,true);vstatus('Listening')})}
+async function transcribe(samples,duringPlayback,interrupted,sentence,voiced){
+  var session=voiceSession,current=version;
+  var voicedS=voiced/100,durS=samples.length/RATE;
+  var minimumVoice=duringPlayback?0.12:0.35;
+  if(durS<0.35||voicedS<minimumVoice){
+    if(!playing)vstatus(interrupted?"Go ahead":"Nothing heard");
+    api("/api/voice/note",{method:"POST",body:JSON.stringify({msg:"capture too short: voiced "+voicedS.toFixed(2)+"s dur "+durS.toFixed(2)+"s"})}).catch(function(){});
+    return;
+  }
+  if(!playing)vstatus("Thinking...");
+  try{
+    var j=await api("/api/voice/asr",{method:"POST",body:JSON.stringify({audio:b64(wav16(samples))})});
+    if(!on||session!==voiceSession||current!==version)return;
+    var text=String(j.text||"").trim();
+    if(!text){
+      if(!playing)vstatus(interrupted?"Go ahead":"Listening");
+      return;
+    }
+    // A short, explicit control should survive the word-level echo filter.
+    var raw=normCmd(text),sub=echoSubtract(text);
+    var core=COMMANDS.has(raw)||RESUMES.has(raw)?raw:normCmd(sub.core);
+    if(!core){
+      if(!playing)vstatus(interrupted?"Go ahead":"Listening");
+      return;
+    }
+    var act=duringPlayback?bargeDisposition(core):idleDisposition(core,sending||playing,resumeTail.length>0);
+    if(act==="drop"||act==="stop"){
+      stopSpeaking();
+      vstatus("Go ahead");
+      api("/api/voice/note",{method:"POST",body:JSON.stringify({msg:"voice stop command recognized"})}).catch(function(){});
+      return;
+    }
+    if(act==="noop"){
+      vstatus("Listening");
+      return;
+    }
+    if(act==="resume"){
+      if(resumeTail.length){
+        stopSpeaking();
+        queue=resumeTail.slice();
+        playQueue();
+      }else if(!playing)vstatus("Listening");
+      return;
+    }
+    if(duringPlayback)stopSpeaking();
+    turn(text,sentence);
+  }catch(error){
+    if(on&&session===voiceSession&&current===version){
+      status("Voice: "+error.message,true);
+      if(!playing)vstatus("Listening");
+    }
+  }
+}
+function turn(text,interruptedSentence){
+  var chatId=selected,current=version;
+  if(!chatId)return;
+  sending=true;
+  var content=interruptedSentence?'(Heads up: you were interrupted while saying: "'+interruptedSentence.slice(0,160)+'")\\n'+text:text;
+  api('/api/chats/'+encodeURIComponent(chatId)+'/messages',{method:'POST',body:JSON.stringify({content:content,thinkingEffort:cfg().effort})})
+    .then(function(){pollReply(chatId,current)})
+    .catch(function(error){sending=false;status('Voice send failed: '+error.message,true);vstatus('Listening')});
+}
 function pollReply(chatId,current){var tries=0;(function step(){if(!on||current!==version||tries++>90)return;readChat(chatId,current).then(function(chat){if(!on||current!==version)return;if(!chat){setTimeout(step,1200);return}var msgs=chat.messages||[],last=msgs[msgs.length-1];if(last&&last.role==='assistant'&&!chat.generating&&String(last.text||'').trim()){sending=false;speakReply(String(last.text).trim());return}if(tries%4===3&&on)vstatus('Thinking...');setTimeout(step,1200)}).catch(function(){setTimeout(step,2400)})})()}
 function sentences(text){var parts=text.replace(/\\s+/g,' ').match(/[^.!?]+[.!?]+(?=\\s|$)|[^.!?]+$/g)||[text];return parts.map(function(s){return s.trim()}).filter(Boolean)}
-function speakReply(text){spoken=text;queue=sentences(text).slice(0,24);resumeTail=queue.slice();if(!queue.length){vstatus("Listening");return}playQueue()}
-function fetchSpeak(sentence){spokenNow=sentence;return api("/api/voice/speak",{method:"POST",body:JSON.stringify({text:sentence})}).then(function(j){if(!j.audioBase64)throw Error(j.error||"No audio");var bytes=atob(j.audioBase64),buf=new Uint8Array(bytes.length);for(var i=0;i<bytes.length;i++)buf[i]=bytes.charCodeAt(i);return new Blob([buf],{type:j.contentType||"audio/mpeg"})})}
-function playBlob(blob){return new Promise(function(resolve){var audio=el("voice-audio");audio.onended=null;audio.onerror=null;audio.onended=finish;audio.onerror=finish;function finish(){URL.revokeObjectURL(audio.src);audio.hidden=true;media=null;resolve()}media={pause:function(){try{audio.pause()}catch(e){}}};audio.src=URL.createObjectURL(blob);audio.hidden=false;audio.play().catch(function(){vstatus("Tap play to start speaking");api("/api/voice/note",{method:"POST",body:JSON.stringify({msg:"audio blocked by browser - controls shown"})}).catch(function(){})})})}
-function finishSpeaking(){sending=false;playing=false;orb().classList.remove("speaking");orb().classList.add("armed");el("orb-mic").hidden=false;vstatus("Listening")}function playQueue(){if(playing||!queue.length)return;playing=true;vstatus("Thinking...");var first=queue.shift();fetchSpeak(first).then(function(blob){if(!on)throw Error("voice off");var nextP=queue.length?fetchSpeak(queue.shift()).catch(function(){return null}):null;pushVoiceOut(spokenNow);if(resumeTail.length)resumeTail.shift();orb().classList.add("speaking");orb().classList.remove("armed");el("orb-mic").hidden=true;vstatus("Speaking");return playBlob(blob).then(function(){return nextP})}).then(function(nextBlob){if(!on)return;var after=nextBlob?playBlob(nextBlob):Promise.resolve();return after.then(function(){finishSpeaking();if(on&&queue.length)playQueue()})}).catch(function(){if(on){finishSpeaking();queue=[]}})}
-function stopSpeaking(){var a=el('voice-audio');if(a){try{a.pause()}catch(e){}a.hidden=true}if(media){try{media.pause()}catch(e){}media=null}queue=[];playing=false;orb().classList.remove('speaking');orb().classList.add('armed');el('orb-mic').hidden=false}
-function onframe(frame){var st=stats(frame),rms=st.rms,zc=st.zc;var bar=document.querySelector("#voice-level i");if(bar)bar.style.width=Math.min(100,rms*800)+"%";if(!on)return;var calibrating=calStart&&Date.now()-calStart<=1200;if(calStart&&cal.length&&calibrating)cal.push(rms);if(calStart&&cal.length&&calibrating&&voicedFrames>=0&&(rms>silRms||rms>0.012)){if(zc<8)voicedFrames++}if(calStart&&cal.length&&!calibrating){var sorted=cal.slice().sort(function(a,b){return a-b});var half=sorted.slice(0,Math.max(1,Math.floor(sorted.length/2)));silRms=Math.max(0.012,Math.min(0.06,half.reduce(function(a,b){return a+b},0)/half.length*4.5));cal=[];calStart=0;vstatus("Listening");api("/api/voice/note",{method:"POST",body:JSON.stringify({msg:"voice on, floor "+silRms.toFixed(4)})}).catch(function(){})}pushRing(frame);var voiced=zc<8;var mult=playing?4.5:2.5;var hit=rms>silRms*mult&&voiced;if(playing&&cfg().barge){armedBits.push(rms>silRms*4.5&&voiced?1:0);if(armedBits.length>WINDOW)armedBits.shift();var hot=0;armedBits.forEach(function(b){hot+=b});if(hot>=HOT){armedBits=[];armedThisTurn=1;stopSpeaking();vstatus("Go ahead");api("/api/voice/note",{method:"POST",body:JSON.stringify({msg:"barge kill on energy"})}).catch(function(){})}}if(calibrating)return;if(!sampling){if(hit)beginCapture();return}if(hit||(rms>silRms&&voiced)||rms>silRms*2){voicedFrames++;if(silTimer){clearTimeout(silTimer);silTimer=null}}else if(!silTimer)silTimer=setTimeout(function(){endTurn()},cfg().win)}
+function speakReply(text){queue=sentences(text).slice(0,24);resumeTail=queue.slice();if(!queue.length){vstatus("Listening");return}playQueue()}
+function fetchSpeak(sentence){return api("/api/voice/speak",{method:"POST",body:JSON.stringify({text:sentence})}).then(function(j){if(!j.audioBase64)throw Error(j.error||"No audio");var bytes=atob(j.audioBase64),buf=new Uint8Array(bytes.length);for(var i=0;i<bytes.length;i++)buf[i]=bytes.charCodeAt(i);return new Blob([buf],{type:j.contentType||"audio/mpeg"})})}
+function playBlob(blob,sentence){
+  return new Promise(function(resolve){
+    var audio=el("voice-audio"),url=URL.createObjectURL(blob),started=false;
+    function finish(completed){
+      audio.onended=null;
+      audio.onerror=null;
+      audio.onplaying=null;
+      audio.hidden=true;
+      URL.revokeObjectURL(url);
+      if(started)lastVoiceOutTs=Date.now();
+      cancelAudio=null;
+      resolve(completed);
+    }
+    cancelAudio=function(){audio.pause();finish(false)};
+    audio.onended=function(){finish(true)};
+    audio.onerror=function(){finish(false)};
+    audio.onplaying=function(){
+      if(started)return;
+      started=true;
+      spokenNow=sentence;
+      pushVoiceOut(sentence);
+    };
+    audio.src=url;
+    audio.hidden=false;
+    audio.play().catch(function(){
+      if(audio.src===url&&cancelAudio)vstatus("Tap play to start speaking");
+    });
+  });
+}
+function finishSpeaking(){
+  sending=false;playing=false;armedBits=[];
+  orb().classList.remove("speaking");
+  orb().classList.add("armed");
+  el("orb-mic").hidden=false;
+  vstatus("Listening");
+}
+async function playQueue(){
+  if(playing||!queue.length)return;
+  var id=++playbackId;
+  playing=true;
+  vstatus("Thinking...");
+  var audio=fetchSpeak(queue[0]).catch(function(){return null});
+  while(on&&id===playbackId&&queue.length){
+    var sentence=queue.shift(),blob=await audio;
+    if(!on||id!==playbackId)return;
+    if(!blob)break;
+    audio=queue.length?fetchSpeak(queue[0]).catch(function(){return null}):null;
+    orb().classList.add("speaking");
+    orb().classList.remove("armed");
+    el("orb-mic").hidden=true;
+    vstatus("Speaking");
+    var completed=await playBlob(blob,sentence);
+    if(!on||id!==playbackId)return;
+    if(!completed)break;
+    resumeTail.shift();
+  }
+  if(id===playbackId){queue=[];finishSpeaking()}
+}
+function stopSpeaking(){
+  // A pause does not emit ended. Settle playback and invalidate pending synthesis.
+  playbackId++;
+  if(cancelAudio)cancelAudio();
+  queue=[];
+  playing=false;
+  armedBits=[];
+  orb().classList.remove("speaking");
+  orb().classList.add("armed");
+  el("orb-mic").hidden=false;
+}
+function onframe(frame){
+  var st=stats(frame),rms=st.rms,zc=st.zc;
+  var bar=document.querySelector("#voice-level i");
+  if(bar)bar.style.width=Math.min(100,rms*800)+"%";
+  if(!on)return;
+  if(calStart&&Date.now()-calStart<=1200){
+    cal.push(rms);
+    pushRing(frame);
+    return;
+  }
+  if(calStart){
+    var sorted=cal.slice().sort(function(a,b){return a-b});
+    var half=sorted.slice(0,Math.max(1,Math.floor(sorted.length/2)));
+    silRms=Math.max(0.012,Math.min(0.06,half.reduce(function(a,b){return a+b},0)/half.length*4.5));
+    cal=[];calStart=0;
+    vstatus("Listening");
+    api("/api/voice/note",{method:"POST",body:JSON.stringify({msg:"voice on, floor "+silRms.toFixed(4)})}).catch(function(){});
+  }
+  pushRing(frame);
+  var voiced=zc<8,barge=playing&&cfg().barge;
+  var hit=voiced&&rms>silRms*(barge?2:2.5);
+  if(!sampling){
+    if(playing&&!barge)return;
+    if(hit){beginCapture();voicedFrames=1}
+  }else if(hit||(rms>silRms&&voiced)||rms>silRms*2){
+    voicedFrames++;
+    if(silTimer){clearTimeout(silTimer);silTimer=null}
+  }else if(!silTimer)silTimer=setTimeout(endTurn,cfg().win);
+
+  if(barge){
+    armedBits.push(voiced&&rms>silRms*3?1:0);
+    if(armedBits.length>WINDOW)armedBits.shift();
+    var hot=armedBits.reduce(function(sum,bit){return sum+bit},0);
+    if(hot>=HOT){
+      if(!captureDuringPlayback)captureSentence=spokenNow;
+      captureDuringPlayback=true;
+      captureInterrupted=true;
+      stopSpeaking();
+      vstatus("Go ahead");
+      api("/api/voice/note",{method:"POST",body:JSON.stringify({msg:"barge kill on energy"})}).catch(function(){});
+    }
+  }
+}
 
 function start(){if(on)return;if(!navigator.mediaDevices||!navigator.mediaDevices.getUserMedia){status('Microphone needs HTTPS or localhost (secure context).',true);return}try{var a=el('voice-audio');a.src='data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';a.play().catch(function(){})}catch(e){}navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:false,channelCount:1}}).then(function(s){stream=s;ctx=new (window.AudioContext||window.webkitAudioContext)({sampleRate:RATE});return ctx.resume()}).then(function(){var source=ctx.createMediaStreamSource(stream);proc=ctx.createScriptProcessor(256,1,1);var ratio=ctx.sampleRate/RATE;var pending=new Float32Array(160),pendLen=0;proc.onaudioprocess=function(e){var input=e.inputBuffer.getChannelData(0);var out=new Float32Array(input.length/ratio|0);for(var i=0;i<out.length;i++)out[i]=input[Math.min(input.length-1,Math.floor(i*ratio))];e.outputBuffer.getChannelData(0).fill(0);var p=0;/* ScriptProcessor needs a power-of-two buffer; frames stay 160 samples via this accumulator (160 is not a power of two). */while(p<out.length){var take=Math.min(160-pendLen,out.length-p);pending.set(out.subarray(p,p+take),pendLen);pendLen+=take;p+=take;if(pendLen===160){var frame=pending;pending=new Float32Array(160);pendLen=0;if(sampling){chunks.push(frame);chunkLen+=frame.length}onframe(frame)}}};var sink=ctx.createGain();source.connect(proc);proc.connect(sink);sink.connect(ctx.destination);on=true;cal=[0.0];calStart=Date.now();ring=[];ringLen=0;armedBits=[];el('voice').hidden=false;el('mic').classList.add('live');vstatus('Calibrating, stay quiet...');orb().classList.add('armed')}).catch(function(error){status('Microphone unavailable: '+error.message,true);stop()})}
-function stop(){on=false;sampling=false;clearTimeout(silTimer);clearTimeout(maxTimer);stopSpeaking();if(proc){try{proc.disconnect()}catch(e){}proc=null}if(stream){stream.getTracks().forEach(function(t){t.stop()});stream=null}if(ctx){ctx.close().catch(function(){});ctx=null}el('voice').hidden=true;el('mic').classList.remove('live');orb().classList.remove('armed')}
+function stop(){voiceSession++;on=false;sampling=false;clearTimeout(silTimer);clearTimeout(maxTimer);stopSpeaking();if(proc){try{proc.disconnect()}catch(e){}proc=null}if(stream){stream.getTracks().forEach(function(t){t.stop()});stream=null}if(ctx){ctx.close().catch(function(){});ctx=null}el('voice').hidden=true;el('mic').classList.remove('live');orb().classList.remove('armed')}
 el('mic').onclick=function(){on?stop():start()};
 el('voice-settings').onclick=function(){el('voice-drawer').classList.toggle('open')};
 el('voice-exit').onclick=stop;
