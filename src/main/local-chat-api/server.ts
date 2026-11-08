@@ -265,6 +265,20 @@ export async function startLocalChatApi(options: {
     let browserView = false
     let busy = false
     let previous = ''
+    // Liveness: unanswered pings mean the peer is gone (mobile NAT drops idle
+    // sockets invisibly - the server would otherwise keep "sending" into a
+    // black hole and the page would only notice via its own watchdog).
+    let pongSeen = true
+    ws.on('pong', () => { pongSeen = true })
+    const heartbeat = setInterval(() => {
+      if (ws.readyState !== WebSocket.OPEN) return
+      if (!pongSeen) {
+        ws.terminate()
+        return
+      }
+      pongSeen = false
+      ws.ping()
+    }, 10000)
     ws.on('error', () => undefined)
     ws.on('message', (data) => {
       try {
@@ -295,7 +309,7 @@ export async function startLocalChatApi(options: {
         busy = false
       }
     }, 250)
-    ws.once('close', () => clearInterval(timer))
+    ws.once('close', () => { clearInterval(timer); clearInterval(heartbeat) })
   })
   const lanServer = lanAddress
     ? createServer(server.listeners('request')[0] as import('node:http').RequestListener)
