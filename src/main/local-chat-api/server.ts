@@ -46,6 +46,8 @@ export async function startLocalChatApi(options: {
   dispatch: Dispatch
   publicOrigin?: string
   lanAddress?: string
+  /** True when the renderer IPC queue is saturated; the snapshot loop skips a poll. */
+  rendererBusy?: () => boolean
 }) {
   if (options.token.length < 32) throw new Error('The API token must have at least 32 characters.')
   let currentToken = options.token
@@ -292,16 +294,34 @@ export async function startLocalChatApi(options: {
         ws.close(1008, 'Send a subscribe message with chatId')
       }
     })
+    // Transient read failures (revision races during generation, renderer
+    // restart, IPC timeout) must not flash "Desktop unavailable" on the page:
+    // only a status that persists across ~1s of polls is surfaced, and only
+    // once per distinct status. Field evidence: every generation began with a
+    // 409 snapshot (read racing the send's revision bump) that the page
+    // painted as an error before the next snapshot cleared it.
+    let errorStreak = 0
+    let errorSent = 0
     const timer = setInterval(async () => {
       if (busy || !chatId || ws.readyState !== WebSocket.OPEN) return
+      if (options.rendererBusy?.()) return // renderer queue saturated: skip this poll
       busy = true
       try {
         const raw = await options.dispatch({ action: 'read', chatId, limit: 100 })
+        const transient = raw.status === 409 || raw.status === 503 || raw.status === 504
+        if (transient) {
+          errorStreak = raw.status === errorSent ? errorStreak + 1 : 1
+          if (errorStreak < 4) return
+        } else {
+          errorStreak = 0
+          errorSent = 0
+        }
         const result = browserView ? present(raw) : raw
         const snapshot = JSON.stringify({ type: 'chat.snapshot', status: result.status, chat: result.body })
         if (snapshot !== previous && ws.readyState === WebSocket.OPEN && ws.bufferedAmount < 2 * 1024 * 1024) {
           ws.send(snapshot)
           previous = snapshot
+          if (transient) errorSent = raw.status
         }
       } catch {
         if (ws.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: 'error', error: 'Desktop unavailable' }))

@@ -76,7 +76,18 @@ export function registerLocalChatApi(getWindow: () => BrowserWindow | null) {
     saveToken: (value) => writePrivateFile(tokenPath, value),
     savePreferences: (value) => writePrivateFile(preferencesPath, JSON.stringify(value)),
     start: async (port, activeToken, publicOrigin, lanAddress) => {
-      const server = await startLocalChatApi({ port, token: activeToken, dispatch, publicOrigin, lanAddress })
+      const server = await startLocalChatApi({
+        port,
+        token: activeToken,
+        dispatch,
+        publicOrigin,
+        lanAddress,
+        // The snapshot poll loop must not stack reads onto an already-busy
+        // renderer: during generation its main thread is rendering the stream,
+        // and 4 polls/second of a 100-message window competed with it (field:
+        // web page updates arrived in bursts and dragged the desktop).
+        rendererBusy: () => pending.size >= 8,
+      })
       console.info(`[Lite API] http://127.0.0.1:${server.port}`)
       return server
     },
