@@ -196,7 +196,7 @@ function turn(text,interruptedSentence){
   if(!chatId)return;
   sending=true;
   var content=interruptedSentence?'(Heads up: you were interrupted while saying: "'+interruptedSentence.slice(0,160)+'")\\n'+text:text;
-  api('/api/chats/'+encodeURIComponent(chatId)+'/messages',{method:'POST',body:JSON.stringify({content:content,thinkingEffort:cfg().effort})})
+  api('/api/chats/'+encodeURIComponent(chatId)+'/messages',{method:'POST',body:JSON.stringify({content:content,thinkingEffort:cfg().effort,voice:true})})
     .then(function(){pollReply(chatId,current)})
     .catch(function(error){sending=false;status('Voice send failed: '+error.message,true);vstatus('Listening')});
 }

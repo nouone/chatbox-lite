@@ -9,7 +9,6 @@ import { useReplySpeech } from '@/components/chat/ReadAloudButton'
 import { useSettingsStore } from '@/stores/settingsStore'
 export function SpeechSettings() {
   const readAloudId = useId()
-  const rewriteId = useId()
   const { t } = useTranslation()
   const { setSettings, ...settings } = useSettingsStore((state) => state)
   const playbackId = `voice-test-${readAloudId}`
@@ -105,15 +104,6 @@ export function SpeechSettings() {
               onChange={(event) =>
                 setSettings({ textToSpeech: { ...settings.textToSpeech, asrKey: event.currentTarget.value } })
               }
-            />
-            <SettingSwitchRow
-              id={rewriteId}
-              label={t('Rewrite with the chat model first')}
-              description={t(
-                'Before speaking, ask the chat model to rewrite the reply for listening: numbers, units and abbreviations in words, lists narrated as sentences. No thinking; on failure the reply is read as written.'
-              )}
-              checked={settings.textToSpeech.rewrite !== false}
-              onChange={(rewrite) => setSettings({ textToSpeech: { ...settings.textToSpeech, rewrite } })}
             />
             <Button
               variant="light"

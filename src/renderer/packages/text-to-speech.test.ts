@@ -172,7 +172,6 @@ describe('OpenAI-compatible speech', () => {
       voice: 'af_heart',
       speed: 1.1,
       autoRead: false,
-      rewrite: true,
     })
     const settings = { enabled: true, apiBaseUrl: 'http://localhost:8880', model: 'kokoro', voice: 'af_heart' }
     expect(schema.parse({ textToSpeech: settings }).textToSpeech).toEqual(settings)

@@ -1,7 +1,6 @@
 import { isSuccessfulAssistantReply } from '@chatbox/core/session/message-success'
 import type { Message } from '@shared/types'
 import { type ResponseSpeechPlayer, responseSpeechText, type SpeechSettings, synthesizeSpeech } from './text-to-speech'
-import { rewriteForSpeech } from './speech-rewrite'
 
 interface AutoReadDependencies {
   getSettings(): SpeechSettings | undefined
@@ -33,10 +32,9 @@ export function createAutoReadCompletionHandler(dependencies: AutoReadDependenci
     try {
       await dependencies.player.play(
         `${sessionId}:${message.id}`,
-        async (signal) => {
-          const spoken = await rewriteForSpeech(text, settings, sessionId, signal)
-          return synthesizeSpeech(spoken, settings, dependencies.request, signal)
-        },
+        // Auto-read is non-mic: speak the reply as written (normalization
+        // only). The model rewrite belongs to voice mode.
+        async (signal) => synthesizeSpeech(text, settings, dependencies.request, signal),
         dependencies.onError
       )
     } catch (error) {

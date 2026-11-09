@@ -491,9 +491,6 @@ export const SettingsSchema = GlobalSessionSettingsSchema.extend({
       // Parakeet). Absent = voice mode says "set a transcription server".
       asrUrl: z.string().optional(),
       asrKey: z.string().optional(),
-      // Chat-model rewrite before synthesis (speech-rewrite.ts). Absent means
-      // on; only an explicit false disables it.
-      rewrite: z.boolean().optional(),
     })
     .default({
       enabled: true,
@@ -502,7 +499,6 @@ export const SettingsSchema = GlobalSessionSettingsSchema.extend({
       voice: 'af_heart',
       speed: 1.1,
       autoRead: false,
-      rewrite: true,
     })
     .catch({
       enabled: true,
@@ -511,7 +507,6 @@ export const SettingsSchema = GlobalSessionSettingsSchema.extend({
       voice: 'af_heart',
       speed: 1.1,
       autoRead: false,
-      rewrite: true,
     }),
   providers: z.record(z.string(), ProviderSettingsSchema).optional().catch(undefined),
   customProviders: z.array(CustomProviderBaseInfoSchema).optional().catch(undefined),

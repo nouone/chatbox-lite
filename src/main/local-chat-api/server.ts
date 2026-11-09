@@ -206,7 +206,13 @@ export async function startLocalChatApi(options: {
           rawEffort === undefined || rawEffort === null
             ? undefined
             : (String(rawEffort) as 'off' | 'low' | 'medium' | 'high')
-        call = { action: 'send', chatId: decodeURIComponent(match[1]), content, ...(thinkingEffort ? { thinkingEffort } : {}) }
+        call = {
+          action: 'send',
+          chatId: decodeURIComponent(match[1]),
+          content,
+          ...(thinkingEffort ? { thinkingEffort } : {}),
+          ...(input && (input as { voice?: unknown }).voice === true ? { voice: true } : {}),
+        }
       } else {
         reply(res, 404, { error: 'Route not found' })
         return

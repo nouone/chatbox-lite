@@ -25,7 +25,6 @@ export function createDefaultSettings(): Settings {
       voice: 'af_heart',
       speed: 1.1,
       autoRead: false,
-      rewrite: true,
     },
     showWordCount: false,
     showTokenCount: false,

@@ -2,18 +2,19 @@ import type { Message } from '@shared/types'
 import { settingsStore } from '@/stores/settingsStore'
 import { desktopDirectRequestFromWindow } from '@/utils/desktop-direct-request'
 import { responseSpeechText, synthesizeSpeech } from './text-to-speech'
-import { rewriteForSpeech } from './speech-rewrite'
 
 // Free-text synthesis for the browser voice frontend (web-ui voice mode):
-// same server, voice and normalization as reply read-aloud; the reply-bound
-// synthesizeWebReply below stays untouched for phone/browser chat speech.
+// same server, voice and normalization as reply read-aloud. No rewrite pass:
+// mic-mode sends carry the speakable-answer instruction (VOICE_INSTRUCTION),
+// so the reply arrives already written for the ear; one generation pass, one
+// synthesis call. The regex normalizer below is the only preparation - it is
+// free and it is where "Nov 8" becomes "November eighth" on every path.
 export async function synthesizeSpeechText(text: string, signal: AbortSignal): Promise<Blob> {
   const settings = settingsStore.getState().getSettings().textToSpeech
   if (!settings?.enabled) throw new Error('Enable Read aloud in Desktop Settings > Default Models first.')
-  const spoken = await rewriteForSpeech(text, settings, undefined, signal)
   const request: typeof fetch = (url, init) =>
     desktopDirectRequestFromWindow(String(url), 'POST', new Headers(init?.headers), init?.body, init?.signal ?? undefined)
-  return synthesizeSpeech(spoken, settings, request, signal)
+  return synthesizeSpeech(text, settings, request, signal)
 }
 
 let busy = false
@@ -32,8 +33,8 @@ export async function synthesizeWebReply(message: Message, sessionId?: string) {
     const request: typeof fetch = (url, init) => desktopDirectRequestFromWindow(
       String(url), 'POST', new Headers(init?.headers), init?.body, init?.signal ?? undefined
     )
-    const spoken = await rewriteForSpeech(text, settings, sessionId, controller.signal)
-    const blob = await synthesizeSpeech(spoken, settings, request, controller.signal)
+    // Non-mic read-aloud: speak the reply as written (normalization only).
+    const blob = await synthesizeSpeech(text, settings, request, controller.signal)
     if (blob.size > 8 * 1024 * 1024) throw new Error('Speech audio exceeds the browser playback limit.')
     const bytes = new Uint8Array(await blob.arrayBuffer())
     let binary = ''

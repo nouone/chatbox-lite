@@ -161,6 +161,16 @@ it('sends without touching settings when no thinkingEffort is given', async () =
   expect(mocks.updateHeader).not.toHaveBeenCalled()
   expect(mocks.send).toHaveBeenCalledOnce()
 })
+it('stores the speakable-answer instruction on voice sends and leaves text sends verbatim', async () => {
+  await handleLocalChatCall({ action: 'send', chatId: 'chat', content: 'What is Nov 8?' })
+  const plain = mocks.send.mock.calls[0][1].newUserMsg as { contentParts: { text: string }[] }
+  expect(plain.contentParts[0].text).toBe('What is Nov 8?')
+  mocks.send.mockClear()
+  await handleLocalChatCall({ action: 'send', chatId: 'chat', content: 'What is Nov 8?', voice: true })
+  const voiced = mocks.send.mock.calls[0][1].newUserMsg as { contentParts: { text: string }[] }
+  expect(voiced.contentParts[0].text).toContain('voice interface')
+  expect(voiced.contentParts[0].text.endsWith('\n\nWhat is Nov 8?')).toBe(true)
+})
 it('re-reads a stale cursor page once against the current revision', async () => {
   // The page cursor pins the revision it was cut at; a desktop send bumps it.
   // Load-older must re-stamp the cursor and retry, not surface "changed".

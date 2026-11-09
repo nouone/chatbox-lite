@@ -3,6 +3,11 @@ export type LocalChatCall = {
   messageId?: string
   chatId?: string
   content?: string
+  /** Mic-mode send: the reply is only ever heard, so the user message is
+   * stored prefixed with a speakable-answer instruction (VOICE_INSTRUCTION
+   * in the send handler). One model pass produces speech-ready text; there
+   * is no separate rewrite stage. */
+  voice?: boolean
   // Per-send thinking level for chats driven by API clients (voice apps). The
   // renderer persists it into the session settings the same way the desktop
   // Thinking Effort selector does, so the next generation in this chat uses it.

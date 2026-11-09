@@ -12,6 +12,20 @@ import { isSessionGenerating } from '@/stores/sessionActivityStore'
 const pendingChats = new Set<string>()
 const errors = new Map<string, string>()
 
+// Mic-mode answer style (voice: true sends). The reply is only ever heard, so
+// one generation pass produces speech-ready text - no separate rewrite stage.
+// Stored as part of the user message: it rides the history, so every later
+// turn in the voice thread stays speakable without client-side prompt copies.
+export const VOICE_INSTRUCTION =
+  'You are responding through a voice interface. Answer the request below in natural, conversational, speakable language.\n' +
+  '- Answer the actual question; do not repeat or paraphrase it.\n' +
+  '- Expand abbreviations as you go (say "November", not "Nov"); do not explain terms unless asked.\n' +
+  '- Use complete natural sentences; turn lists and tables into brief spoken explanations.\n' +
+  '- No markdown, no code blocks, no URLs, no visual formatting.\n' +
+  '- Speak numbers, dates and units in words.\n' +
+  '- Keep it brief: one to three short sentences unless the question needs more.\n' +
+  '- Never announce what you are doing; ask a question back only when truly necessary.\n\n'
+
 export async function handleLocalChatCall(call: LocalChatCall): Promise<LocalChatResult> {
   const sessions = rendererApplication.sessions
   try {
@@ -208,7 +222,13 @@ export async function handleLocalChatCall(call: LocalChatCall): Promise<LocalCha
     if (!gate.allowed) return { status: 409, body: { error: `Conversation blocked: ${gate.reason}` } }
     if (pendingChats.has(call.chatId))
       return { status: 409, body: { error: 'Conversation is already processing a message' } }
-    const message = createMessage('user', call.content)
+    const message = createMessage(
+      'user',
+      // Voice sends carry the speakable-answer instruction in the stored user
+      // message, so the model formats its one pass for the ear (see
+      // VOICE_INSTRUCTION). Text sends stay exactly as typed.
+      call.voice ? VOICE_INSTRUCTION + '\n\n' + call.content : call.content
+    )
     message.suppressDesktopAutoRead = true
     const chatId = call.chatId
     if (call.thinkingEffort) {

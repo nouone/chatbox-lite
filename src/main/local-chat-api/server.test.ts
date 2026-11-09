@@ -150,6 +150,34 @@ it('carries a valid thinkingEffort and rejects an unknown one', async () => {
   expect(bad.status).toBe(400)
   expect(dispatch).toHaveBeenCalledTimes(1)
 })
+it('carries voice: true on mic-mode sends and omits it otherwise', async () => {
+  const { request, dispatch } = await setup()
+  dispatch.mockResolvedValue({ status: 202, body: { status: 'accepted' } })
+  const voiced = await request('/api/chats/chat-id/messages', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ content: 'what time is it', voice: true }),
+  })
+  expect(voiced.status).toBe(202)
+  expect(dispatch).toHaveBeenLastCalledWith({
+    action: 'send',
+    chatId: 'chat-id',
+    content: 'what time is it',
+    voice: true,
+    limit: 50,
+  })
+  await request('/api/chats/chat-id/messages', {
+    method: 'POST',
+    headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ content: 'typed text' }),
+  })
+  expect(dispatch).toHaveBeenLastCalledWith({
+    action: 'send',
+    chatId: 'chat-id',
+    content: 'typed text',
+    limit: 50,
+  })
+})
 it('routes voice frontend calls (asr audio, speak text, note mirror) and validates payloads', async () => {
   const { request, dispatch } = await setup()
   dispatch.mockResolvedValue({ status: 200, body: { text: 'hello' } })
