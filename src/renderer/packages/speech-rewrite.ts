@@ -8,7 +8,7 @@ import type { ModelMessage } from 'ai'
 // pay for (or hide its work inside) reasoning tokens.
 const REWRITE_PROMPT =
   'You prepare text for text-to-speech. Rewrite the user text so it sounds natural when read aloud. ' +
-  'Say numbers, units, symbols, dates and abbreviations in words ("87 F" becomes "87 degrees Fahrenheit", "Dr." becomes "Doctor", "~" becomes "about"). ' +
+  'Say numbers, units, symbols, dates and abbreviations in words ("87 F" becomes "87 degrees Fahrenheit", "Dr." becomes "Doctor", "~" becomes "about", "Nov" becomes "November"). ' +
   'Narrate lists and tables as short spoken sentences. ' +
   'Keep every fact and the same order. No markdown, no emoji, no parentheses, no headings, no commentary, no greeting, and never mention the rewrite. ' +
   'Output only the rewritten text.'
