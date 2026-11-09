@@ -272,7 +272,7 @@ it('offers phone audio controls when Safari requires a second playback tap, and 
 })
 it('keeps the voice overlay TTS element control-free and inline-playable',async()=>{
   await setup()
-  const voiceAudio=document.getElementById('voice-audio')!
+  const voiceAudio=document.getElementById('voice-audio') as HTMLAudioElement
   // iOS drew native controls over the voice UI (above Voice Settings): the
   // attribute must stay gone, the element hidden, and playback inline.
   expect(voiceAudio.hasAttribute('controls')).toBe(false)

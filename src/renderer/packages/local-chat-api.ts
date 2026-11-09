@@ -26,6 +26,29 @@ export const VOICE_INSTRUCTION =
   '- Keep it brief: one to three short sentences unless the question needs more.\n' +
   '- Never announce what you are doing; ask a question back only when truly necessary.\n\n'
 
+// First line of VOICE_INSTRUCTION, unique enough to identify voice-styled
+// threads when scanning stored user messages (see the send handler).
+const VOICE_MARKER = 'You are responding through a voice interface.'
+
+async function voiceThreadHasInstruction(chatId: string): Promise<boolean> {
+  try {
+    const page = await rendererApplication.sessions.readSessionTranscriptWindow({
+      sessionId: chatId,
+      limit: 100,
+      maxBytes: 2 * 1024 * 1024,
+      origin: 'tail' as const,
+    })
+    return (page?.messages || []).some(
+      ({ message }: { message: { role?: string; contentParts?: { type?: string; text?: string }[] } }) =>
+        message.role === 'user' &&
+        (message.contentParts || []).some((part) => part.type === 'text' && (part.text || '').includes(VOICE_MARKER))
+    )
+  } catch {
+    // Unreadable thread: fall on the side of style - send the instruction.
+    return false
+  }
+}
+
 export async function handleLocalChatCall(call: LocalChatCall): Promise<LocalChatResult> {
   const sessions = rendererApplication.sessions
   try {
@@ -224,10 +247,16 @@ export async function handleLocalChatCall(call: LocalChatCall): Promise<LocalCha
       return { status: 409, body: { error: 'Conversation is already processing a message' } }
     const message = createMessage(
       'user',
-      // Voice sends carry the speakable-answer instruction in the stored user
-      // message, so the model formats its one pass for the ear (see
-      // VOICE_INSTRUCTION). Text sends stay exactly as typed.
-      call.voice ? VOICE_INSTRUCTION + '\n\n' + call.content : call.content
+      // Voice sends carry the speakable-answer instruction ONLY while the
+      // thread lacks it (Nou: "once is enough"). The model obeys the style
+      // from the first copy sitting in context; resending it every turn just
+      // adds prompt weight. The check scans the stored tail: after history
+      // compaction drops the instruction, the next voice send re-adds it.
+      call.voice && (await voiceThreadHasInstruction(call.chatId))
+        ? call.content
+        : call.voice
+          ? VOICE_INSTRUCTION + '\n\n' + call.content
+          : call.content
     )
     message.suppressDesktopAutoRead = true
     const chatId = call.chatId

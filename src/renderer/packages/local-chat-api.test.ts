@@ -162,6 +162,7 @@ it('sends without touching settings when no thinkingEffort is given', async () =
   expect(mocks.send).toHaveBeenCalledOnce()
 })
 it('stores the speakable-answer instruction on voice sends and leaves text sends verbatim', async () => {
+  mocks.history.mockResolvedValue({ messages: [], older: null })
   await handleLocalChatCall({ action: 'send', chatId: 'chat', content: 'What is Nov 8?' })
   const plain = mocks.send.mock.calls[0][1].newUserMsg as { contentParts: { text: string }[] }
   expect(plain.contentParts[0].text).toBe('What is Nov 8?')
@@ -170,6 +171,36 @@ it('stores the speakable-answer instruction on voice sends and leaves text sends
   const voiced = mocks.send.mock.calls[0][1].newUserMsg as { contentParts: { text: string }[] }
   expect(voiced.contentParts[0].text).toContain('voice interface')
   expect(voiced.contentParts[0].text.endsWith('\n\nWhat is Nov 8?')).toBe(true)
+})
+it('sends the voice instruction once per thread: later voice turns stay verbatim', async () => {
+  // Thread already carries a voice-styled user message (first send of the session).
+  mocks.history.mockResolvedValue({
+    messages: [
+      {
+        threadId: 'thread',
+        message: {
+          id: 'first',
+          role: 'user',
+          contentParts: [{ type: 'text', text: 'You are responding through a voice interface.\n\nWhat time is it?' }],
+        },
+      },
+      { threadId: 'thread', message: { id: 'reply', role: 'assistant', contentParts: [{ type: 'text', text: 'Three pm.' }] } },
+    ],
+    older: null,
+  })
+  await handleLocalChatCall({ action: 'send', chatId: 'chat', content: 'Say again.', voice: true })
+  const repeat = mocks.send.mock.calls[0][1].newUserMsg as { contentParts: { text: string }[] }
+  expect(repeat.contentParts[0].text).toBe('Say again.')
+})
+it('re-adds the voice instruction after history compaction drops it', async () => {
+  // Compacted thread: the marker message is gone, style must be re-armed.
+  mocks.history.mockResolvedValue({
+    messages: [{ threadId: 'thread', message: { id: 'summary', role: 'user', contentParts: [{ type: 'text', text: 'Earlier we discussed the weather.' }] } }],
+    older: null,
+  })
+  await handleLocalChatCall({ action: 'send', chatId: 'chat', content: 'And tomorrow?', voice: true })
+  const reAdd = mocks.send.mock.calls[0][1].newUserMsg as { contentParts: { text: string }[] }
+  expect(reAdd.contentParts[0].text).toContain('voice interface')
 })
 it('re-reads a stale cursor page once against the current revision', async () => {
   // The page cursor pins the revision it was cut at; a desktop send bumps it.
