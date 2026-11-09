@@ -50,7 +50,7 @@ export const LOCAL_CHAT_WEB_UI = `<!doctype html><html lang="en"><head><meta cha
 <label>Turn responsiveness<span class="seg" id="voice-timing" role="group" aria-label="Turn responsiveness"><button type="button" data-v="700">quick</button><button type="button" data-v="1200">normal</button><button type="button" data-v="2000">patient</button></span></label>
 </div>
 <div id="voice-reason"><h3>Reasoning</h3><div class="seg" id="voice-think" role="group" aria-label="Thinking level"><button type="button" data-v="off">Off</button><button type="button" data-v="low">Low</button><button type="button" data-v="med">Medium</button><button type="button" data-v="high">High</button></div></div>
-<audio id="voice-audio" controls hidden style="width:min(420px,90%);margin:0 auto"></audio>
+<audio id="voice-audio" playsinline webkit-playsinline hidden style="width:min(420px,90%);margin:0 auto"></audio>
 <div id="voice-bar"><button id="voice-settings" type="button"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" aria-hidden="true"><path d="M4 6h10"/><path d="M18 6h2"/><circle cx="16" cy="6" r="2"/><path d="M4 12h4"/><path d="M12 12h8"/><circle cx="10" cy="12" r="2"/><path d="M4 18h12"/><path d="M20 18h0"/><circle cx="18" cy="18" r="2"/></svg>Voice settings</button><button id="voice-exit" type="button"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12"/><path d="M18 6l-12 12"/></svg>Exit voice</button></div>
 
 </div>
@@ -109,7 +109,7 @@ if(pendingPair){el('token').required=false;el('token').hidden=true;document.quer
 (function(){
 var RATE=16000,WINDOW=24,HOT=14;
 function prerollMax(){return calStart?400:25}
-var on=false,ctx,stream,proc,cancelAudio,cal=[],silRms=0.012,calStart=0;
+var on=false,ctx,stream,proc,cancelAudio,resumeAudio,cal=[],silRms=0.012,calStart=0;
 var ring=[],ringLen=0,sampling=false,chunks=[],chunkLen=0,silTimer=null,maxTimer=null;var voicedFrames=0,captureDuringPlayback=false,captureSentence="";
 var queue=[],playing=false,armedBits=[],captureInterrupted=false,playbackId=0,voiceSession=0;
 function orb(){return el('voice-orb')}
@@ -215,21 +215,26 @@ function playBlob(blob,sentence){
       URL.revokeObjectURL(url);
       if(started)lastVoiceOutTs=Date.now();
       cancelAudio=null;
+      resumeAudio=null;
       resolve(completed);
     }
     cancelAudio=function(){audio.pause();finish(false)};
+    // No native controls (iOS drew them over the voice UI): if autoplay is
+    // blocked despite the mic gesture, the next orb tap retries playback.
+    resumeAudio=function(){audio.play().catch(function(){if(audio.src===url&&resumeAudio)vstatus("Tap the orb to start speaking")})};
     audio.onended=function(){finish(true)};
     audio.onerror=function(){finish(false)};
     audio.onplaying=function(){
       if(started)return;
       started=true;
+      // Playing for real: the orb goes back to being the interrupt control.
+      resumeAudio=null;
       spokenNow=sentence;
       pushVoiceOut(sentence);
     };
     audio.src=url;
-    audio.hidden=false;
     audio.play().catch(function(){
-      if(audio.src===url&&cancelAudio)vstatus("Tap play to start speaking");
+      if(audio.src===url&&cancelAudio)vstatus("Tap the orb to start speaking");
     });
   });
 }
@@ -322,7 +327,7 @@ function stop(){voiceSession++;on=false;sampling=false;clearTimeout(silTimer);cl
 el('mic').onclick=function(){on?stop():start()};
 el('voice-settings').onclick=function(){el('voice-drawer').classList.toggle('open')};
 el('voice-exit').onclick=stop;
-orb().onclick=function(){if(playing){stopSpeaking();vstatus('Listening')}};
+orb().onclick=function(){if(!playing)return;if(resumeAudio){resumeAudio();return}stopSpeaking();vstatus('Listening')};
 document.addEventListener('keydown',function(event){if(event.key==='Escape'&&on)stop()});
 })();
 </script></body></html>`
