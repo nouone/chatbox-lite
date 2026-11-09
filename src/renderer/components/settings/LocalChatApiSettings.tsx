@@ -209,6 +209,11 @@ export function LocalChatApiSettings() {
             {error || state?.error}
           </Alert>
         )}
+        {state?.lanError && (
+          <Alert color="yellow" role="status">
+            {state.lanError} Clear or update the static LAN IP to restore local network access.
+          </Alert>
+        )}
         <Text size="sm">
           A token grants access to your chats and can send messages using your configured models. Generate a new token
           to revoke the old one and disconnect browser clients.

@@ -6,6 +6,8 @@ type RunningServer = {
   close: () => Promise<void>
   setToken: (token: string) => void
   createPairing?: (scope?: string) => { code: string; expiresAt: number }
+  /** Present when the server started but its LAN listener failed (degraded). */
+  lanError?: string
 }
 
 /** Serializes settings changes so rapid toggles cannot leave multiple listeners running. */
@@ -30,10 +32,11 @@ export function createLocalApiManager(options: {
     ...preferences,
     running: Boolean(server),
     hasToken: token.length >= 32,
-    url: preferences.lanAddress
+    url: preferences.lanAddress && !server?.lanError
       ? `http://${preferences.lanAddress}:${preferences.port}`
       : preferences.publicOrigin || `http://127.0.0.1:${preferences.port}`,
     ...(error ? { error } : {}),
+    ...(server?.lanError ? { lanError: server.lanError } : {}),
   })
   const rotate = () => {
     const next = randomBytes(32).toString('hex')
@@ -109,7 +112,7 @@ export function createLocalApiManager(options: {
           const pair = server.createPairing('tailnet')
           result.tailnet = { url: `${preferences.publicOrigin}/#pair=${pair.code}`, expiresAt: pair.expiresAt }
         }
-        if (preferences.lanAddress) {
+        if (preferences.lanAddress && !server?.lanError) {
           const pair = server.createPairing('lan')
           result.lan = {
             url: `http://${preferences.lanAddress}:${preferences.port}/#pair=${pair.code}`,

@@ -29,6 +29,9 @@ export type LocalApiStatus = {
   hasToken: boolean
   url: string
   error?: string
+  /** Set when localhost/Tailscale came up but the LAN listener failed (e.g. a
+   * saved static IP after the machine moved networks); the API still runs. */
+  lanError?: string
   publicOrigin?: string
   lanAddress?: string
 }

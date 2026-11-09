@@ -331,9 +331,10 @@ export async function startLocalChatApi(options: {
     }, 250)
     ws.once('close', () => { clearInterval(timer); clearInterval(heartbeat) })
   })
-  const lanServer = lanAddress
+  let lanServer = lanAddress
     ? createServer(server.listeners('request')[0] as import('node:http').RequestListener)
     : undefined
+  let lanBindError: string | undefined
   if (lanServer) {
     lanServer.requestTimeout = server.requestTimeout
     lanServer.headersTimeout = server.headersTimeout
@@ -346,19 +347,27 @@ export async function startLocalChatApi(options: {
   const address = server.address()
   if (address && typeof address !== 'string') port = address.port
   if (lanServer) {
+    const lanListener = lanServer
     try {
       await new Promise<void>((resolve, reject) => {
-        lanServer.once('error', reject)
-        lanServer.listen(port, lanAddress, resolve)
+        lanListener.once('error', reject)
+        lanListener.listen(port, lanAddress, resolve)
       })
     } catch (error) {
-      server.close()
-      sockets.close()
-      throw error
+      // A stale saved LAN address (the machine moved networks) must not take
+      // the whole API down: the phone still needs localhost/Tailscale. Degrade
+      // to no-LAN and surface the reason; only a localhost failure is fatal.
+      lanBindError = error instanceof Error ? error.message : String(error)
+      lanListener.closeAllConnections()
+      await new Promise<void>((resolve) => lanListener.close(() => resolve()))
+      lanServer = undefined
     }
   }
   return {
     port,
+    lanError: lanBindError
+      ? `LAN address ${lanAddress} is not active on this computer (${lanBindError}); local network access is off.`
+      : undefined,
     httpServer: server,
     createPairing: (scope?: string) => {
       return pairing.create(scope)

@@ -93,3 +93,31 @@ it('serializes overlapping changes and rejects invalid settings before changing 
   await expect(manager.configure({ enabled: true, port: 0 })).rejects.toThrow('port')
   expect(manager.status().port).toBe(8087)
 })
+
+it('keeps the API running and falls back to the Tailscale url when the LAN listener degrades', async () => {
+  const root = 'root-token'.repeat(8)
+  const lanError = 'LAN address 10.0.0.25 is not active on this computer (EADDRNOTAVAIL); local network access is off.'
+  const options = {
+    preferences: { enabled: false, port: 8087 },
+    token: root,
+    savePreferences: vi.fn(),
+    saveToken: vi.fn(),
+    start: vi
+      .fn()
+      .mockResolvedValue({ close: vi.fn(), setToken: vi.fn(), createPairing: () => ({ code: 'c', expiresAt: 1 }), lanError }),
+  }
+  const manager = createLocalApiManager(options)
+  const status = await manager.configure({
+    enabled: true,
+    port: 8087,
+    publicOrigin: 'https://pc.example.ts.net:8444',
+    lanAddress: '10.0.0.25',
+  })
+  expect(status.running).toBe(true)
+  expect(status.error).toBeUndefined()
+  expect(status.lanError).toBe(lanError)
+  // The advertised url must not be the dead LAN address; pairing links and
+  // "Open browser" follow it.
+  expect(status.url).toBe('https://pc.example.ts.net:8444')
+  expect(await manager.browserUrl()).toBe('https://pc.example.ts.net:8444/#pair=c')
+})

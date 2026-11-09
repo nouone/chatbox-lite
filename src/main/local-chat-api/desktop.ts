@@ -2,6 +2,7 @@ import { randomUUID } from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 import { app, clipboard, ipcMain, shell, type BrowserWindow } from 'electron'
+import log from 'electron-log/main'
 import { LOCAL_API_CHANNELS } from '../../shared/local-chat-api'
 import type { LocalChatCall, LocalChatResult } from '../../shared/local-chat-api'
 import { startLocalChatApi } from './server'
@@ -89,6 +90,7 @@ export function registerLocalChatApi(getWindow: () => BrowserWindow | null) {
         rendererBusy: () => pending.size >= 8,
       })
       console.info(`[Wao API] http://127.0.0.1:${server.port}`)
+      if (server.lanError) log.warn(`[Wao API] ${server.lanError}`)
       return server
     },
   })
