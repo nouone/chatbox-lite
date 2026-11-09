@@ -1,11 +1,11 @@
 import { settings as getDefaultSettings, newConfigs } from 'src/shared/defaults'
+import { ModelProviderNotFoundError } from 'src/shared/models/errors'
 import { getModel } from 'src/shared/providers'
 import LongCat from 'src/shared/providers/definitions/models/longcat'
 import OpenAI from 'src/shared/providers/definitions/models/openai'
 import OpenAIResponses from 'src/shared/providers/definitions/models/openai-responses'
 import Qwen from 'src/shared/providers/definitions/models/qwen'
 import TencentHunyuan from 'src/shared/providers/definitions/models/tencent-hunyuan'
-import XiaomiMiMo from 'src/shared/providers/definitions/models/xiaomi-mimo'
 import ZhipuGLMCodingPlan from 'src/shared/providers/definitions/models/zhipu-glm-coding-plan'
 import { ModelProviderEnum, type SessionSettings, type Settings } from 'src/shared/types'
 import type { ModelDependencies } from 'src/shared/types/adapters'
@@ -198,7 +198,6 @@ describe('getModel', () => {
       'https://api.hunyuan.cloud.tencent.com/v1',
       TencentHunyuan,
     ],
-    [ModelProviderEnum.XiaomiMiMo, 'mimo-v2.5-pro', 'https://api.xiaomimimo.com/v1', XiaomiMiMo],
     [ModelProviderEnum.LongCat, 'LongCat-2.0', 'https://api.longcat.chat/openai/v1', LongCat],
     [
       ModelProviderEnum.ZhipuGLMCodingPlan,
@@ -232,5 +231,24 @@ describe('getModel', () => {
     const model = getModel(sessionSettings, globalSettings, newConfigs(), mockDependencies)
 
     expect(model).toBeInstanceOf(expectedModelClass)
+  })
+
+  it('rejects Xiaomi/MiMo, removed from Wao without deleting saved sessions', () => {
+    const defaultSettings = getDefaultSettings()
+    const globalSettings: Settings = {
+      ...defaultSettings,
+      providers: {
+        ...defaultSettings.providers,
+        [ModelProviderEnum.XiaomiMiMo]: { apiKey: 'test-key', models: [{ modelId: 'mimo-v2.5-pro' }] },
+      },
+    }
+    expect(() =>
+      getModel(
+        { provider: ModelProviderEnum.XiaomiMiMo, modelId: 'mimo-v2.5-pro' } as SessionSettings,
+        globalSettings,
+        newConfigs(),
+        mockDependencies
+      )
+    ).toThrow(ModelProviderNotFoundError)
   })
 })
