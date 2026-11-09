@@ -320,7 +320,6 @@
   "Connection successful": "Bağlantı başarılı",
   "Connection successful!": "Bağlantı başarılı!",
   "Connection to {{aiProvider}} failed. This typically occurs due to a temporary service issue. Please try again later or <buttonOpenSettings>check your settings</buttonOpenSettings>.": "{{aiProvider}} bağlantısı başarısız oldu. Bu genellikle geçici bir hizmet sorunundan kaynaklanır. Lütfen daha sonra tekrar deneyin veya <buttonOpenSettings>ayarlarınızı kontrol edin</buttonOpenSettings>.",
-  "Connection to {{aiProvider}} failed. This typically occurs due to incorrect configuration or {{aiProvider}} account issues. Please <buttonOpenSettings>check your settings</buttonOpenSettings> and verify your {{aiProvider}} account status, or purchase a <LinkToLicensePricing>Chatbox AI License</LinkToLicensePricing> to unlock all advanced models instantly without any configuration.": "{{aiProvider}} bağlantısı başarısız oldu. Bu genellikle hatalı yapılandırma veya {{aiProvider}} hesap sorunlarından kaynaklanır. Lütfen <buttonOpenSettings>ayarlarınızı kontrol edin</buttonOpenSettings> ve {{aiProvider}} hesap durumunuzu doğrulayın; ya da hiçbir yapılandırma gerekmeden tüm gelişmiş modellerin kilidini anında açmak için bir <LinkToLicensePricing>Chatbox AI Lisansı</LinkToLicensePricing> satın alın.",
   "Consumes more token": "Daha fazla Token tüketir",
   "Content": "İçerik",
   "Content not allowed. Please modify your request and try again.": "İçeriğe izin verilmiyor. Lütfen isteğinizi değiştirip tekrar deneyin.",
@@ -1975,5 +1974,6 @@
   "Conversations only (V1 JSON)": "Yalnızca konuşmalar (V1 JSON)",
   "Earlier messages could not be loaded": "Önceki mesajlar yüklenemedi",
   "Later messages could not be loaded": "Sonraki mesajlar yüklenemedi",
-  "V1 includes conversation text, history and branches. Attachments and configuration are not included.": "V1, konuşma metnini, geçmişini ve dallarını içerir. Ekler ve yapılandırma dahil edilmez."
+  "V1 includes conversation text, history and branches. Attachments and configuration are not included.": "V1, konuşma metnini, geçmişini ve dallarını içerir. Ekler ve yapılandırma dahil edilmez.",
+  "Connection to {{aiProvider}} failed. This typically occurs due to incorrect configuration or {{aiProvider}} account issues. Please <buttonOpenSettings>check your settings</buttonOpenSettings> and verify your {{aiProvider}} account status.": "{{aiProvider}} bağlantısı başarısız oldu. Bu genellikle hatalı yapılandırma veya {{aiProvider}} hesap sorunlarından kaynaklanır. Lütfen <buttonOpenSettings>ayarlarınızı kontrol edin</buttonOpenSettings> ve {{aiProvider}} hesap durumunuzu doğrulayın; ya da hiçbir yapılandırma gerekmeden tüm gelişmiş modellerin kilidini anında açmak için bir."
 }

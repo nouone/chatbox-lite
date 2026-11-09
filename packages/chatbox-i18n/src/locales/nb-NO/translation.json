@@ -320,7 +320,6 @@
   "Connection successful": "Tilkobling vellykket",
   "Connection successful!": "Tilkobling vellykket!",
   "Connection to {{aiProvider}} failed. This typically occurs due to a temporary service issue. Please try again later or <buttonOpenSettings>check your settings</buttonOpenSettings>.": "Tilkobling til {{aiProvider}} mislyktes. Dette skyldes vanligvis et midlertidig tjenesteproblem. Vennligst prøv igjen senere eller <buttonOpenSettings>sjekk innstillingene dine</buttonOpenSettings>.",
-  "Connection to {{aiProvider}} failed. This typically occurs due to incorrect configuration or {{aiProvider}} account issues. Please <buttonOpenSettings>check your settings</buttonOpenSettings> and verify your {{aiProvider}} account status, or purchase a <LinkToLicensePricing>Chatbox AI License</LinkToLicensePricing> to unlock all advanced models instantly without any configuration.": "Tilkobling til {{aiProvider}} mislyktes. Dette skyldes vanligvis feil konfigurasjon eller problemer med {{aiProvider}}-kontoen. Vennligst <buttonOpenSettings>sjekk innstillingene dine</buttonOpenSettings> og verifiser din {{aiProvider}}-kontostatus, eller kjøp en <LinkToLicensePricing>Chatbox AI-lisens</LinkToLicensePricing> for å låse opp alle avanserte modeller umiddelbart uten konfigurasjon.",
   "Consumes more token": "Bruker flere Token",
   "Content": "Innhold",
   "Content not allowed. Please modify your request and try again.": "Innholdet er ikke tillatt. Vennligst endre forespørselen din og prøv igjen.",
@@ -1975,5 +1974,6 @@
   "Conversations only (V1 JSON)": "Bare samtaler (V1 JSON)",
   "Earlier messages could not be loaded": "Tidligere meldinger kunne ikke lastes inn",
   "Later messages could not be loaded": "Senere meldinger kunne ikke lastes inn",
-  "V1 includes conversation text, history and branches. Attachments and configuration are not included.": "V1 inkluderer samtaletekst, historikk og forgreninger. Vedlegg og innstillinger er ikke inkludert."
+  "V1 includes conversation text, history and branches. Attachments and configuration are not included.": "V1 inkluderer samtaletekst, historikk og forgreninger. Vedlegg og innstillinger er ikke inkludert.",
+  "Connection to {{aiProvider}} failed. This typically occurs due to incorrect configuration or {{aiProvider}} account issues. Please <buttonOpenSettings>check your settings</buttonOpenSettings> and verify your {{aiProvider}} account status.": "Tilkobling til {{aiProvider}} mislyktes. Dette skyldes vanligvis feil konfigurasjon eller problemer med {{aiProvider}}-kontoen. Vennligst <buttonOpenSettings>sjekk innstillingene dine</buttonOpenSettings> og verifiser din {{aiProvider}}-kontostatus, eller kjøp en."
 }

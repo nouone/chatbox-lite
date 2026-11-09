@@ -320,7 +320,6 @@
   "Connection successful": "Подключение успешно",
   "Connection successful!": "Подключение успешно!",
   "Connection to {{aiProvider}} failed. This typically occurs due to a temporary service issue. Please try again later or <buttonOpenSettings>check your settings</buttonOpenSettings>.": "Не удалось подключиться к {{aiProvider}}. Обычно это происходит из-за временных проблем с сервисом. Пожалуйста, попробуйте позже или <buttonOpenSettings>проверьте настройки</buttonOpenSettings>.",
-  "Connection to {{aiProvider}} failed. This typically occurs due to incorrect configuration or {{aiProvider}} account issues. Please <buttonOpenSettings>check your settings</buttonOpenSettings> and verify your {{aiProvider}} account status, or purchase a <LinkToLicensePricing>Chatbox AI License</LinkToLicensePricing> to unlock all advanced models instantly without any configuration.": "Не удалось подключиться к {{aiProvider}}. Обычно это происходит из-за неверной конфигурации или проблем с учетной записью {{aiProvider}}. Пожалуйста, <buttonOpenSettings>проверьте настройки</buttonOpenSettings> и статус вашей учетной записи {{aiProvider}}, либо приобретите <LinkToLicensePricing>лицензию Chatbox AI</LinkToLicensePricing>, чтобы мгновенно разблокировать все продвинутые модели без необходимости дополнительной настройки.",
   "Consumes more token": "Потребляет больше Token",
   "Content": "Содержимое",
   "Content not allowed. Please modify your request and try again.": "Контент запрещен. Пожалуйста, измените свой запрос и попробуйте еще раз.",
@@ -1975,5 +1974,6 @@
   "Conversations only (V1 JSON)": "Только беседы (V1 JSON)",
   "Earlier messages could not be loaded": "Не удалось загрузить более ранние сообщения",
   "Later messages could not be loaded": "Не удалось загрузить более поздние сообщения",
-  "V1 includes conversation text, history and branches. Attachments and configuration are not included.": "V1 включает текст, историю и ветки бесед. Вложения и настройки не включаются."
+  "V1 includes conversation text, history and branches. Attachments and configuration are not included.": "V1 включает текст, историю и ветки бесед. Вложения и настройки не включаются.",
+  "Connection to {{aiProvider}} failed. This typically occurs due to incorrect configuration or {{aiProvider}} account issues. Please <buttonOpenSettings>check your settings</buttonOpenSettings> and verify your {{aiProvider}} account status.": "Не удалось подключиться к {{aiProvider}}. Обычно это происходит из-за неверной конфигурации или проблем с учетной записью {{aiProvider}}. Пожалуйста, <buttonOpenSettings>проверьте настройки</buttonOpenSettings> и статус вашей учетной записи {{aiProvider}}, либо приобретите."
 }

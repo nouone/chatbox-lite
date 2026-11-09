@@ -320,7 +320,6 @@
   "Connection successful": "Verbindung erfolgreich",
   "Connection successful!": "Verbindung erfolgreich!",
   "Connection to {{aiProvider}} failed. This typically occurs due to a temporary service issue. Please try again later or <buttonOpenSettings>check your settings</buttonOpenSettings>.": "Die Verbindung zu {{aiProvider}} ist fehlgeschlagen. Dies tritt normalerweise aufgrund eines vorübergehenden Dienstproblems auf. Bitte versuchen Sie es später erneut oder <buttonOpenSettings>überprüfen Sie Ihre Einstellungen</buttonOpenSettings>.",
-  "Connection to {{aiProvider}} failed. This typically occurs due to incorrect configuration or {{aiProvider}} account issues. Please <buttonOpenSettings>check your settings</buttonOpenSettings> and verify your {{aiProvider}} account status, or purchase a <LinkToLicensePricing>Chatbox AI License</LinkToLicensePricing> to unlock all advanced models instantly without any configuration.": "Die Verbindung zu {{aiProvider}} ist fehlgeschlagen. Dies geschieht normalerweise aufgrund einer falschen Konfiguration oder Problemen mit dem {{aiProvider}}-Konto. Bitte <buttonOpenSettings>überprüfen Sie Ihre Einstellungen</buttonOpenSettings> und verifizieren Sie den Status Ihres {{aiProvider}}-Kontos oder erwerben Sie eine <LinkToLicensePricing>Chatbox AI-Lizenz</LinkToLicensePricing>, um sofort alle erweiterten Modelle ohne Konfiguration freizuschalten.",
   "Consumes more token": "Verbraucht mehr Token",
   "Content": "Inhalt",
   "Content not allowed. Please modify your request and try again.": "Inhalt nicht zulässig. Bitte ändern Sie Ihre Anfrage und versuchen Sie es erneut.",
@@ -1975,5 +1974,6 @@
   "Conversations only (V1 JSON)": "Nur Unterhaltungen (V1 JSON)",
   "Earlier messages could not be loaded": "Frühere Nachrichten konnten nicht geladen werden",
   "Later messages could not be loaded": "Spätere Nachrichten konnten nicht geladen werden",
-  "V1 includes conversation text, history and branches. Attachments and configuration are not included.": "V1 enthält Gesprächstexte, Verlauf und Verzweigungen. Anhänge und Einstellungen sind nicht enthalten."
+  "V1 includes conversation text, history and branches. Attachments and configuration are not included.": "V1 enthält Gesprächstexte, Verlauf und Verzweigungen. Anhänge und Einstellungen sind nicht enthalten.",
+  "Connection to {{aiProvider}} failed. This typically occurs due to incorrect configuration or {{aiProvider}} account issues. Please <buttonOpenSettings>check your settings</buttonOpenSettings> and verify your {{aiProvider}} account status.": "Die Verbindung zu {{aiProvider}} ist fehlgeschlagen. Dies geschieht normalerweise aufgrund einer falschen Konfiguration oder Problemen mit dem {{aiProvider}}-Konto. Bitte <buttonOpenSettings>überprüfen Sie Ihre Einstellungen</buttonOpenSettings> und verifizieren Sie den Status Ihres {{aiProvider}}-Kontos oder erwerben Sie eine."
 }

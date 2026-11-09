@@ -320,7 +320,6 @@
   "Connection successful": "接続成功",
   "Connection successful!": "接続に成功しました！",
   "Connection to {{aiProvider}} failed. This typically occurs due to a temporary service issue. Please try again later or <buttonOpenSettings>check your settings</buttonOpenSettings>.": "{{aiProvider}}への接続に失敗しました。これは通常、一時的なサービスの問題が原因です。後でもう一度試すか、<buttonOpenSettings>設定を確認</buttonOpenSettings>してください。",
-  "Connection to {{aiProvider}} failed. This typically occurs due to incorrect configuration or {{aiProvider}} account issues. Please <buttonOpenSettings>check your settings</buttonOpenSettings> and verify your {{aiProvider}} account status, or purchase a <LinkToLicensePricing>Chatbox AI License</LinkToLicensePricing> to unlock all advanced models instantly without any configuration.": "{{aiProvider}}への接続に失敗しました。これは通常、設定の誤りや{{aiProvider}}アカウントの問題が原因です。<buttonOpenSettings>設定を確認</buttonOpenSettings>し、{{aiProvider}}アカウントの状態を検証するか、<LinkToLicensePricing>Chatbox AIライセンス</LinkToLicensePricing>を購入して、設定なしですべての高度なモデルを即座にアンロックしてください。",
   "Consumes more token": "より多くのTokenを消費します",
   "Content": "コンテンツ",
   "Content not allowed. Please modify your request and try again.": "コンテンツが許可されていません。リクエストを修正して再度お試しください。",
@@ -1975,5 +1974,6 @@
   "Conversations only (V1 JSON)": "会話のみ（V1 JSON）",
   "Earlier messages could not be loaded": "以前のメッセージを読み込めませんでした",
   "Later messages could not be loaded": "以降のメッセージを読み込めませんでした",
-  "V1 includes conversation text, history and branches. Attachments and configuration are not included.": "V1 には会話のテキスト、履歴、分岐が含まれます。添付ファイルと設定は含まれません。"
+  "V1 includes conversation text, history and branches. Attachments and configuration are not included.": "V1 には会話のテキスト、履歴、分岐が含まれます。添付ファイルと設定は含まれません。",
+  "Connection to {{aiProvider}} failed. This typically occurs due to incorrect configuration or {{aiProvider}} account issues. Please <buttonOpenSettings>check your settings</buttonOpenSettings> and verify your {{aiProvider}} account status.": "{{aiProvider}}への接続に失敗しました。これは通常、設定の誤りや{{aiProvider}}アカウントの問題が原因です。<buttonOpenSettings>設定を確認</buttonOpenSettings>し、{{aiProvider}}アカウントの状態を検証するか."
 }

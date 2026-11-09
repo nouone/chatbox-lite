@@ -320,7 +320,6 @@
   "Connection successful": "Anslutningen lyckades",
   "Connection successful!": "Anslutning lyckades!",
   "Connection to {{aiProvider}} failed. This typically occurs due to a temporary service issue. Please try again later or <buttonOpenSettings>check your settings</buttonOpenSettings>.": "Anslutning till {{aiProvider}} misslyckades. Detta beror vanligtvis på ett tillfälligt tjänstefel. Vänligen försök igen senare eller <buttonOpenSettings>kontrollera dina inställningar</buttonOpenSettings>.",
-  "Connection to {{aiProvider}} failed. This typically occurs due to incorrect configuration or {{aiProvider}} account issues. Please <buttonOpenSettings>check your settings</buttonOpenSettings> and verify your {{aiProvider}} account status, or purchase a <LinkToLicensePricing>Chatbox AI License</LinkToLicensePricing> to unlock all advanced models instantly without any configuration.": "Anslutning till {{aiProvider}} misslyckades. Detta beror vanligtvis på felaktig konfiguration eller problem med {{aiProvider}}-kontot. Vänligen <buttonOpenSettings>kontrollera dina inställningar</buttonOpenSettings> och verifiera din {{aiProvider}}-kontostatus, eller köp en <LinkToLicensePricing>Chatbox AI-licens</LinkToLicensePricing> för att låsa upp alla avancerade modeller omedelbart utan någon konfiguration.",
   "Consumes more token": "Förbrukar mer Token",
   "Content": "Innehåll",
   "Content not allowed. Please modify your request and try again.": "Innehållet är inte tillåtet. Vänligen ändra din förfrågan och försök igen.",
@@ -1975,5 +1974,6 @@
   "Conversations only (V1 JSON)": "Endast konversationer (V1 JSON)",
   "Earlier messages could not be loaded": "Tidigare meddelanden kunde inte läsas in",
   "Later messages could not be loaded": "Senare meddelanden kunde inte läsas in",
-  "V1 includes conversation text, history and branches. Attachments and configuration are not included.": "V1 innehåller konversationstext, historik och förgreningar. Bilagor och inställningar ingår inte."
+  "V1 includes conversation text, history and branches. Attachments and configuration are not included.": "V1 innehåller konversationstext, historik och förgreningar. Bilagor och inställningar ingår inte.",
+  "Connection to {{aiProvider}} failed. This typically occurs due to incorrect configuration or {{aiProvider}} account issues. Please <buttonOpenSettings>check your settings</buttonOpenSettings> and verify your {{aiProvider}} account status.": "Anslutning till {{aiProvider}} misslyckades. Detta beror vanligtvis på felaktig konfiguration eller problem med {{aiProvider}}-kontot. Vänligen <buttonOpenSettings>kontrollera dina inställningar</buttonOpenSettings> och verifiera din {{aiProvider}}-kontostatus, eller köp en."
 }

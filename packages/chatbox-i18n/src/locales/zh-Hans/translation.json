@@ -320,7 +320,6 @@
   "Connection successful": "连接成功",
   "Connection successful!": "连接成功！",
   "Connection to {{aiProvider}} failed. This typically occurs due to a temporary service issue. Please try again later or <buttonOpenSettings>check your settings</buttonOpenSettings>.": "连接到 {{aiProvider}} 失败。这通常是由于临时服务问题引起的。请稍后再试或 <buttonOpenSettings>检查您的设置</buttonOpenSettings>。",
-  "Connection to {{aiProvider}} failed. This typically occurs due to incorrect configuration or {{aiProvider}} account issues. Please <buttonOpenSettings>check your settings</buttonOpenSettings> and verify your {{aiProvider}} account status, or purchase a <LinkToLicensePricing>Chatbox AI License</LinkToLicensePricing> to unlock all advanced models instantly without any configuration.": "连接到 {{aiProvider}} 失败。这通常是由于配置不正确或 {{aiProvider}} 账户问题导致的。请 <buttonOpenSettings>检查您的设置</buttonOpenSettings> 并确认您的 {{aiProvider}} 账户状态，或者购买 <LinkToLicensePricing>Chatbox AI 许可证</LinkToLicensePricing> 以立即解锁所有高级模型，无需任何配置。",
   "Consumes more token": "消耗更多点数",
   "Content": "内容",
   "Content not allowed. Please modify your request and try again.": "内容不被允许。请修改您的请求并重试。",
@@ -1975,5 +1974,6 @@
   "Conversations only (V1 JSON)": "仅导出对话（V1 JSON）",
   "Earlier messages could not be loaded": "更早的消息未能加载",
   "Later messages could not be loaded": "后面的消息未能加载",
-  "V1 includes conversation text, history and branches. Attachments and configuration are not included.": "V1 包含对话文本、历史线程和分支，不包含附件和配置。"
+  "V1 includes conversation text, history and branches. Attachments and configuration are not included.": "V1 包含对话文本、历史线程和分支，不包含附件和配置。",
+  "Connection to {{aiProvider}} failed. This typically occurs due to incorrect configuration or {{aiProvider}} account issues. Please <buttonOpenSettings>check your settings</buttonOpenSettings> and verify your {{aiProvider}} account status.": "连接到 {{aiProvider}} 失败。这通常是由于配置不正确或 {{aiProvider}} 账户问题导致的。请 <buttonOpenSettings>检查您的设置</buttonOpenSettings> 并确认您的 {{aiProvider}} 账户状态，或者购买."
 }

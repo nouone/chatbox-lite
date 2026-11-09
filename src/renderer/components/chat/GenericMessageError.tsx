@@ -21,7 +21,6 @@ import { JK_EVENTS, JK_PAGE_NAMES } from '@/analytics/jk-events'
 import { ChatboxAIErrorMessage } from '@/components/common/ChatboxAIErrorMessage'
 import { ErrorNotice } from '@/components/common/ErrorNotice'
 import classes from '@/components/common/ErrorNotice.module.css'
-import LinkTargetBlank from '@/components/common/Link'
 import { AppTooltip as Tooltip } from '@/components/ui/tooltip'
 import { useCopied } from '@/hooks/useCopied'
 import { navigateToSettings } from '@/modals/settings-navigation'
@@ -159,7 +158,7 @@ function ErrorTip({ presentation, model }: { presentation: GenericPresentation; 
       }
       return (
         <Trans
-          i18nKey="Connection to {{aiProvider}} failed. This typically occurs due to incorrect configuration or {{aiProvider}} account issues. Please <buttonOpenSettings>check your settings</buttonOpenSettings> and verify your {{aiProvider}} account status, or purchase a <LinkToLicensePricing>Chatbox AI License</LinkToLicensePricing> to unlock all advanced models instantly without any configuration."
+          i18nKey="Connection to {{aiProvider}} failed. This typically occurs due to incorrect configuration or {{aiProvider}} account issues. Please <buttonOpenSettings>check your settings</buttonOpenSettings> and verify your {{aiProvider}} account status."
           values={{ aiProvider: getProviderName(presentation.providerId) }}
           components={{
             buttonOpenSettings: (
@@ -169,14 +168,6 @@ function ErrorTip({ presentation, model }: { presentation: GenericPresentation; 
                 onClick={() =>
                   navigateToSettings(presentation.providerId ? `/provider/${presentation.providerId}` : '/provider')
                 }
-              />
-            ),
-            LinkToLicensePricing: (
-              <LinkTargetBlank
-                style={errorLinkStyle}
-                href={buildChatboxUrl(
-                  `/redirect_app/advanced_url_processing/${settingActions.getLanguage()}?utm_source=app&utm_content=msg_bad_provider`
-                )}
               />
             ),
             a: (

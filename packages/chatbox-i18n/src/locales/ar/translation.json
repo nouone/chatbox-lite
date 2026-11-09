@@ -320,7 +320,6 @@
   "Connection successful": "تم الاتصال بنجاح",
   "Connection successful!": "تم الاتصال بنجاح!",
   "Connection to {{aiProvider}} failed. This typically occurs due to a temporary service issue. Please try again later or <buttonOpenSettings>check your settings</buttonOpenSettings>.": "فشل الاتصال بـ {{aiProvider}}. يحدث هذا عادةً بسبب مشكلة مؤقتة في الخدمة. يرجى المحاولة مرة أخرى لاحقًا أو <buttonOpenSettings>التحقق من إعداداتك</buttonOpenSettings>.",
-  "Connection to {{aiProvider}} failed. This typically occurs due to incorrect configuration or {{aiProvider}} account issues. Please <buttonOpenSettings>check your settings</buttonOpenSettings> and verify your {{aiProvider}} account status, or purchase a <LinkToLicensePricing>Chatbox AI License</LinkToLicensePricing> to unlock all advanced models instantly without any configuration.": "فشل الاتصال بـ {{aiProvider}}. يحدث هذا عادةً بسبب إعداد غير صحيح أو مشكلات في حساب {{aiProvider}}. يرجى <buttonOpenSettings>التحقق من إعداداتك</buttonOpenSettings> والتأكد من حالة حساب {{aiProvider}} الخاص بك، أو شراء <LinkToLicensePricing>ترخيص Chatbox AI</LinkToLicensePricing> لفتح جميع النماذج المتقدمة على الفور دون أي إعداد.",
   "Consumes more token": "يستهلك المزيد من Token",
   "Content": "المحتوى",
   "Content not allowed. Please modify your request and try again.": "المحتوى غير مسموح به. يرجى تعديل طلبك والمحاولة مرة أخرى.",
@@ -1975,5 +1974,6 @@
   "Conversations only (V1 JSON)": "المحادثات فقط (V1 JSON)",
   "Earlier messages could not be loaded": "تعذّر تحميل الرسائل السابقة",
   "Later messages could not be loaded": "تعذّر تحميل الرسائل اللاحقة",
-  "V1 includes conversation text, history and branches. Attachments and configuration are not included.": "يتضمن V1 نصوص المحادثات وسجلها وفروعها. لا يتضمن المرفقات والإعدادات."
+  "V1 includes conversation text, history and branches. Attachments and configuration are not included.": "يتضمن V1 نصوص المحادثات وسجلها وفروعها. لا يتضمن المرفقات والإعدادات.",
+  "Connection to {{aiProvider}} failed. This typically occurs due to incorrect configuration or {{aiProvider}} account issues. Please <buttonOpenSettings>check your settings</buttonOpenSettings> and verify your {{aiProvider}} account status.": "فشل الاتصال بـ {{aiProvider}}. يحدث هذا عادةً بسبب إعداد غير صحيح أو مشكلات في حساب {{aiProvider}}. يرجى <buttonOpenSettings>التحقق من إعداداتك</buttonOpenSettings> والتأكد من حالة حساب {{aiProvider}} الخاص بك، أو شراء."
 }
