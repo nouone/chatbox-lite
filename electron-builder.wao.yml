@@ -1,6 +1,10 @@
 extends: ./electron-builder.yml
 productName: Wao
-appId: local.chatbox.lite
+# Wao's own identity: the NSIS install GUID derives from this, so the
+# installer no longer matches the old Chatbox Lite registry entry and its
+# Programs\Chatbox Lite path. The profile was already migrated to
+# %APPDATA%\Wao by the main-process bootstrap; this finishes the rename.
+appId: local.wao
 publish: null
 extraMetadata:
   author:
