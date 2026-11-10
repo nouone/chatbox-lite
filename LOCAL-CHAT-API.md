@@ -11,7 +11,7 @@ Generate new token immediately revokes the previous token and disconnects existi
 For PowerShell tests, click Copy token in Settings and then, from your source checkout, run:
 
 ```powershell
-$env:Wao_API_TOKEN = Get-Clipboard
+$env:WAO_API_TOKEN = Get-Clipboard
 .\scripts\Test-LocalChatApi.ps1 -BaseUrl 'http://127.0.0.1:8087'
 ```
 
@@ -22,24 +22,24 @@ Use the port shown in Settings. The script checks Wao's identity before sending 
 Close older Desktop/development instances first. In PowerShell from your source checkout, using Node 22:
 
 ```powershell
-$env:Wao_API_ENABLED = '1'
-$env:Wao_API_PORT = '8085'
-$env:Wao_API_TOKEN = ([guid]::NewGuid().ToString('N') + [guid]::NewGuid().ToString('N'))
+$env:WAO_API_ENABLED = '1'
+$env:WAO_API_PORT = '8085'
+$env:WAO_API_TOKEN = ([guid]::NewGuid().ToString('N') + [guid]::NewGuid().ToString('N'))
 $env:DEV_PORT = '5173'
 Start-Process powershell -WorkingDirectory $PWD -ArgumentList '-NoProfile', '-NoExit', '-Command', 'pnpm run dev'
 ```
 
-The new development window inherits these variables. Keep the original PowerShell window for API commands: it still has the same token. For browser login, read `$env:Wao_API_TOKEN` in that original shell and paste it into the local page, keeping it private. Do not put the token in screenshots, URLs, commits, or shared logs.
+The new development window inherits these variables. Keep the original PowerShell window for API commands: it still has the same token. For browser login, read `$env:WAO_API_TOKEN` in that original shell and paste it into the local page, keeping it private. Do not put the token in screenshots, URLs, commits, or shared logs.
 
-For an installed build, set the same variables before launching its executable with `Start-Process`; fully quit an already-running instance first. Rebuild/reinstall the new code before testing an older installed app. Environment variables override saved Settings at startup. To return to the UI settings, clear the three `Wao_API_*` environment variables from your launch shell and restart. To disable the API, switch it off in Settings.
+For an installed build, set the same variables before launching its executable with `Start-Process`; fully quit an already-running instance first. Rebuild/reinstall the new code before testing an older installed app. Environment variables override saved Settings at startup. To return to the UI settings, clear the three `WAO_API_*` environment variables from your launch shell and restart. To disable the API, switch it off in Settings.
 
-If `Wao_API_TOKEN` is omitted, enabling the API generates/reuses `local-api-token.txt` in its desktop profile. Use Copy token in Settings, or supply the private file's path with `-TokenFile`. Changing the API token does not change provider keys or conversation data.
+If `WAO_API_TOKEN` is omitted, enabling the API generates/reuses `local-api-token.txt` in its desktop profile. Use Copy token in Settings, or supply the private file's path with `-TokenFile`. Changing the API token does not change provider keys or conversation data.
 
 ## Browser interface
 
-Open **http://127.0.0.1:8085/**. Enter the local API token, connect, select an existing conversation, and send a question. The page has no external scripts, keeps manually entered tokens in memory, or uses an HttpOnly browser cookie when you choose Remember this device, and uses the same API and WebSocket as other clients. It currently shows the latest bounded history window; paginated older history is available via HTTP. Create new conversations and manage settings/files/approvals in Desktop.
+Open **http://127.0.0.1:8085/**. Enter the local API token, connect, select an existing conversation, and send a question. The page has no external scripts, keeps manually entered tokens in memory, or uses an HttpOnly browser cookie when you choose Remember this device, and uses the same API and WebSocket as other clients. It shows the latest window of history and a **Load older** control walks back through older pages in the page itself; raw clients can paginate over HTTP. Create new conversations and manage settings/files/approvals in Desktop.
 
-Use the actual port shown in Settings: if your embedding server/llama-ui already uses 8085, choose **8087** for Wao and open **http://127.0.0.1:8087/**. These are separate services. The browser is a minimal Wao-styled continuation view: existing chats, live replies, and the Send arrow. There is no independent model picker or tool setup. It uses the selected desktop conversation's settings and uses the shared desktop Markdown parser for formatted replies; attachments, advanced previews and management remain in Desktop. Streaming follows the bottom when you are already near it and leaves you in place when you scroll upward.
+Use the actual port shown in Settings: if your embedding server/llama-ui already uses 8085, choose **8087** for Wao and open **http://127.0.0.1:8087/**. These are separate services. The browser is a minimal Wao-styled continuation view: existing chats, live replies, and the Send arrow. There is no independent model picker or tool setup. It uses the selected desktop conversation's settings and uses the shared desktop Markdown parser for formatted replies; attachments, advanced previews and management remain in Desktop. Streaming follows the bottom when you are already near it and leaves you in place when you scroll upward. On HTTPS origins (localhost or the Tailscale address) the page also offers hands-free voice mode: microphone capture transcribed on Desktop, sentence-pipelined reply audio and spoken stop/go-on commands; see [phone access](LOCAL-PHONE-ACCESS.md).
 
 ## First proof using your existing Strata conversation
 
@@ -58,9 +58,9 @@ Alternatively supply `-TokenFile 'YOUR-PROFILE\local-api-token.txt'`. The script
 A direct PowerShell call is also possible:
 
 ```powershell
-$headers = @{ Authorization = "Bearer $env:Wao_API_TOKEN" }
+$headers = @{ Authorization = "Bearer $env:WAO_API_TOKEN" }
 Invoke-RestMethod 'http://127.0.0.1:8085/api/chats' -Headers $headers
-Invoke-RestMethod -Method Post 'http://127.0.0.1:8085/api/chats/YOUR-CHAT-ID/messages' -Headers $headers -ContentType 'application/json' -Body '{"content":"Reply with exactly: Wao_API_PROOF_OK"}'
+Invoke-RestMethod -Method Post 'http://127.0.0.1:8085/api/chats/YOUR-CHAT-ID/messages' -Headers $headers -ContentType 'application/json' -Body '{"content":"Reply with exactly: WAO_API_PROOF_OK"}'
 ```
 
 ## Endpoints
@@ -70,7 +70,7 @@ Invoke-RestMethod -Method Post 'http://127.0.0.1:8085/api/chats/YOUR-CHAT-ID/mes
 | `GET /api/status` | Public, local-only server identity (`app: wao`, `apiVersion: 1`); no credentials, chat data or settings. |
 | `GET /api/chats?limit=50&cursor=0` | Active conversation metadata from the desktop repository. Returns `items`, `nextCursor`, `total`. Limits 1–100. |
 | `GET /api/chats/:id?limit=50` | Bounded transcript history, message IDs, roles, text, generation/error status, and `nextCursor`. Pass that cursor URL-encoded to retrieve an older page. System prompts and provider credentials are not returned. |
-| `POST /api/chats/:id/messages` | JSON `{ "content": "question" }`, optionally with `"thinkingEffort": "off"|"low"|"medium"|"high"` to set this conversation's thinking level for the send (persisted like the desktop Thinking Effort selector; unknown values get 400). Returns 202 with `chatId`, `messageId`. Rejects missing/busy/paused conversations and invalid/oversized text. No new attachment upload or tool-approval endpoint is provided. |
+| `POST /api/chats/:id/messages` | JSON `{ "content": "question" }`, optionally with `"thinkingEffort": "off"|"low"|"medium"|"high"` to set this conversation's thinking level for the send (persisted like the desktop Thinking Effort selector; unknown values get 400) and `"voice": true` to mark a voice-mode turn (the speaking-style instruction is then prepended once per conversation, on the first voice send only). Returns 202 with `chatId`, `messageId`. Rejects missing/busy/paused conversations and invalid/oversized text. No new attachment upload or tool-approval endpoint is provided. |
 | `WS /api/events` | Authenticate by Bearer header for native clients, or browser subprotocols `['cbl-api', token]`. Send `{ "type": "subscribe", "chatId": "..." }`. Receives changed `chat.snapshot` events at up to four updates per second. |
 
 WebSocket snapshots read the existing renderer generation runtime's live text over the shared persisted history. They do not wait for the normal two-second disk checkpoint and do not generate responses themselves. On disconnect, generation continues in Desktop. Reconnect and fetch history to recover the latest state. There is no durable event-replay log or automatic request retry.
@@ -97,6 +97,6 @@ Apply address is below both the Tailscale and LAN fields and saves both together
 
 ## Reply audio on the browser device
 
-`POST /api/chats/:id/messages/:messageId/speech` with JSON `{}` and normal API/browser authentication returns `audio/mpeg`. The ID must identify a completed saved assistant reply in that chat. Desktop uses its existing configured speech synthesis and normalization; no provider credentials or speech URLs are returned. Read aloud must be enabled on Desktop. Browser playback uses native audio controls if automatic playback after loading is blocked. Phone dictation uses the iPhone keyboard.
+`POST /api/chats/:id/messages/:messageId/speech` with JSON `{}` and normal API/browser authentication returns `audio/mpeg`. The ID must identify a completed saved assistant reply in that chat. Desktop uses its existing configured speech synthesis and normalization; no provider credentials or speech URLs are returned. Read aloud must be enabled on Desktop. Per-reply playback uses native audio controls if automatic playback after loading is blocked. Voice mode instead speaks through its own control-free audio path and tolerates blocked autoplay with an orb tap; see [phone access](LOCAL-PHONE-ACCESS.md). Phone text dictation uses the iPhone keyboard.
 
 Web-originated user messages and their assistant reply carry a local `suppressDesktopAutoRead` flag. Desktop completion playback skips those replies without changing the global auto-read setting or normal Desktop sends. The speech request itself never plays audio on Desktop. Requests are bounded to 20,000 spoken characters, 8 MiB audio and one synthesis in flight; the Desktop IPC deadline for speech is 120 seconds. Browser cancellation may leave already-started synthesis finishing silently on Desktop.

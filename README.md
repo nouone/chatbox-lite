@@ -4,22 +4,23 @@
 
 **Need help? Click Help in the sidebar.** It opens a normal chat with the bundled setup guides attached, using your selected model. Ask about setup, dictation, documents, phone pairing or builds. Nothing is sent automatically. No keys, settings, logs or other chats are attached. The model cannot inspect your computer automatically. Create a new Help chat after updating to attach the latest guides.
 
-Phone users can dictate with the iPhone keyboard and use **Read aloud** on completed replies. Audio plays on the phone using Desktop's configured speech service; web-originated replies do not trigger Desktop auto-read. See [phone voice setup](LOCAL-PHONE-ACCESS.md#iphone-dictation-and-playback).
+On your phone, Wao offers a hands-free **voice mode**: tap the orb, speak, the message is transcribed and sent, and the reply is read back sentence by sentence. You can interrupt by voice while it speaks, or say "stop". The iPhone keyboard microphone still works for dictating text, and completed replies have a **Read aloud** button. Voice mode needs the Tailscale (HTTPS) link; see [phone access](LOCAL-PHONE-ACCESS.md).
+
 ## Windows downloads
+
 [![Windows Wao installer](https://img.shields.io/github/v/release/nouone/wao?label=latest%20release)](https://github.com/nouone/wao/releases/latest)
 
-**Download:** [Wao for Windows x64](https://github.com/nouone/wao/releases/latest) ·
-[Direct installer link](https://github.com/nouone/wao/releases/latest/download/Wao-0.1.5-Setup.exe)
+**Download:** [Wao for Windows x64](https://github.com/nouone/wao/releases/latest)
 
-No spyware, no ads, just clean chat. Local LLMs first (Strada, Ollama, llama.cpp), local Whisper dictation included, phone/desktop chat sync over LAN or Tailscale.
+No spyware, no ads, just clean chat. Local LLMs first (Strata, Ollama, llama.cpp), local Whisper dictation included, phone/desktop chat sync over LAN or Tailscale.
 
-[Published installers](https://github.com/nouone/wao/releases) · [Windows test builds](https://github.com/nouone/wao/actions/workflows/windows-lite.yml)
+[Published installers](https://github.com/nouone/wao/releases) · [Windows test builds](https://github.com/nouone/wao/actions/workflows/windows.yml)
 
-For a test build, open a successful Windows Wao installer run and download **Wao-Windows-x64** under Artifacts. Extract it and run its Setup EXE. Published Releases offer direct installer downloads without using Actions.
+The first published release still carries the pre-rename `Chatbox-Lite-0.1.5` asset; the `Wao-<version>` installers begin with the next release. For a test build, open a successful **Windows Wao installer** workflow run and download **Wao-Windows-x64** under Artifacts. Extract it and run its Setup EXE. Published Releases offer direct installer downloads without using Actions.
 
 ## Install on Windows
 
-1. Open **Releases** in this fork's GitHub page and download `Wao-<version>-Setup.exe` from the latest published release. Do not choose GitHub's source ZIP unless you intend to build.
+1. Open **Releases** in this fork's GitHub page and download the Setup EXE from the latest published release. Do not choose GitHub's source ZIP unless you intend to build.
 2. Run the installer, open Wao, and add your endpoint and Chat model under **Settings → Model Providers**.
 3. Select that model and start chatting. Click **Help** for the bundled setup guides.
 
@@ -37,7 +38,7 @@ The installer includes local English Whisper dictation. You do not need Node, Py
 | --- | --- |
 | Kokoro read aloud and document embeddings | [Local services and Docker](LOCAL-SERVICES.md) |
 | Whisper dictation and Windows packaging | [Build and installation](LOCAL-CUSTOM-BUILD.md) |
-| Phone chat over LAN or Tailscale | [Phone pairing](LOCAL-PHONE-ACCESS.md) |
+| Phone chat and voice mode over LAN or Tailscale | [Phone pairing](LOCAL-PHONE-ACCESS.md) |
 | HTTP/WebSocket access using the desktop engine | [Local API](LOCAL-CHAT-API.md) |
 | Removed reporting and vendor connections | [Privacy audit](PRIVACY-AUDIT.md) |
 
@@ -53,15 +54,16 @@ An independent, streamlined derivative of [Chatbox](https://github.com/chatboxai
 
 - **Custom AI endpoints:** OpenAI-compatible provider support, optional Strata Off/Low/Medium/High thinking controls, and provider-reported generation speed when supplied by the server.
 - **Local Whisper microphone input:** whisper.cpp transcription, recording level animation, Stop-to-transcribe, and a nearby Send arrow. Transcription becomes an editable draft.
-- **Kokoro audio playback:** read responses aloud, automatically read completed replies, select a voice, and adjust speed. Defaults are `http://localhost:8880`, model `kokoro`, voice `af_heart`, speed `1.1`; auto-read remains opt-in. Controls now live in **Settings > Default Models**, alongside local Whisper instructions. Speech normalization expands common dates, units, abbreviations, compass directions, and Bible references while omitting URLs and code. Voice quality depends on the speech server and model; there is no separate client HQ switch.
+- **Kokoro audio playback:** read responses aloud, automatically read completed replies, select a voice, and adjust speed. Defaults are `http://localhost:8880`, model `kokoro`, voice `af_heart`, speed `1.1`; auto-read remains opt-in. Controls live in **Settings → Default Models**, alongside local Whisper instructions. Before synthesis, a text normalizer expands common dates, units and compass directions and omits URLs and code for smoother speech; the reply itself is spoken as written, never rewritten by a model. Voice quality depends on the speech server and model; there is no separate client HQ switch.
+- **Phone voice mode:** on the Tailscale page, tap the orb to talk. Speech is transcribed on Desktop and sent in one pass; replies are read back sentence by sentence as they stream. Say "stop" to cancel or tap the orb to interrupt; "go on" resumes the rest. Voice Settings chooses the interrupt behaviour and the thinking level for voice turns. The speaking-style instruction is sent once per conversation, not with every prompt.
 - **Tavily search:** retains Chatbox's Tavily configuration and web search support. No additional search-loop limit is introduced.
 - **Interface improvements:** independent sidebar font size, theme-aware chat icons, warm theme surfaces, the smiley application icon, nearby Send arrow, and streaming scroll-follow fixes.
 - **No account or upgrade interface:** vendor welcome cards, account/login screens, upgrade/quota prompts, download banners, and the hosted Chatbox provider are removed. There is no restore toggle or environment switch. Custom providers remain available.
 - **Analytics removed:** Sentry reporting, Google Analytics, and Plausible scripts/transports are removed. Vendor update checks, remote configuration, promotional notifications and hosted preview requests are also removed. See the audit below.
-- **Help chat:** the sidebar Help button opens a normal persisted conversation with the bundled README and setup guide included as context, using your configured chat model. It sends no question automatically and attaches no keys, settings, logs or other chats. About retains Wao features and upstream GPL credits.
+- **Help chat:** the sidebar Help button opens a normal persisted conversation with the bundled README and setup guides included as context, using your configured chat model. It sends no question automatically and attaches no keys, settings, logs or other chats. About retains Wao features and upstream GPL credits.
 - **No bundled skills or MCP presets:** bundled skill seeding/discovery and vendor MCP presets are removed. Old bundled skill snapshots are ignored. Your own skills and custom MCP server configuration remain available.
-- **Local web/API access:** opt-in localhost port 8085, authenticated HTTP, WebSocket snapshots and a standalone browser chat page. Submissions use the desktop Send controller and existing saved conversations. See [LOCAL-CHAT-API.md](LOCAL-CHAT-API.md) for enablement and the PowerShell live proof.
-- **Windows packaging fixes:** explicit package registry, local production dependency verification, and a separate Wao installer identity and Wao Contributors publisher metadata, without private signing credentials. This metadata does not make an unsigned installer signed.
+- **Local web/API access:** opt-in localhost listener (default port 8085), authenticated HTTP, WebSocket sync and a standalone browser chat page that continues the desktop conversations, with voice mode on HTTPS origins. Submissions use the desktop Send controller and existing saved conversations. See [LOCAL-CHAT-API.md](LOCAL-CHAT-API.md).
+- **Windows packaging:** a separate Wao installer identity (`Wao-<version>-x64-Setup.exe`, profile in `%APPDATA%\Wao`), explicit package registry, local production dependency verification, and Wao Contributors publisher metadata, without private signing credentials. This metadata does not make an unsigned installer signed.
 
 ## Found and removed: privacy audit
 
@@ -112,35 +114,21 @@ pnpm run dev
 4. Configure Tavily if you want web search, and test a search-enabled reply.
 5. Change sidebar text size and theme. Confirm there is no Account navigation, restore toggle, hosted Chatbox provider, welcome login/upgrade card, or enabled-looking Error Reporting switch.
 6. Open Help: a new chat should contain the local docs as context and keep your selected model. Ask a question; normal provider charges/availability apply. About remains local and retains source/license credits.
-7. In Model Providers confirm Grok (xAI), then LM Studio, appear first and Xiaomi/MiMo is absent. Image Creator uses an image-capable model at a configured endpoint; set a custom model type to Image, then choose it under Default Models / Image creation. It does not run an image engine inside Lite.
+7. In Model Providers confirm Grok (xAI), then LM Studio, appear first and Xiaomi/MiMo is absent. Image Creator uses an image-capable model at a configured endpoint; set a custom model type to Image, then choose it under Default Models / Image creation. It does not run an image engine inside Wao.
 8. Enable the Local chat API under Settings → Advanced. Generate/copy its token and open the browser there. Follow [LOCAL-CHAT-API.md](LOCAL-CHAT-API.md) for testing. Live Strata and browser socket validation must be done on your normal desktop session; handler tests here do not certify that live round trip.
 
 ## Build a Windows installer
 
-Close the development app, then run:
-
-Prepare Whisper using `scripts/setup-local-speech.ps1` **before packaging** if you want microphone dictation in the installer. Its files must be in this checkout's `assets/whisper` directory. The installed app reads its own `resources/assets/whisper`, not the build drive. Rebuilding source alone does not update an installed app.
+Close the development app. Prepare Whisper using `scripts/setup-local-speech.ps1` **before packaging** if you want microphone dictation in the installer. Its files must be in this checkout's `assets/whisper` directory. The installed app reads its own `resources/assets/whisper`, not the build drive. Rebuilding source alone does not update an installed app. Then run:
 
 ```powershell
 pnpm run build
-pnpm exec electron-builder --config electron-builder.lite.yml --win nsis --x64 --publish never
+pnpm exec electron-builder --config electron-builder.wao.yml --win nsis --x64 --publish never
 ```
 
-Keep the tracked `.npmrc` registry setting. Building does not update an already installed app: install the generated Wao installer from `release/build`. Export/import chats if the separate Lite profile is empty. See [build notes](LOCAL-CUSTOM-BUILD.md) for details. Source checks/builds do not verify microphone hardware, a running speech server, or installer behavior on your machine.
+Keep the tracked `.npmrc` registry setting. Building does not update an already installed app: install the generated Wao installer from `release/build`. Export/import chats if the Wao profile (`%APPDATA%\Wao`) is empty. See [build notes](LOCAL-CUSTOM-BUILD.md) for details. Source checks/builds do not verify microphone hardware, a running speech server, or installer behavior on your machine.
 
 ## Fork and upstream changes
-
-### November 3 follow-up
-
-The finished continuation view shares the desktop Markdown parser, with formatted emphasis, lists, links, code and tables. Desktop retains its advanced code/artifact controls. Read aloud settings include Test voice using the configured server/voice/speed. Knowledge-base creation uses configured providers directly and offers no hosted Chatbox AI mode. Document embedding requests use batches of at most 32 inputs, matching the supplied TEI service's default.
-
-Optional phone access supports two labelled one-use QR codes: a static private LAN address and a Tailscale HTTPS address. Pairing can remember a device for 30 days without storing the main API token on it. See [phone access](LOCAL-PHONE-ACCESS.md) for setup, firewall, revocation and test limits. Both modes are opt-in; localhost access remains available.
-
-Embedding models now use an actual embedding request in Test Model, rather than chat/vision/tool probes. Failed document retries use the configured knowledge-base parser; the old compute-credit dialog and forced hosted-parser retry are removed. Existing hosted-parser references fall back to Local, while an explicitly configured MinerU service is retained. File-error guidance links to Document Parser settings instead of account or upgrade pages.
-
-Removed the remaining Wolters Kluwer China and Eastmoney MCP suggestion rows; custom servers and manual/JSON setup remain available. Removed Chatbox AI from the document parser picker and its points/activation copy; Local and the explicitly configured MinerU service remain. Added Delete chat to the chat sidebar context menu, using the existing deletion controller and confirmation flow.
-
-Settings → Advanced now includes local API enable/port controls, secure token generation/rotation, Copy token and Open browser. Token rotation disconnects old browser clients. Fixed API readiness being invalidated by subframe loading, and added a public identity check plus clearer errors to the PowerShell proof script. The browser is a small Wao-styled continuation view for existing and new chats; it uses the desktop conversation's model and tools. It is separate from llama-ui or any other service running on another port. If embeddings/llama-ui already uses 8085, choose 8087 for Wao.
 
 Commit your changes, create your own GitHub repository, and add it as `origin`. Keep the original Chatbox repository as `upstream`. Before importing upstream changes, back up app data, create an update branch, merge and resolve conflicts, then repeat the tests above. Do not apply the old incremental patches over this consolidated version. No fork or release is published automatically.
 

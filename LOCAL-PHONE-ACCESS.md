@@ -1,28 +1,28 @@
 # Continue a desktop chat on your phone
 
-Wao must remain open on your desktop. Your phone can continue existing conversations or start one with New chat. Model configuration, files, knowledge, tools and approvals stay on Desktop. The browser uses the same Send controller and saved chats.
+Wao must remain open on your desktop. Your phone can continue existing conversations or start one with New chat. Model configuration, files, knowledge, tools and approvals stay on Desktop. The browser uses the same Send controller and saved chats. On the Tailscale page you also get hands-free **voice mode** (see below); the plain LAN page is text chat.
 
 ## Desktop setup
 
-1. Open Settings → Advanced → Local chat API. Enable it. Use port **8088**, or another available port. A secure API token is generated automatically.
+1. Open Settings → Advanced → Local chat API. Enable it. Use port **8087**, or another available port (8085 is the default; 8086 serves the Docker embeddings container). A secure API token is generated automatically.
 2. For home-network access, enter your desktop's **static private IPv4 address** in Static LAN IP and click Apply address. This must be an IP actually assigned to the PC, such as 192.168.1.100. Prefer a router DHCP reservation so it remains stable. Leaving the field empty keeps LAN access off. Wao binds that address explicitly in addition to localhost; it does not bind all interfaces.
 3. For access from outside your home, use Tailscale Serve as below. Paste its HTTPS address into Tailscale HTTPS address and click Apply address. The app never starts Serve or changes Tailscale itself.
 4. The settings page automatically displays QR codes for the configured addresses: **Local network** and **Tailscale — home or away**. The links are shown there too. Refresh phone QR codes replaces the outstanding one-use codes.
 
 ## Tailscale setup
 
-Connect Tailscale on both devices. With Wao listening on 8088, run in PowerShell on the desktop:
+Connect Tailscale on both devices. With Wao listening on 8087, run in PowerShell on the desktop:
 
 ```powershell
-tailscale serve --bg --https=8443 http://127.0.0.1:8088
+tailscale serve --bg --https=8444 http://127.0.0.1:8087
 tailscale serve status
 $tailnetHost = (tailscale status --json | ConvertFrom-Json).Self.DNSName.TrimEnd('.')
-$phoneAddress = "https://${tailnetHost}:8443"
+$phoneAddress = "https://${tailnetHost}:8444"
 $phoneAddress | Set-Clipboard
 Write-Host $phoneAddress
 ```
 
-If your Wao port differs, use that backend port. If Serve already uses HTTPS port 8443 for another application, choose a different unused Serve HTTPS port. This command adds/updates that Serve listener; it is not needed for plain LAN access. Follow Tailscale's HTTPS setup prompt if your tailnet has not enabled HTTPS yet. Paste the resulting address into Wao's Tailscale HTTPS address field. Use Serve, not public Funnel; Wao rejects Funnel-marked requests.
+If your Wao port differs, use that backend port. If Serve already uses HTTPS port 8444 for another application, choose a different unused Serve HTTPS port. This command adds/updates that Serve listener; it is not needed for plain LAN access. Follow Tailscale's HTTPS setup prompt if your tailnet has not enabled HTTPS yet. Paste the resulting address into Wao's Tailscale HTTPS address field. Use Serve, not public Funnel; Wao rejects Funnel-marked requests. The Serve configuration persists across reboots; `tailscale serve status` shows it.
 
 Wao allows only the exact saved Tailscale host and origin. It supports HTTPS/WSS through Serve, which preserves the incoming Host header. Requests do not gain access from Tailscale identity headers alone: browser pairing or the API token is still required.
 
@@ -32,17 +32,28 @@ Scan the desired QR code using the phone's camera. On the phone, tap **Pair with
 
 Select a conversation and continue it. On the same LAN, use the Local network QR. At home or away, use Tailscale while it is connected on both devices. The Tailscale link uses HTTPS; the plain LAN link uses HTTP and is intended for your trusted local network. **Microphone access follows the browser's secure-context rule: voice mode only works on the HTTPS (Tailscale) page or on localhost; the HTTP LAN page is text chat only** (iPhone Safari offers no insecure-origin override). On the same network this costs nothing: Tailscale discovers the phone's LAN address and routes directly (measured ~3 ms on a home LAN). Right after a reboot, the first requests may take a NAT hairpin through the router's WAN address until discovery settles; confirm the path with `tailscale ping <phone-tailscale-ip>` — `via 10.x.x.x` (or another on-LAN address) means direct, `via DERP(...)` means relayed through Tailscale servers. Windows Firewall may need to permit the chosen application/port on your private network; Wao does not change firewall rules automatically.
 
+## Voice mode (Tailscale page)
+
+Tap the orb to start voice mode; the microphone arms and the orb pulses. Speak your sentence — the turn closes automatically on silence, Desktop transcribes it with Whisper and sends it, and the reply is read back sentence by sentence as it streams, so speech starts while the model is still writing.
+
+- **Interrupt:** with *Interrupt me while speaking* on (default), speak while Wao is talking and it stops and listens. Say **stop** (or variants like "stop talking") to cancel playback without sending; say **go on** or "continue" to resume the remaining sentences. With the toggle off, tap the orb to interrupt.
+- **Blocked autoplay:** if Safari prepares the audio but does not start playing it, the status line reads "Tap the orb to start speaking" — tap the orb once and playback resumes; the orb stays the interrupt control while speaking. The voice-mode audio element carries no player controls, so nothing overlaps the Voice Settings bar.
+- **Voice Settings** (bottom bar): the thinking level for voice turns and the interrupt toggle are chosen there and remembered on the device. Voice replies are styled for speaking by a short instruction that is sent **once per conversation**, not with every prompt; compaction re-sends it if it ever scrolls out.
+- The transcript of a voice turn shows on Desktop as a normal user message, and the same conversation stays visible on Desktop.
+
+Voice mode requires Desktop running with Whisper and read-aloud configured, plus the HTTPS page; the plain LAN page has no microphone.
+
 ## Revoke or disconnect
 
 - **Forget this device** on the browser login panel clears that browser's stored connection.
 - **Generate new token** in Desktop invalidates old API tokens, all remembered browser credentials and outstanding QR codes, and disconnects existing browser streams. New QR codes appear automatically when an address is configured.
-- Disable the API to close both listeners. Clear the Static LAN IP and apply to disable only the LAN listener. Tailscale Serve configuration remains under your control; to stop the example Serve listener, run `tailscale serve --https=8443 off`.
+- Disable the API to close both listeners. Clear the Static LAN IP and apply to disable only the LAN listener. Tailscale Serve configuration remains under your control; to stop the example Serve listener, run `tailscale serve --https=8444 off`.
 
-Browser credentials are signed, expire server-side and are stored in HttpOnly, SameSite cookies; HTTPS connections also use Secure cookies. No primary API token is stored in phone localStorage or included in the QR. Remembered credentials survive Wao restarts while the same API token is retained. Explicit Wao_API_* environment variables still override saved settings at launch; clear those old test variables when using the Settings controls.
+Browser credentials are signed, expire server-side and are stored in HttpOnly, SameSite cookies; HTTPS connections also use Secure cookies. No primary API token is stored in phone localStorage or included in the QR. Remembered credentials survive Wao restarts while the same API token is retained. Explicit `WAO_API_*` environment variables still override saved settings at launch; clear those old test variables when using the Settings controls.
 
 ## Scope of verification
 
-Automated tests exercise pairing expiry/replay, cookie authentication, origin checks, rotation/revocation, browser message rendering and shared desktop message dispatch. Real phone/Tailscale routing and Windows Firewall configuration require testing on your devices; they were not configured or live-tested by this source build.
+Automated tests exercise pairing expiry/replay, cookie authentication, origin checks, rotation/revocation, browser message rendering and shared desktop message dispatch. Real phone/Tailscale routing, voice-mode latency and Windows Firewall configuration require testing on your devices; they were not configured or live-tested by this source build.
 
 References: [Tailscale Serve](https://tailscale.com/docs/features/tailscale-serve), [CLI and flags](https://tailscale.com/docs/reference/tailscale-cli/serve), [reverse-proxy source](https://github.com/tailscale/tailscale/blob/main/ipn/ipnlocal/serve.go).
 
@@ -50,12 +61,12 @@ References: [Tailscale Serve](https://tailscale.com/docs/features/tailscale-serv
 
 The browser retries ordinary connection loss using remembered pairing. If pairing expires, scan a fresh Desktop QR. Rotating the API token signs out all devices. Provider-reported processing and generation speeds appear when available; missing speeds are not estimated.
 
-## iPhone dictation and playback
+## Text dictation and Read aloud
 
-Use the microphone on the iPhone keyboard to dictate into the message box, then review and Send. Wao does not add a second recorder or upload keyboard dictation audio itself; keyboard dictation follows your iPhone settings.
+Prefer the keyboard microphone on the iPhone to dictate into the message box, then review and Send. Wao does not add a second recorder or upload keyboard dictation audio itself; keyboard dictation follows your iPhone settings. Voice mode above is the separate hands-free path.
 
-Completed assistant replies have a Read aloud button. Enable Read aloud in Desktop Default Models and start your configured Kokoro/OpenAI-compatible speech service. The phone requests audio through the authenticated Lite server; the speech URL, model, voice, speed and API key stay on Desktop. The same Desktop speech text normalization is used. No separate chat client or speech-provider configuration is required on the phone.
+Completed assistant replies have a **Read aloud** button. Enable Read aloud in Desktop Default Models and start your configured Kokoro/OpenAI-compatible speech service. The phone requests audio through the authenticated Wao server; the speech URL, model, voice, speed and API key stay on Desktop. The same Desktop speech text normalization is used. No separate chat client or speech-provider configuration is required on the phone.
 
-If Safari does not start playback after preparation, tap Play on the audio controls. Stop reading cancels/release playback, and changing chats or forgetting the device releases its audio. Web-originated replies suppress Desktop auto-read even when that chat is visible and Desktop's auto-read toggle is On. Normal Desktop sends retain their auto-read behavior. This does not stop speech that was already playing from a separate Desktop action.
+If Safari does not start playback after preparation, tap Play on that reply's audio controls. Stop reading cancels/releases playback, and changing chats or forgetting the device releases its audio. Web-originated replies suppress Desktop auto-read even when that chat is visible and Desktop's auto-read toggle is On. Normal Desktop sends retain their auto-read behavior. This does not stop speech that was already playing from a separate Desktop action.
 
 Speech requires an authenticated paired browser or API token and uses POST /api/chats/:id/messages/:messageId/speech. It reads only a completed saved assistant reply. Requests are limited to 20,000 spoken characters and 8 MiB audio, with one synthesis in flight on Desktop. Use your Tailscale HTTPS page on iPhone; Desktop and the speech service must remain running. Closing/cancelling the phone request stops phone playback; synthesis already started on Desktop may finish silently.
