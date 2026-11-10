@@ -3,9 +3,6 @@ import i18n from 'i18next'
 import { initReactI18next } from 'react-i18next'
 
 import { authErrorOverrides } from './auth-error-overrides'
-import changelogEn from './changelogs/changelog_en'
-import changelogZhHans from './changelogs/changelog_zh_Hans'
-import changelogZhHant from './changelogs/changelog_zh_Hant'
 
 i18n.use(initReactI18next).init({
   resources: {
@@ -32,16 +29,3 @@ i18n.use(initReactI18next).init({
 })
 
 export default i18n
-
-export function changelog() {
-  switch (i18n.language) {
-    case 'zh-Hans':
-      return changelogZhHans
-    case 'zh-Hant':
-      return changelogZhHant
-    case 'en':
-      return changelogEn
-    default:
-      return changelogEn
-  }
-}

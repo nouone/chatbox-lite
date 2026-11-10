@@ -48,10 +48,6 @@ export const markdownScanExclusions = [
     prefix: '.claude/skills/playwright-cli/',
     reason: 'externally synchronized skill snapshot whose reference bundle is not stored in this repository',
   },
-  {
-    path: 'docs/ui-inventory.md',
-    reason: 'generated route and Storybook inventory maintained by scripts/generate-ui-inventory.mjs',
-  },
 ]
 
 function repositoryPath(repositoryRoot, relativePath) {

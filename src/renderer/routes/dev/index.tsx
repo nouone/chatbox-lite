@@ -39,12 +39,6 @@ const devPages = [
     description: 'Inspect local libsql state for session attachment RAG',
     tags: ['Tool', 'RAG'],
   },
-  {
-    path: '/dev/ui-inventory',
-    name: 'UI Inventory',
-    description: 'Complete generated catalog of UI pages, components, states, text, and preview links',
-    tags: ['Tool', 'UI'],
-  },
 ]
 
 interface DevControl {
