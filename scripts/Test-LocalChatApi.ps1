@@ -1,18 +1,18 @@
 param(
   [string]$BaseUrl = 'http://127.0.0.1:8085',
-  [string]$Token = $env:Wao_API_TOKEN,
+  [string]$Token = $env:WAO_API_TOKEN,
   [string]$TokenFile,
   [string]$ChatId,
-  [string]$Message = 'Reply with exactly: Wao_API_PROOF_OK',
+  [string]$Message = 'Reply with exactly: WAO_API_PROOF_OK',
   [int]$TimeoutSeconds = 180
 )
 $ErrorActionPreference = 'Stop'
 if ($TokenFile) { $Token = (Get-Content -LiteralPath $TokenFile -Raw).Trim() }
-if (-not $Token) { throw 'Set Wao_API_TOKEN or provide -TokenFile. Do not publish this token.' }
+if (-not $Token) { throw 'Set WAO_API_TOKEN or provide -TokenFile. Do not publish this token.' }
 $target = [uri]$BaseUrl
 if ($target.Scheme -ne 'http' -or $target.Host -notin @('127.0.0.1', 'localhost')) { throw 'Use the local Wao API URL shown in Settings > Advanced.' }
 Add-Type -AssemblyName System.Net.Http
-function Invoke-CblApi {
+function Invoke-WaoApi {
   param([string]$Uri, [hashtable]$Headers = @{}, [string]$Method = 'GET', [string]$ContentType, [byte[]]$Body)
   $handler = [System.Net.Http.HttpClientHandler]::new()
   $handler.UseProxy = $false
@@ -32,27 +32,27 @@ function Invoke-CblApi {
     } finally { $response.Dispose() }
   } finally { $request.Dispose(); $client.Dispose() }
 }
-$identity = Invoke-CblApi -Uri "$BaseUrl/api/status"
+$identity = Invoke-WaoApi -Uri "$BaseUrl/api/status"
 if ($identity.app -ne 'wao' -or $identity.apiVersion -ne 1) { throw 'This port is not the Wao chat API. Check Settings > Advanced before sending a token.' }
 $headers = @{ Authorization = "Bearer $Token" }
 if (-not $ChatId) {
-  $chats = Invoke-CblApi -Uri "$BaseUrl/api/chats?limit=100" -Headers $headers
+  $chats = Invoke-WaoApi -Uri "$BaseUrl/api/chats?limit=100" -Headers $headers
   $chats.items | Select-Object id, name | Format-Table -AutoSize
   Write-Output 'Run again with -ChatId using the ID of your existing Strata/custom-provider conversation.'
   exit 0
 }
 $chatPath = "$BaseUrl/api/chats/$([uri]::EscapeDataString($ChatId))"
-$before = Invoke-CblApi -Uri "$chatPath`?limit=100" -Headers $headers
+$before = Invoke-WaoApi -Uri "$chatPath`?limit=100" -Headers $headers
 if ($before.generating) { throw 'This conversation is busy. Wait for its current response or tool approval.' }
 $knownIds = @{}
 foreach ($entry in $before.messages) { $knownIds[$entry.id] = $true }
 $body = @{ content = $Message } | ConvertTo-Json -Compress
-$submitted = Invoke-CblApi -Method Post -Uri "$chatPath/messages" -Headers $headers -ContentType 'application/json; charset=utf-8' -Body ([System.Text.Encoding]::UTF8.GetBytes($body))
+$submitted = Invoke-WaoApi -Method Post -Uri "$chatPath/messages" -Headers $headers -ContentType 'application/json; charset=utf-8' -Body ([System.Text.Encoding]::UTF8.GetBytes($body))
 Write-Output "Accepted by desktop controller: $($submitted.messageId)"
 $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
 do {
   Start-Sleep -Milliseconds 500
-  $chat = Invoke-CblApi -Uri "$chatPath`?limit=100" -Headers $headers
+  $chat = Invoke-WaoApi -Uri "$chatPath`?limit=100" -Headers $headers
   if ($chat.error) { throw $chat.error }
   $savedUser = @($chat.messages | Where-Object { $_.id -eq $submitted.messageId })
   $answers = @($chat.messages | Where-Object { $_.role -eq 'assistant' -and -not $knownIds.ContainsKey($_.id) })

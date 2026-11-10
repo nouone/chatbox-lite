@@ -52,7 +52,7 @@ export function registerLocalChatApi(getWindow: () => BrowserWindow | null) {
   const tokenPath = path.join(profile, 'local-api-token.txt')
   const preferencesPath = path.join(profile, 'local-api-settings.json')
   let saved: { enabled?: boolean; port?: number; publicOrigin?: string; lanAddress?: string } = {}
-  let token = process.env.Wao_API_TOKEN || ''
+  let token = process.env.WAO_API_TOKEN || ''
   try {
     saved = JSON.parse(fs.readFileSync(preferencesPath, 'utf8')) || {}
   } catch {}
@@ -68,8 +68,8 @@ export function registerLocalChatApi(getWindow: () => BrowserWindow | null) {
   }
   const manager = createLocalApiManager({
     preferences: {
-      enabled: process.env.Wao_API_ENABLED === undefined ? saved.enabled === true : process.env.Wao_API_ENABLED === '1',
-      port: Number(process.env.Wao_API_PORT || (Number.isInteger(saved.port) ? saved.port : 8085)),
+      enabled: process.env.WAO_API_ENABLED === undefined ? saved.enabled === true : process.env.WAO_API_ENABLED === '1',
+      port: Number(process.env.WAO_API_PORT || (Number.isInteger(saved.port) ? saved.port : 8085)),
       ...(typeof saved.publicOrigin === 'string' ? { publicOrigin: saved.publicOrigin } : {}),
       ...(typeof saved.lanAddress === 'string' ? { lanAddress: saved.lanAddress } : {}),
     },

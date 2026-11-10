@@ -33,9 +33,9 @@ import { registerLocalChatApi } from './desktop'
 
 beforeEach(() => {
   vi.clearAllMocks()
-  vi.stubEnv('Wao_API_ENABLED', '')
-  vi.stubEnv('Wao_API_TOKEN', '')
-  vi.stubEnv('Wao_API_PORT', '')
+  vi.stubEnv('WAO_API_ENABLED', '')
+  vi.stubEnv('WAO_API_TOKEN', '')
+  vi.stubEnv('WAO_API_PORT', '')
   mocks.start.mockResolvedValue({ close: vi.fn(), setToken: vi.fn() })
 })
 
