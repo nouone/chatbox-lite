@@ -23,8 +23,11 @@ asarUnpack:
   - "**/node_modules/libsql/**"
 files:
   - "dist"
-  # - "!dist/**/*.map"
-  # - "!dist/**/stats.html"
+  # Wao removed Sentry/crash reporting: source maps and rollup stats serve no
+  # runtime purpose here and cost ~100MB per installer (93MB maps + 8MB stats).
+  # Re-enable these lines if server-side stack symbolication ever returns.
+  - "!dist/**/*.map"
+  - "!dist/**/stats.html"
   - "node_modules"
   - "!node_modules/@types"
   - "!node_modules/undici-types"
