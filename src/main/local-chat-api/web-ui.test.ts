@@ -96,6 +96,53 @@ it('continues the selected desktop chat, renders response text safely, and sends
   expect(document.querySelectorAll('select').length).toBe(1) // Conversation picker only; voice mode uses segmented tap controls, still no model picker.
 })
 
+it('replaces the optimistic send bubble with the real message instead of leaving a duplicate at the bottom', async () => {
+  // Field report (build #14): typing on the phone, the reply rendered, and then
+  // the same user text appeared again at the very bottom - the unkeyed
+  // optimistic bubble was never removed once draw() switched to keyed
+  // in-place reconciliation, which places the real message above it.
+  const { fetch, sockets } = await setup(async () => ({
+    id: 'existing-chat',
+    revision: 9,
+    generating: false,
+    messages: [{ id: 'a', role: 'assistant', text: 'earlier reply' }],
+  }))
+  sockets[0].onopen!()
+  fireEvent.input(document.getElementById('content')!, { target: { value: 'sync probe ok' } })
+  fireEvent.submit(document.getElementById('composer')!)
+  await waitFor(() =>
+    expect(fetch).toHaveBeenCalledWith(
+      '/api/chats/existing-chat/messages',
+      expect.objectContaining({ method: 'POST' })
+    )
+  )
+  const users = () =>
+    Array.from(document.querySelectorAll('#messages .message.user .message-content'), (node) => node.textContent)
+  await waitFor(() => expect(document.querySelector('#messages article[data-pending]')).not.toBeNull())
+  expect(users()).toEqual(['sync probe ok']) // placeholder paints immediately
+  sockets[0].onmessage!({
+    data: JSON.stringify({
+      type: 'chat.snapshot',
+      status: 200,
+      chat: {
+        id: 'existing-chat',
+        revision: 10,
+        generating: false,
+        messages: [
+          { id: 'a', role: 'assistant', text: 'earlier reply' },
+          { id: 'u', role: 'user', text: 'sync probe ok' },
+          { id: 'r', role: 'assistant', text: 'SYNC PROBE OK' },
+        ],
+      },
+    }),
+  })
+  await waitFor(() => expect(document.querySelector('#messages article[data-pending]')).toBeNull())
+  expect(users()).toEqual(['sync probe ok']) // exactly one copy: the keyed real message
+  // renderedReplies() selects every bubble; the full order proves the real
+  // user message landed in server position, not left over at the bottom.
+  expect(renderedReplies()).toEqual(['earlier reply', 'sync probe ok', 'SYNC PROBE OK'])
+})
+
 function snapshot(revision: number, ...messages: string[]): ChatSnapshot {
   return {
     id: 'existing-chat',
