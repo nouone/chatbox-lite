@@ -16,11 +16,11 @@ The workflow installs Node 22.21.1 and pnpm 10.33.0, checks types, runs the sele
 After committing the tested source to your fork, create and push a version tag from that commit:
 
 ```powershell
-git tag lite-v1.24.1
-git push origin lite-v1.24.1
+git tag wao-v1.24.1
+git push origin wao-v1.24.1
 ```
 
-Choose a new version for every release. Tags must contain a semantic version after `lite-v`, for example `lite-v1.24.2` or `lite-v1.24.2-beta.1`. The workflow applies that version to the app package and lock metadata before building, so the installed version and EXE name agree.
+Choose a new version for every release. Tags must contain a semantic version after `wao-v`, for example `wao-v1.24.2` or `wao-v1.24.2-beta.1`. The workflow applies that version to the app package and lock metadata before building, so the installed version and EXE name agree.
 
 A successful tagged build attaches the EXE and checksum file to a **draft** Release. Open Releases, inspect the draft, mark preview versions as prereleases, and publish when your installation checks pass. Draft creation is intentional: a successful compile does not verify microphone hardware or your live providers. Users can then download the installer without a GitHub Actions artifact login. No upstream Chatbox release is changed.
 

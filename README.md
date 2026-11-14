@@ -46,7 +46,7 @@ For phone setup, apply LAN/Tailscale addresses using **Apply address below both 
 
 **Voice mode needs the Tailscale (HTTPS) link.** Browsers only allow the microphone on localhost or HTTPS pages, so the plain `http://<LAN-IP>` page is text chat only; iPhone Safari has no override flag. This is not a speed problem: on the same network Tailscale discovers the phone's LAN address and sends traffic directly (measured ~3 ms). The first requests after a reboot may hairpin out to the router's WAN address and back until discovery settles; after that the path stays fully local. Verify with `tailscale ping <phone-tailscale-ip>` — lines reading `via 10.x.x.x` are direct.
 
-Before publishing, test an existing chat and a new chat, voice playback, dictation, document retrieval, and a phone message saved back to Desktop. Keep upstream GPL credits and the license. The included Windows Wao installer workflow builds an EXE on demand or for `lite-v*` tags. Tagged builds create a draft GitHub Release for testing before publication. See [release instructions](WINDOWS-RELEASE.md).
+Before publishing, test an existing chat and a new chat, voice playback, dictation, document retrieval, and a phone message saved back to Desktop. Keep upstream GPL credits and the license. The included Windows Wao installer workflow builds an EXE on demand or for `wao-v*` tags. Tagged builds create a draft GitHub Release for testing before publication. See [release instructions](WINDOWS-RELEASE.md).
 
 An independent, streamlined derivative of [Chatbox](https://github.com/chatboxai/chatbox), focused on custom AI endpoints and local voice. Distributed under GPLv3; upstream authors and license are retained.
 
