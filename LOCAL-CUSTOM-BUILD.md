@@ -31,7 +31,7 @@ Use `electron-builder.wao.yml` for the Wao application identity (`appId local.wa
 pnpm exec electron-builder --config electron-builder.wao.yml --win nsis --x64 --publish never
 ```
 
-The installer is unsigned; `SHA256SUMS.txt` accompanies scripted builds. The NSIS install GUID derives from the appId, so Wao no longer collides with the old Chatbox/Chatbox Lite registry entries or install paths. The app profile is `%APPDATA%\Wao`, established by the main-process bootstrap before any store loads. Export your chats from an older app and import them if the Wao profile is empty.
+The installer is unsigned; `SHA256SUMS.txt` accompanies scripted builds. The NSIS install GUID derives from the appId, so Wao has its own install path and uninstall entry. The app profile is `%APPDATA%\Wao`, established by the main-process bootstrap before any store loads. Export your chats from an older app and import them if the Wao profile is empty.
 
 The tracked root `.npmrc` includes `registry=https://registry.npmjs.org/`. The beforePack hook requires an explicit default registry to install production dependencies in `release/app`; a user/global npm setting alone does not satisfy that hook. Keep this line in the repository. If you intentionally use another package registry, replace the value with that approved registry URL.
 

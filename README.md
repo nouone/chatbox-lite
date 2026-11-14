@@ -16,7 +16,7 @@ No spyware, no ads, just clean chat. Local LLMs first (Strata, Ollama, llama.cpp
 
 [Published installers](https://github.com/nouone/wao/releases) · [Windows test builds](https://github.com/nouone/wao/actions/workflows/windows.yml)
 
-The first published release still carries the pre-rename `Chatbox-Lite-0.1.5` asset; the `Wao-<version>` installers begin with the next release. For a test build, open a successful **Windows Wao installer** workflow run and download **Wao-Windows-x64** under Artifacts. Extract it and run its Setup EXE. Published Releases offer direct installer downloads without using Actions.
+For a test build, open a successful **Windows Wao installer** workflow run and download **Wao-Windows-x64** under Artifacts. Extract it and run its Setup EXE. Published Releases offer direct installer downloads without using Actions.
 
 ## Install on Windows
 
