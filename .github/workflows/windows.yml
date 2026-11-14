@@ -79,4 +79,5 @@ jobs:
           GH_REPO: ${{ github.repository }}
           RELEASE_TAG: ${{ github.ref_name }}
         run: |
-          gh release create "$RELEASE_TAG" --verify-tag --draft --title "Wao ${RELEASE_TAG#wao-v-}" --notes "Windows x64 installer with local Whisper dictation included. Add your own AI endpoint after installation. Kokoro speech synthesis and document embeddings are optional separate services. Unsigned build; verify SHA256SUMS.txt. See README for setup and Help chat instructions." installer/*
+          RELEASE_TITLE="Wao ${RELEASE_TAG#wao-v}"
+          gh release create "$RELEASE_TAG" --verify-tag --draft --title "$RELEASE_TITLE" --notes "Windows x64 installer with local Whisper dictation included. Add your own AI endpoint after installation. Kokoro speech synthesis and document embeddings are optional separate services. Unsigned build; verify SHA256SUMS.txt. See README for setup and Help chat instructions." installer/*
