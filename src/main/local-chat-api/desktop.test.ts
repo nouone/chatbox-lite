@@ -58,9 +58,9 @@ async function setup() {
 it('keeps an initialized controller ready during iframe loading and resets it on real page navigation', async () => {
   const { contents, listener, event, dispatch } = await setup()
   expect(await dispatch({ action: 'list' })).toMatchObject({ status: 503 })
-  listener('lite-api:ready')(event)
+  listener('wao-api:ready')(event)
   contents.send.mockImplementation((_channel, envelope) => {
-    listener('lite-api:response')(event, envelope.id, { status: 200, body: { items: [] } })
+    listener('wao-api:response')(event, envelope.id, { status: 200, body: { items: [] } })
   })
   contents.emit('did-start-navigation', {}, 'about:blank', false, false)
   expect(await dispatch({ action: 'list' })).toMatchObject({ status: 200 })
@@ -68,7 +68,7 @@ it('keeps an initialized controller ready during iframe loading and resets it on
   expect(await dispatch({ action: 'list' })).toMatchObject({ status: 200 })
   contents.emit('did-start-navigation', {}, 'file:///index.html', false, true)
   expect(await dispatch({ action: 'list' })).toMatchObject({ status: 503 })
-  listener('lite-api:ready')(event)
+  listener('wao-api:ready')(event)
   expect(await dispatch({ action: 'list' })).toMatchObject({ status: 200 })
 })
 

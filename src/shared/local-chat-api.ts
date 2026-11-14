@@ -19,12 +19,12 @@ export type LocalChatResult = { status: number; body: unknown }
 export type LocalChatEnvelope = { id: string; call: LocalChatCall }
 
 export const LOCAL_API_CHANNELS = {
-  status: 'lite-api:status',
-  configure: 'lite-api:configure',
-  rotateToken: 'lite-api:rotate-token',
-  copyToken: 'lite-api:copy-token',
-  openBrowser: 'lite-api:open-browser',
-  pairPhone: 'lite-api:pair-phone',
+  status: 'wao-api:status',
+  configure: 'wao-api:configure',
+  rotateToken: 'wao-api:rotate-token',
+  copyToken: 'wao-api:copy-token',
+  openBrowser: 'wao-api:open-browser',
+  pairPhone: 'wao-api:pair-phone',
 } as const
 
 export type LocalApiStatus = {

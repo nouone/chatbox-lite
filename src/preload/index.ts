@@ -69,14 +69,14 @@ const electronHandler: ElectronIPC = {
       request: import('../shared/local-chat-api').LocalChatEnvelope
     ) => {
       void handler(request.call)
-        .then((result) => ipcRenderer.send('lite-api:response', request.id, result))
+        .then((result) => ipcRenderer.send('wao-api:response', request.id, result))
         .catch(() =>
-          ipcRenderer.send('lite-api:response', request.id, { status: 500, body: { error: 'Desktop handler failed' } })
+          ipcRenderer.send('wao-api:response', request.id, { status: 500, body: { error: 'Desktop handler failed' } })
         )
     }
-    ipcRenderer.on('lite-api:request', listener)
-    ipcRenderer.send('lite-api:ready')
-    return () => ipcRenderer.removeListener('lite-api:request', listener)
+    ipcRenderer.on('wao-api:request', listener)
+    ipcRenderer.send('wao-api:ready')
+    return () => ipcRenderer.removeListener('wao-api:request', listener)
   },
   onNavigate: (callback: (path: string) => void) => {
     navigateCallback = callback

@@ -1,6 +1,6 @@
 import { createHmac, randomBytes, timingSafeEqual } from 'node:crypto'
 
-export const BROWSER_COOKIE = 'cbl_browser'
+export const BROWSER_COOKIE = 'wao_browser'
 const REMEMBER_SECONDS = 30 * 24 * 60 * 60
 
 function equal(a: string, b: string) {

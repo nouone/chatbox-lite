@@ -16,7 +16,7 @@ export function MessageMarkdown({ browserView = false, remarkPlugins, components
   return (
     <ReactMarkdown
       remarkPlugins={remarkPlugins ?? messageRemarkPlugins()}
-      className={`cbl-message-markdown ${className ?? ''}`}
+      className={`wao-message-markdown ${className ?? ''}`}
       {...(browserView
         ? {
             // The web page never auto-loads model-provided images or runs embedded HTML/artifacts.

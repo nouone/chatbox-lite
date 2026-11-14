@@ -1,12 +1,12 @@
 {
-  "name": "xyz.chatboxapp.ce",
-  "productName": "xyz.chatboxapp.ce",
+  "name": "wao",
+  "productName": "wao",
   "version": "1.0.0",
-  "description": "A desktop client for multiple cutting-edge AI models",
+  "description": "Wao desktop client",
   "author": {
-    "name": "Mediocre Company",
-    "email": "hi@chatboxai.com",
-    "url": "https://github.com/chatboxai"
+    "name": "Wao Contributors",
+    "email": "4097153+nouone@users.noreply.github.com",
+    "url": "https://github.com/nouone"
   },
   "main": "./dist/main/main.js",
   "scripts": {

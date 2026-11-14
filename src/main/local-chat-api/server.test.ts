@@ -80,7 +80,7 @@ it('pairs a Tailscale browser once, authenticates HTTP and WebSocket by HttpOnly
   const upgrade = vi.spyOn(server.events, 'handleUpgrade').mockImplementation(() => undefined)
   server.httpServer.emit(
     'upgrade',
-    { url: '/api/events', headers: { ...headers, cookie, 'sec-websocket-protocol': 'cbl-api' } },
+    { url: '/api/events', headers: { ...headers, cookie, 'sec-websocket-protocol': 'wao-api' } },
     { end: vi.fn() },
     Buffer.alloc(0)
   )

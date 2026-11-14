@@ -39,7 +39,7 @@ The scripted local build entry point is `scripts/Build-WaoInstaller.ps1` (versio
 
 ## Application identity and icon
 
-The app icon is the gray smiley (`assets/icon.svg`); SVG, PNG and ICO exports use the same artwork, and the macOS ICNS is structurally validated but untested on macOS. The empty chat-list bubble follows the live theme accent; custom avatars are retained. Stable internal wire identifiers deliberately survive the rename: the package name `xyz.chatboxapp.ce`, the `cbl-api` WebSocket subprotocol, `lite-api:*` IPC channels and the `cbl.chat` browser storage key. Changing them would break pairings and stored state for no user-visible gain.
+The app icon is the gray smiley (`assets/icon.svg`); SVG, PNG and ICO exports use the same artwork, and the macOS ICNS is structurally validated but untested on macOS. The empty chat-list bubble follows the live theme accent; custom avatars are retained. Internal wire identifiers were renamed with the app: the package name `wao`, the `wao-api` WebSocket subprotocol, `wao-api:*` IPC channels and the `wao.chat`/`wao.voice` browser storage keys. The rename invalidates existing phone pairings (the `wao_browser` cookie name changed) and phone-side page settings: pair devices once more after installing. The package name `xyz.chatboxapp.ce` remains in the profile bootstrap only as the upgrade source for pre-rename installs.
 
 ## Account and upgrade screens removed
 

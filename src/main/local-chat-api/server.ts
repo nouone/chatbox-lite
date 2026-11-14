@@ -249,13 +249,13 @@ export async function startLocalChatApi(options: {
   })
   server.requestTimeout = 15000
   server.headersTimeout = 10000
-  const sockets = new WebSocketServer({ noServer: true, maxPayload: 4096, handleProtocols: () => 'cbl-api' })
+  const sockets = new WebSocketServer({ noServer: true, maxPayload: 4096, handleProtocols: () => 'wao-api' })
   server.on('upgrade', (req, socket, head) => {
     const protocols = String(req.headers['sec-websocket-protocol'] || '')
       .split(',')
       .map((v) => v.trim())
     const token =
-      req.headers.authorization?.replace(/^Bearer /i, '') || (protocols[0] === 'cbl-api' ? protocols[1] : '') || ''
+      req.headers.authorization?.replace(/^Bearer /i, '') || (protocols[0] === 'wao-api' ? protocols[1] : '') || ''
     if (
       req.url !== '/api/events' ||
       !hostAllowed(req) ||

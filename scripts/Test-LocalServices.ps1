@@ -5,7 +5,7 @@ param(
 )
 $ErrorActionPreference = 'Stop'
 if ($Service -in @('All', 'Speech')) {
-    $audioPath = Join-Path ([IO.Path]::GetTempPath()) ('cbl-speech-' + [guid]::NewGuid().ToString('N') + '.mp3')
+    $audioPath = Join-Path ([IO.Path]::GetTempPath()) ('wao-speech-' + [guid]::NewGuid().ToString('N') + '.mp3')
     $body = @{ model = 'kokoro'; voice = 'af_heart'; input = 'Wao local speech is working.'; speed = 1.1; response_format = 'mp3' } | ConvertTo-Json
     Invoke-WebRequest -UseBasicParsing -Uri ($SpeechUrl.TrimEnd('/') + '/v1/audio/speech') -Method Post -ContentType 'application/json' -Body $body -OutFile $audioPath -TimeoutSec 180
     if ((Get-Item -LiteralPath $audioPath).Length -eq 0) { throw 'Speech service returned an empty file.' }

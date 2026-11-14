@@ -12,13 +12,13 @@ import { createLocalApiManager } from './manager'
 export function registerLocalChatApi(getWindow: () => BrowserWindow | null) {
   let ready = false
   const pending = new Map<string, { resolve: (value: LocalChatResult) => void; timer: ReturnType<typeof setTimeout> }>()
-  ipcMain.on('lite-api:ready', (event) => {
+  ipcMain.on('wao-api:ready', (event) => {
     if (event.sender === getWindow()?.webContents && event.senderFrame === getWindow()?.webContents.mainFrame) {
       ready = true
       console.info('[Wao API] Desktop controller ready')
     }
   })
-  ipcMain.on('lite-api:response', (event, id: string, result: LocalChatResult) => {
+  ipcMain.on('wao-api:response', (event, id: string, result: LocalChatResult) => {
     if (event.sender !== getWindow()?.webContents || event.senderFrame !== getWindow()?.webContents.mainFrame) return
     const request = pending.get(id)
     if (!request) return
@@ -46,7 +46,7 @@ export function registerLocalChatApi(getWindow: () => BrowserWindow | null) {
         })
       }, call.action === 'speech' ? 120000 : 15000)
       pending.set(id, { resolve, timer })
-      window.webContents.send('lite-api:request', { id, call })
+      window.webContents.send('wao-api:request', { id, call })
     })
   const profile = app.getPath('userData')
   const tokenPath = path.join(profile, 'local-api-token.txt')
